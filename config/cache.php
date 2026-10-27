@@ -47,10 +47,11 @@ return [
             'lock_table' => env('DB_CACHE_LOCK_TABLE'),
         ],
 
+        // CACHE_PATH separates servers that share the code, as in .github/scripts/differential.sh.
         'file' => [
             'driver' => 'file',
-            'path' => storage_path('framework/cache/data'),
-            'lock_path' => storage_path('framework/cache/locks'),
+            'path' => env('CACHE_PATH', storage_path('framework/cache')).'/data',
+            'lock_path' => env('CACHE_PATH', storage_path('framework/cache')).'/locks',
         ],
 
         'storage' => [

@@ -29,6 +29,7 @@ Route::prefix('/api')->group(function (): void {
 
 // api::identity_routes()
 Route::prefix('/identity')->group(function (): void {
+    Route::post('/connect/token', [IdentityController::class, 'login'])->name('identity::login');
     Route::post('/accounts/prelogin', [IdentityController::class, 'postPrelogin'])->name('identity::post_prelogin');
     Route::post('/accounts/prelogin/password', [IdentityController::class, 'preloginPassword'])->name('identity::prelogin_password');
     Route::post('/accounts/register/send-verification-email', [IdentityController::class, 'registerVerificationEmail'])

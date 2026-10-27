@@ -21,17 +21,19 @@ final class ApiError extends RuntimeException
         public readonly int $status,
         public readonly string $kind,
         public readonly mixed $body = null,
+        public readonly ?string $logMessage = null,
     ) {
         parent::__construct($message);
     }
 
     /**
-     * err!(message), err_code!(message, status) and errors converted with `?`,
-     * whose message is the name of their kind ("Db", "Serde", ...).
+     * err!(message), err!(message, log value), err_code!(message, status) and
+     * errors converted with `?`, whose message is the name of their kind
+     * ("Db", "Serde", ...). The log value only goes to the log.
      */
-    public static function message(string $message, int $status = 400): self
+    public static function message(string $message, int $status = 400, ?string $logMessage = null): self
     {
-        return new self($message, $status, 'simple');
+        return new self($message, $status, 'simple', logMessage: $logMessage);
     }
 
     /**
@@ -60,7 +62,7 @@ final class ApiError extends RuntimeException
 
     public function withStatus(int $status): self
     {
-        return new self($this->message, $status, $this->kind, $this->body);
+        return new self($this->message, $status, $this->kind, $this->body, $this->logMessage);
     }
 
     /**
@@ -68,7 +70,7 @@ final class ApiError extends RuntimeException
      */
     public function report(): void
     {
-        Log::error($this->message);
+        Log::error($this->logMessage === null ? $this->message : "{$this->message}. {$this->logMessage}");
     }
 
     public function toResponse(): Response
