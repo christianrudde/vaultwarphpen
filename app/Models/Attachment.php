@@ -38,7 +38,6 @@ final class Attachment extends Model
      */
     public function toApi(string $host): array
     {
-        /** @var array<string, mixed> */
         return Json::sorted([
             'id' => $this->id,
             'url' => "{$host}/attachments/{$this->cipher_uuid}/{$this->id}?token={$this->downloadToken()}",

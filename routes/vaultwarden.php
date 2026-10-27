@@ -28,6 +28,9 @@ Route::prefix('/api')->group(function (): void {
     Route::get('/alive', [CoreController::class, 'alive'])->name('core::alive');
     Route::get('/now', [CoreController::class, 'now'])->name('core::now');
     Route::get('/version', [CoreController::class, 'version'])->name('core::version');
+    Route::get('/settings/domains', [CoreController::class, 'getSettingsDomains'])->name('core::get_settings_domains');
+    Route::post('/settings/domains', [CoreController::class, 'postSettingsDomains'])->name('core::post_settings_domains');
+    Route::put('/settings/domains', [CoreController::class, 'postSettingsDomains'])->name('core::put_settings_domains');
 
     // core::accounts
     Route::get('/accounts/profile', [AccountsController::class, 'profile'])->name('core::accounts::profile');
@@ -40,6 +43,7 @@ Route::prefix('/api')->group(function (): void {
     Route::get('/accounts/revision-date', [AccountsController::class, 'revisionDate'])->name('core::accounts::revision_date');
 
     // core::ciphers
+    Route::get('/sync', [CiphersController::class, 'sync'])->name('core::ciphers::sync');
     // Rocket ranks static segments above dynamic ones; Laravel takes the first match, so these come first.
     Route::delete('/ciphers', [CiphersController::class, 'deleteCiphers'])->name('core::ciphers::delete_cipher_selected');
     Route::post('/ciphers/delete', [CiphersController::class, 'deleteCiphers'])->name('core::ciphers::delete_cipher_selected_post');

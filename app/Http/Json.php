@@ -23,6 +23,8 @@ final class Json
 
     /**
      * Sort the keys of every object, like a `json!()` value.
+     *
+     * @return ($value is array<string, mixed> ? array<string, mixed> : mixed)
      */
     public static function sorted(mixed $value): mixed
     {

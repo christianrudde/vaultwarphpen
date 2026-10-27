@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Auth\ClientVersion;
 use App\Auth\Headers;
 use App\Config\Config;
 use App\Http\ApiError;
@@ -20,6 +21,7 @@ use App\Models\Folder;
 use App\Models\FolderCipher;
 use App\Models\Membership;
 use App\Models\OrgPolicy;
+use App\Models\Send;
 use App\Support\Dates;
 use App\Support\Uuid;
 use Illuminate\Http\Request;
@@ -34,6 +36,57 @@ final readonly class CiphersController
     public function __construct(
         private Config $config,
     ) {}
+
+    /**
+     * GET /api/sync: everything a client keeps of the vault.
+     */
+    public function sync(Headers $headers, Request $request): Response
+    {
+        $user = $headers->user;
+        $clientVersion = ClientVersion::fromRequest($request);
+        $excludeDomains = self::excludeDomains($request);
+
+        $profile = $user->toApi();
+
+        // Clients before 2024.12.0 cannot handle SSH keys.
+        $showSshKeys = $clientVersion?->isAtLeast(2024, 12, 0) ?? false;
+        $ciphers = array_values(array_filter(
+            $this->ciphersJson($headers),
+            static fn (array $cipher): bool => $showSshKeys || $cipher['type'] !== 5,
+        ));
+
+        $sends = Send::findByUser($user->uuid)->map(static fn (Send $send): array => $send->toApi())->all();
+        $folders = Folder::findByUser($user->uuid)->map(static fn (Folder $folder): array => $folder->toApi())->all();
+        $masterPasswordUnlock = $user->password_hash === '' ? null : [
+            'kdf' => [
+                'kdfType' => $user->client_kdf_type,
+                'iterations' => $user->client_kdf_iter,
+                'memory' => $user->client_kdf_memory,
+                'parallelism' => $user->client_kdf_parallelism,
+            ],
+            // Named inconsistently; the apps move to the "wrapped" variant.
+            'masterKeyEncryptedUserKey' => $user->akey,
+            'masterKeyWrappedUserKey' => $user->akey,
+            'salt' => $user->email,
+        ];
+
+        return Json::response(Json::sorted([
+            'profile' => $profile,
+            'folders' => array_values($folders),
+            // Collections and policies come with organizations, which the profile already refuses.
+            'collections' => [],
+            'policies' => [],
+            'policiesNew' => [],
+            'ciphers' => $ciphers,
+            'domains' => $excludeDomains ? null : CoreController::eqDomains($user, noExcluded: true),
+            'sends' => array_values($sends),
+            'userDecryption' => [
+                'masterPasswordUnlock' => $masterPasswordUnlock,
+                'userKeyId' => $user->key_id,
+            ],
+            'object' => 'sync',
+        ]));
+    }
 
     /**
      * GET /api/ciphers
@@ -490,6 +543,34 @@ final readonly class CiphersController
         }
 
         return Json::response(Json::sorted(['data' => $ciphers, 'object' => 'list', 'continuationToken' => null]));
+    }
+
+    /**
+     * SyncData: the `excludeDomains` query field, a bool. Rocket parses it
+     * after the request guards; a bad or repeated value forwards the request
+     * to the web vault's catch-all, which finds no such file.
+     *
+     * @throws HttpStatus
+     */
+    private static function excludeDomains(Request $request): bool
+    {
+        // The raw query: Symfony's normalized one keeps only the last of repeated fields.
+        $query = $request->server->get('QUERY_STRING');
+        $values = [];
+        foreach (explode('&', is_string($query) ? $query : '') as $pair) {
+            [$name, $value] = array_pad(explode('=', $pair, 2), 2, '');
+            if (urldecode($name) === 'excludeDomains') {
+                $values[] = strtolower(urldecode($value));
+            }
+        }
+
+        return match (true) {
+            $values === [] => false,
+            count($values) > 1 => throw new HttpStatus(404, 'Duplicate query field.'),
+            in_array($values[0], ['off', 'false', 'no'], true) => false,
+            in_array($values[0], ['', 'on', 'true', 'yes'], true) => true,
+            default => throw new HttpStatus(404, 'Query field is not a bool.'),
+        };
     }
 
     /**

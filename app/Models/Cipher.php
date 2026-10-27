@@ -141,7 +141,6 @@ final class Cipher extends Model
         ];
         $json[$key] = $this->typeDataJson();
 
-        /** @var array<string, mixed> */
         return Json::sorted($json);
     }
 

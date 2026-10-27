@@ -245,7 +245,7 @@ class CipherTest extends DifferentialTestCase
         });
     }
 
-    #[Parity('route:POST /api/ciphers/purge')]
+    #[Parity('route:POST /api/ciphers/purge#purge_personal_vault')]
     public function test_purging_the_personal_vault(): void
     {
         $this->assertSameFlows(function (Server $server): array {
@@ -308,11 +308,22 @@ class CipherTest extends DifferentialTestCase
             return $body;
         }
 
-        usort($list['data'], static fn (mixed $a, mixed $b): int => strcmp(
+        $list['data'] = self::byName($list['data']);
+
+        return (string) json_encode($list, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION);
+    }
+
+    /**
+     * @param  array<mixed>  $items
+     * @return list<mixed>
+     */
+    public static function byName(array $items): array
+    {
+        usort($items, static fn (mixed $a, mixed $b): int => strcmp(
             is_array($a) && is_string($a['name'] ?? null) ? $a['name'] : '',
             is_array($b) && is_string($b['name'] ?? null) ? $b['name'] : '',
         ));
 
-        return (string) json_encode($list, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION);
+        return $items;
     }
 }

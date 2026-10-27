@@ -75,7 +75,6 @@ final class Device extends Model
      */
     public function toApi(): array
     {
-        /** @var array<string, mixed> */
         return Json::sorted([
             'id' => $this->uuid,
             'name' => $this->name,

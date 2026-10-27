@@ -30,8 +30,9 @@ Everything is measured against one pinned Vaultwarden commit.
 
 - `parity/reference.json` pins the commit, release and web vault version.
 - `php artisan parity:fetch` checks that commit out into `reference/vaultwarden` (git-ignored).
-- `php artisan parity:sync` copies Vaultwarden's SQL migrations to `database/vaultwarden/<dialect>`
-  and its Handlebars templates to `resources/vaultwarden/templates`. Never edit those copies.
+- `php artisan parity:sync` copies Vaultwarden's SQL migrations to `database/vaultwarden/<dialect>`,
+  its Handlebars templates to `resources/vaultwarden/templates` and `global_domains.json` to
+  `resources/vaultwarden/static`. Never edit those copies.
 - `php artisan parity:generate` extracts every route, setting, scheduled job, table, template and
   static asset into `parity/matrix.json` and writes `PARITY.md`. Status and notes survive.
 - Status is `todo`, `partial`, `done` or `wontfix`. An item may only be `done` when a test carries

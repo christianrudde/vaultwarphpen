@@ -228,7 +228,6 @@ final class User extends Model
             return null;
         }
 
-        /** @var array<string, mixed> */
         return Json::sorted([
             'publicKeyEncryptionKeyPair' => [
                 'wrappedPrivateKey' => $this->private_key,
@@ -257,7 +256,6 @@ final class User extends Model
             throw ApiError::message('Organizations are not implemented yet');
         }
 
-        /** @var array<string, mixed> */
         return Json::sorted([
             '_status' => $this->status(),
             'accountKeys' => $this->accountKeysJson(),

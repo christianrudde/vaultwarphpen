@@ -431,7 +431,6 @@ final readonly class IdentityController
             return null;
         }
 
-        /** @var array<string, mixed> */
         return Json::sorted([
             'publicKeyEncryptionKeyPair' => [
                 'wrappedPrivateKey' => $user->private_key,
@@ -449,7 +448,6 @@ final readonly class IdentityController
     {
         $hasMasterPassword = $user->password_hash !== '';
 
-        /** @var array<string, mixed> */
         return Json::sorted([
             'HasMasterPassword' => $hasMasterPassword,
             'MasterPasswordUnlock' => $hasMasterPassword ? [

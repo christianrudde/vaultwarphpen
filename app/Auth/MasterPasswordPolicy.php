@@ -68,7 +68,6 @@ final class MasterPasswordPolicy
             $policy[ucfirst($key)] = $value;
         }
 
-        /** @var array<string, mixed> */
         return Json::sorted($policy);
     }
 

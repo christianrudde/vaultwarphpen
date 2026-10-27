@@ -54,7 +54,6 @@ final class Folder extends Model
      */
     public function toApi(): array
     {
-        /** @var array<string, mixed> */
         return Json::sorted([
             'id' => $this->uuid,
             'revisionDate' => Dates::format($this->updated_at),
