@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Auth\RsaKeys;
 use App\Config\Config;
 use App\Database\DatabaseUrl;
 use App\Database\SqlStatements;
@@ -24,6 +25,9 @@ class AppServiceProvider extends ServiceProvider
             static fn (string $key): ?string => Env::getRepository()->get($key),
             base_path(),
         ));
+
+        // Loads (or creates) the key file once per request.
+        $this->app->singleton(RsaKeys::class);
 
         $this->app->singleton(VaultwardenMigrator::class, fn (): VaultwardenMigrator => new VaultwardenMigrator(
             database_path('vaultwarden'),

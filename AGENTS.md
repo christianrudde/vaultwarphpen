@@ -61,3 +61,18 @@ Everything is measured against one pinned Vaultwarden commit.
   Vaultwarden's session settings (UTC, no SQLite foreign key enforcement, `DATABASE_CONN_INIT`). The
   `sqlite`, `mysql` and `pgsql` connections are only for tests and tools that name them.
 - The project is licensed AGPL-3.0-only, like Vaultwarden, from which it is derived.
+
+## HTTP conventions
+
+- Routes live in `routes/vaultwarden.php`, mounted below `DOMAIN`'s path like Vaultwarden's mount points,
+  and are named after their Rust handler (`core::now`). One controller per Rust module
+  (`src/api/core/mod.rs` → `CoreController`), methods named after the handlers.
+- No Laravel middleware groups: the only global middleware are `Cors` and `AppHeaders`, ports of
+  Vaultwarden's response fairings. Laravel's input trimming, empty-string-to-null and CORS are off.
+- Errors: throw `App\Http\ApiError` for `err!`, `err_code!`, `err_json!` and friends. Everything else is
+  rendered by `App\Http\ErrorRenderer` like Rocket's catchers (API 404 JSON, the 404 page, Rocket's
+  default catcher). Database errors become `{"message":"Db",...}` like Vaultwarden's `?` conversions.
+- JSON: use `App\Http\Json`. Values built with `json!()` in Rust have their keys sorted (serde_json runs
+  without `preserve_order`), so pass them through `Json::sorted()`; derived structs keep field order.
+- Tokens: `App\Auth\Jwt` with the key file `App\Auth\RsaKeys` shares with Vaultwarden. Claims are arrays
+  in the field order of the Rust struct. `.github/scripts/token-parity.sh` checks interop in CI.

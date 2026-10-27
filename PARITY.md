@@ -8,7 +8,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 
 | Area | Total | ✅ | 🟨 | ⬜ | ➖ | With tests |
 |---|--:|--:|--:|--:|--:|--:|
-| Routes | 294 | 0 | 0 | 294 | 0 | 0 |
+| Routes | 294 | 5 | 0 | 288 | 1 | 5 |
 | Settings | 153 | 6 | 147 | 0 | 0 | 153 |
 | Scheduled jobs | 8 | 0 | 0 | 8 | 0 | 0 |
 | Database tables | 28 | 28 | 0 | 0 | 0 | 28 |
@@ -20,8 +20,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | | Item | Source | Tests | Notes |
 |---|---|---|--:|---|
 | ⬜ | GET `/attachments/{cipher_id}/{file_id}` | src/api/web.rs:232 | 0 |  |
-| ⬜ | GET `/alive` | src/api/web.rs:245 | 0 |  |
-| ⬜ | HEAD `/alive` | src/api/web.rs:250 | 0 |  |
+| ✅ | GET `/alive` | src/api/web.rs:245 | 1 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
+| ✅ | HEAD `/alive` | src/api/web.rs:250 | 1 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
 | ⬜ | GET `/vw_static/{filename}` | src/api/web.rs:330 | 0 |  |
 | ⬜ | GET `/` | src/api/web.rs:154 | 0 |  |
 | ⬜ | GET `/index.html` | src/api/web.rs:161 | 0 |  |
@@ -30,14 +30,14 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ⬜ | GET `/.well-known/apple-app-site-association` | src/api/web.rs:209 | 0 |  |
 | ⬜ | GET `/{p..}` | src/api/web.rs:227 | 0 |  |
 | ⬜ | GET `/css/vaultwarden.css` | src/api/web.rs:82 | 0 |  |
-| ⬜ | GET `/vw_static/{filename}` | src/api/web.rs:262 | 0 |  |
+| ➖ | GET `/vw_static/{filename}` | src/api/web.rs:262 | 0 | Only in debug builds of Vaultwarden (cfg(debug_assertions)); release builds serve static_files. |
 | ⬜ | GET `/api/settings/domains` | src/api/core/mod.rs:75 | 0 |  |
 | ⬜ | POST `/api/settings/domains` | src/api/core/mod.rs:112 | 0 |  |
 | ⬜ | PUT `/api/settings/domains` | src/api/core/mod.rs:138 | 0 |  |
 | ⬜ | GET `/api/hibp/breach` | src/api/core/mod.rs:148 | 0 |  |
-| ⬜ | GET `/api/alive` | src/api/core/mod.rs:183 | 0 |  |
-| ⬜ | GET `/api/now` | src/api/core/mod.rs:188 | 0 |  |
-| ⬜ | GET `/api/version` | src/api/core/mod.rs:193 | 0 |  |
+| ✅ | GET `/api/alive` | src/api/core/mod.rs:183 | 1 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
+| ✅ | GET `/api/now` | src/api/core/mod.rs:188 | 1 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
+| ✅ | GET `/api/version` | src/api/core/mod.rs:193 | 1 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
 | ⬜ | GET `/api/config` | src/api/core/mod.rs:210 | 0 |  |
 | ⬜ | GET `/api/webauthn` | src/api/core/mod.rs:198 | 0 |  |
 | ⬜ | GET `/api/accounts/profile` | src/api/core/accounts.rs:505 | 0 |  |
