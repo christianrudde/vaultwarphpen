@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccountsController;
+use App\Http\Controllers\CiphersController;
 use App\Http\Controllers\CoreController;
 use App\Http\Controllers\FoldersController;
 use App\Http\Controllers\IdentityController;
@@ -37,6 +38,19 @@ Route::prefix('/api')->group(function (): void {
     Route::get('/accounts/keys', [AccountsController::class, 'getKeys'])->name('core::accounts::get_keys');
     Route::post('/accounts/keys', [AccountsController::class, 'postKeys'])->name('core::accounts::post_keys');
     Route::get('/accounts/revision-date', [AccountsController::class, 'revisionDate'])->name('core::accounts::revision_date');
+
+    // core::ciphers
+    Route::get('/ciphers', [CiphersController::class, 'getCiphers'])->name('core::ciphers::get_ciphers');
+    Route::get('/ciphers/{cipherId}', [CiphersController::class, 'getCipher'])->name('core::ciphers::get_cipher');
+    Route::get('/ciphers/{cipherId}/admin', [CiphersController::class, 'getCipher'])->name('core::ciphers::get_cipher_admin');
+    Route::get('/ciphers/{cipherId}/details', [CiphersController::class, 'getCipher'])->name('core::ciphers::get_cipher_details');
+    Route::post('/ciphers', [CiphersController::class, 'postCiphers'])->name('core::ciphers::post_ciphers');
+    Route::put('/ciphers/{cipherId}', [CiphersController::class, 'putCipher'])->name('core::ciphers::put_cipher');
+    Route::post('/ciphers/{cipherId}', [CiphersController::class, 'putCipher'])->name('core::ciphers::post_cipher');
+    Route::put('/ciphers/{cipherId}/admin', [CiphersController::class, 'putCipher'])->name('core::ciphers::put_cipher_admin');
+    Route::post('/ciphers/{cipherId}/admin', [CiphersController::class, 'putCipher'])->name('core::ciphers::post_cipher_admin');
+    Route::put('/ciphers/{cipherId}/partial', [CiphersController::class, 'putCipherPartial'])->name('core::ciphers::put_cipher_partial');
+    Route::post('/ciphers/{cipherId}/partial', [CiphersController::class, 'putCipherPartial'])->name('core::ciphers::post_cipher_partial');
 
     // core::folders
     Route::get('/folders', [FoldersController::class, 'getFolders'])->name('core::folders::get_folders');

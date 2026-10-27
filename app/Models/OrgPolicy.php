@@ -22,6 +22,8 @@ final class OrgPolicy extends Model
 
     public const int TYPE_MASTER_PASSWORD = 1;
 
+    public const int TYPE_PERSONAL_OWNERSHIP = 5;
+
     protected $table = 'org_policies';
 
     protected $primaryKey = 'uuid';
@@ -33,6 +35,26 @@ final class OrgPolicy extends Model
             'enabled' => 'boolean',
             'revision_date' => Casts\NaiveDateTime::class,
         ];
+    }
+
+    /**
+     * Whether an enabled policy binds the user: a confirmed member below admin.
+     */
+    public static function isApplicableToUser(string $userUuid, int $policyType, ?string $excludeOrgUuid = null): bool
+    {
+        foreach (self::findAcceptedAndConfirmedByUserAndActivePolicy($userUuid, $policyType) as $policy) {
+            if ($excludeOrgUuid !== null && $policy->org_uuid === $excludeOrgUuid) {
+                continue;
+            }
+
+            $member = Membership::query()->where('user_uuid', $userUuid)->where('org_uuid', $policy->org_uuid)
+                ->where('status', Membership::STATUS_CONFIRMED)->first();
+            if ($member !== null && $member->typeBelow(Membership::TYPE_ADMIN)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

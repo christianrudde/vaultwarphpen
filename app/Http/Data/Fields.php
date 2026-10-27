@@ -93,6 +93,38 @@ final readonly class Fields
     /**
      * @throws HttpStatus
      */
+    public function optionalBool(string $name, string ...$aliases): ?bool
+    {
+        $value = $this->get($name, array_values($aliases));
+
+        return $value === null || is_bool($value) ? $value : throw new HttpStatus(422, "Field `{$name}` must be a boolean.");
+    }
+
+    /**
+     * An Option<serde_json::Value>: any JSON, objects as stdClass; null when missing or null.
+     *
+     * @throws HttpStatus
+     */
+    public function value(string $name, string ...$aliases): mixed
+    {
+        return $this->get($name, array_values($aliases));
+    }
+
+    /**
+     * `deserialize_with = deser_opt_nonempty_str`: an empty string counts as none.
+     *
+     * @throws HttpStatus
+     */
+    public function optionalNonEmptyString(string $name, string ...$aliases): ?string
+    {
+        $value = $this->optionalString($name, ...$aliases);
+
+        return $value === '' ? null : $value;
+    }
+
+    /**
+     * @throws HttpStatus
+     */
     public function object(string $name, string ...$aliases): self
     {
         return $this->optionalObject($name, ...$aliases) ?? throw new HttpStatus(422, "Missing field `{$name}`.");
