@@ -94,6 +94,9 @@ class LoginTest extends TestCase
         $this->login(['device_type' => null])->assertStatus(400)->assertJsonPath('message', 'device_type cannot be blank');
         $this->postForm(['grant_type' => 'magic'])->assertStatus(400)->assertJsonPath('message', 'Invalid type');
         $this->postForm(['scope' => 'api'], ['Accept' => 'application/json'])->assertStatus(422);
+        // Repeated or unreadable optional fields count as missing.
+        $this->login(['ClientId' => 'web'])->assertStatus(400)->assertJsonPath('message', 'client_id cannot be blank');
+        $this->login(['two_factor_provider' => 'x'])->assertStatus(200);
         $this->postJson('/identity/connect/token', ['grant_type' => 'password'])->assertStatus(415);
 
         $this->user->enabled = false;

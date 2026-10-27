@@ -93,7 +93,7 @@ abstract class DifferentialTestCase extends TestCase
 
     protected function assertSameExchange(Exchange $reference, Exchange $subject, string $label): void
     {
-        $this->assertSame($reference->status, $subject->status, "Status of {$label}");
+        $this->assertSame($reference->status, $subject->status, "Status of {$label}\nVaultwarden: {$reference->body}\nThis implementation: {$subject->body}");
 
         foreach (self::HEADERS as $header) {
             $this->assertSame($reference->header($header), $subject->header($header), "Header {$header} of {$label}");

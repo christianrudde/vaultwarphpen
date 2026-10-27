@@ -26,10 +26,9 @@ final class Body
     }
 
     /**
-     * Form<T> in lenient mode: an urlencoded or multipart body, field names
-     * compared without case, the first value of a repeated field wins.
+     * Form<T>: an urlencoded or multipart body, as the values of each name.
      *
-     * @return array<string, string> Lower-case names
+     * @return array<string, list<string>> Lower-case names
      *
      * @throws HttpStatus
      */
@@ -44,7 +43,7 @@ final class Body
         if (str_starts_with($type, 'multipart/form-data')) {
             foreach ($request->request->all() as $name => $value) {
                 if (is_string($value)) {
-                    $fields[strtolower((string) $name)] ??= $value;
+                    $fields[strtolower((string) $name)][] = $value;
                 }
             }
 
@@ -56,9 +55,27 @@ final class Body
                 continue;
             }
             [$name, $value] = array_pad(explode('=', $pair, 2), 2, '');
-            $fields[strtolower(urldecode($name))] ??= urldecode($value);
+            $fields[strtolower(urldecode($name))][] = urldecode($value);
         }
 
         return $fields;
+    }
+
+    /**
+     * A field of a lenient form under any of its names. Like an Option<T>
+     * field, it is None when it is missing, given more than once, or fails
+     * to parse.
+     *
+     * @param  array<string, list<string>>  $form
+     * @param  list<string>  $names  Lower-case names and aliases
+     */
+    public static function optionalFormField(array $form, array $names): ?string
+    {
+        $values = [];
+        foreach ($names as $name) {
+            array_push($values, ...($form[$name] ?? []));
+        }
+
+        return count($values) === 1 ? $values[0] : null;
     }
 }

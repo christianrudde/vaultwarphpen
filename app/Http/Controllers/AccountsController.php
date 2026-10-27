@@ -19,6 +19,7 @@ use App\Models\Membership;
 use App\Models\User;
 use App\Support\Dates;
 use App\Support\RateLimiter;
+use App\Support\Uuid;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Throwable;
@@ -276,9 +277,9 @@ final readonly class AccountsController
     /**
      * GET /api/users/{user_id}/public-key
      */
-    public function getPublicKeys(string $userId, Headers $headers): Response
+    public function getPublicKeys(Headers $headers, Request $request, string $userId): Response
     {
-        $user = User::findByUuid($userId);
+        $user = User::findByUuid(Uuid::parameter($request, $userId));
         if ($user === null) {
             throw ApiError::message("User doesn't exist", 404);
         }

@@ -83,7 +83,9 @@ class AccountTest extends TestCase
 
         $this->get("/api/users/{$this->user->uuid}/public-key", $this->auth)->assertJsonPath('publicKey', 'public');
         $this->get('/api/users/'.Random::uuid().'/public-key', $this->auth)->assertStatus(404)->assertJsonPath('message', "User doesn't exist");
-        $this->get('/api/users/nope/public-key', ['Accept' => 'application/json'])->assertStatus(422);
+        // The guard comes first; then the bad id forwards to the web vault files: 404.
+        $this->get('/api/users/nope/public-key', ['Accept' => 'application/json'])->assertStatus(401);
+        $this->get('/api/users/nope/public-key', $this->auth)->assertStatus(404)->assertJsonPath('error.code', 404);
     }
 
     public function test_revision_date_in_milliseconds(): void

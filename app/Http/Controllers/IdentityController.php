@@ -47,17 +47,10 @@ final readonly class IdentityController
     public function login(Request $request): Response
     {
         $data = Body::form($request);
-        // ConnectData: field names without case, each with an alias without underscores.
-        $field = static function (string $name) use ($data): ?string {
-            return $data[$name] ?? $data[str_replace('_', '', $name)] ?? null;
-        };
-        $grantType = $field('grant_type') ?? throw new HttpStatus(422, 'Missing field `grant_type`.');
-        foreach (['two_factor_provider', 'two_factor_remember'] as $number) {
-            $value = $field($number);
-            if ($value !== null && ! preg_match('/^[+-]?[0-9]+$/D', $value)) {
-                throw new HttpStatus(422, "Field `{$number}` must be an i32.");
-            }
-        }
+        // ConnectData: names without case, each with an alias without underscores.
+        $field = static fn (string $name): ?string => Body::optionalFormField($data, array_values(array_unique([$name, str_replace('_', '', $name)])));
+        // The only field that is not an Option: missing or repeated, the form is rejected.
+        $grantType = $field('grant_type') ?? throw new HttpStatus(422, 'Field `grant_type` is missing or repeated.');
 
         $ip = ClientIp::resolve($request, $this->config);
         $required = static function (string $name, string $message) use ($field): string {
