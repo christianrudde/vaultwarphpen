@@ -177,10 +177,11 @@ final readonly class SendsController
             throw ApiError::message('Send file size does not match.', logMessage: "Expected a file size of {$sendFile['size']} got {$size}");
         }
 
-        // Written only if absent; upstream's storage layer refuses an overwrite.
+        // Written only if absent. Upstream's storage refuses an overwrite while
+        // copying, so the error arrives as an io::Error.
         $path = Send::filePath($sendId, $fileId);
         if (file_exists($path)) {
-            throw ApiError::message('OpenDAL', logMessage: 'ConditionNotMatch: the send file exists already');
+            throw ApiError::message('Io', logMessage: 'ConditionNotMatch: the send file exists already');
         }
         $data->store($path);
         $send->updateUsersRevision();

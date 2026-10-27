@@ -155,10 +155,10 @@ class SendTest extends TestCase
             ->assertStatus(400)->assertJsonPath('message', 'Send file does not match send data.');
         $this->upload("/api/sends/{$id}/file/{$fileId}", UploadedFile::fake()->createWithContent('2.file/name', 'hello world'))->assertStatus(200)->assertContent('');
         $this->upload("/api/sends/{$id}/file/{$fileId}", UploadedFile::fake()->createWithContent('2.file/name', 'hello world'))
-            ->assertStatus(400)->assertJsonPath('message', 'OpenDAL');
+            ->assertStatus(400)->assertJsonPath('message', 'Io');
         // The CLI may send just the end of the name.
         $this->upload("/api/sends/{$id}/file/{$fileId}", UploadedFile::fake()->createWithContent('name', 'hello world'))
-            ->assertStatus(400)->assertJsonPath('message', 'OpenDAL');
+            ->assertStatus(400)->assertJsonPath('message', 'Io');
 
         $token = $this->string($this->accessToken((string) Send::findByUuid($id)?->accessId())->json('access_token'));
         $this->post('/api/sends/access', [], ['Authorization' => "Bearer {$token}"])->assertJsonPath('file.id', $fileId);
