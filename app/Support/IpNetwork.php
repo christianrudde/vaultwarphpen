@@ -36,6 +36,80 @@ final readonly class IpNetwork
         return new self($binary, (int) $prefix);
     }
 
+    /**
+     * IpAddr::to_canonical: an IPv4-mapped IPv6 address as IPv4.
+     */
+    public static function toCanonical(string $ip): string
+    {
+        $binary = filter_var($ip, FILTER_VALIDATE_IP) === false ? false : inet_pton($ip);
+        if ($binary === false || strlen($binary) !== 16 || ! str_starts_with($binary, str_repeat("\0", 10)."\xFF\xFF")) {
+            return $ip;
+        }
+
+        return (string) inet_ntop(substr($binary, 12));
+    }
+
+    /**
+     * util::is_global: whether the address is globally reachable.
+     */
+    public static function isGlobal(string $ip): bool
+    {
+        $binary = filter_var($ip, FILTER_VALIDATE_IP) === false ? false : inet_pton($ip);
+        if ($binary === false) {
+            return false;
+        }
+
+        $numbers = array_map(
+            static fn (mixed $number): int => is_int($number) ? $number : 0,
+            array_values(unpack(strlen($binary) === 4 ? 'C4' : 'n8', $binary) ?: []),
+        );
+
+        return strlen($binary) === 4 ? self::isGlobalV4($numbers) : self::isGlobalV6($numbers);
+    }
+
+    /**
+     * @param  list<int>  $o  Octets
+     */
+    private static function isGlobalV4(array $o): bool
+    {
+        $broadcast = $o === [255, 255, 255, 255];
+
+        return ! ($o[0] === 0
+            || $o[0] === 10 || ($o[0] === 172 && ($o[1] & 0xF0) === 16) || ($o[0] === 192 && $o[1] === 168)
+            || ($o[0] === 100 && ($o[1] & 0b1100_0000) === 0b0100_0000)
+            || $o[0] === 127
+            || ($o[0] === 169 && $o[1] === 254)
+            // Reserved for future protocols, except .9 and .10.
+            || ($o[0] === 192 && $o[1] === 0 && $o[2] === 0 && $o[3] !== 9 && $o[3] !== 10)
+            || ($o[0] === 192 && $o[1] === 0 && $o[2] === 2) || ($o[0] === 198 && $o[1] === 51 && $o[2] === 100)
+            || ($o[0] === 203 && $o[1] === 0 && $o[2] === 113)
+            || ($o[0] === 198 && ($o[1] & 0xFE) === 18)
+            || (($o[0] & 240) === 240 && ! $broadcast)
+            || $broadcast);
+    }
+
+    /**
+     * @param  list<int>  $s  Segments
+     */
+    private static function isGlobalV6(array $s): bool
+    {
+        $ietf = $s[0] === 0x2001 && $s[1] < 0x200
+            && ! ($s === [0x2001, 1, 0, 0, 0, 0, 0, 1] || $s === [0x2001, 1, 0, 0, 0, 0, 0, 2]
+                || $s[1] === 3 || ($s[1] === 4 && $s[2] === 0x112) || ($s[1] >= 0x20 && $s[1] <= 0x3F));
+
+        return ! ($s === [0, 0, 0, 0, 0, 0, 0, 0]
+            || $s === [0, 0, 0, 0, 0, 0, 0, 1]
+            || array_slice($s, 0, 6) === [0, 0, 0, 0, 0, 0xFFFF]
+            || array_slice($s, 0, 3) === [0x64, 0xFF9B, 1]
+            || array_slice($s, 0, 4) === [0x100, 0, 0, 0]
+            || $ietf
+            || $s[0] === 0x2002
+            || ($s[0] === 0x2001 && $s[1] === 0xDB8) || ($s[0] === 0x3FFF && $s[1] <= 0x0FFF)
+            || $s[0] === 0x5F00
+            || ($s[0] & 0xFE00) === 0xFC00
+            || ($s[0] & 0xFFC0) === 0xFE80);
+    }
+
     public function contains(string $ip): bool
     {
         $binary = filter_var($ip, FILTER_VALIDATE_IP) === false ? false : inet_pton($ip);

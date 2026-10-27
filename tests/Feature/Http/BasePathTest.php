@@ -2,11 +2,13 @@
 
 namespace Tests\Feature\Http;
 
+use Tests\Attributes\Parity;
 use Tests\TestCase;
 
 /**
  * Routes are mounted below the path of DOMAIN, like in src/main.rs.
  */
+#[Parity('config:DOMAIN')]
 class BasePathTest extends TestCase
 {
     protected function vaultwardenEnvironment(): array

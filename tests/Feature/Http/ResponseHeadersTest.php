@@ -2,11 +2,15 @@
 
 namespace Tests\Feature\Http;
 
+use Tests\Attributes\Parity;
 use Tests\TestCase;
 
 /**
  * util::AppHeaders and util::Cors.
  */
+#[Parity('config:DOMAIN')]
+#[Parity('config:ALLOWED_IFRAME_ANCESTORS')]
+#[Parity('config:ALLOWED_CONNECT_SRC')]
 class ResponseHeadersTest extends TestCase
 {
     protected function vaultwardenEnvironment(): array

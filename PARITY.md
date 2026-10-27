@@ -9,7 +9,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | Area | Total | ✅ | 🟨 | ⬜ | ➖ | With tests |
 |---|--:|--:|--:|--:|--:|--:|
 | Routes | 294 | 5 | 0 | 288 | 1 | 5 |
-| Settings | 153 | 6 | 147 | 0 | 0 | 153 |
+| Settings | 153 | 12 | 141 | 0 | 0 | 153 |
 | Scheduled jobs | 8 | 0 | 0 | 8 | 0 | 0 |
 | Database tables | 28 | 28 | 0 | 0 | 0 | 28 |
 | Templates | 74 | 0 | 74 | 0 | 0 | 74 |
@@ -343,7 +343,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `AUTH_REQUEST_PURGE_SCHEDULE` | src/config.rs:579 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `DUO_CONTEXT_PURGE_SCHEDULE` | src/config.rs:582 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `PURGE_INCOMPLETE_SSO_AUTH` | src/config.rs:585 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `DOMAIN` | src/config.rs:592 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `DOMAIN` | src/config.rs:592 | 3 | Read like Vaultwarden and used: DOMAIN for mount path, origin, CORS, Host and token issuers; the IP settings for the client IP; the CSP sources in the security headers. |
 | 🟨 | `DOMAIN_SET` | src/config.rs:594 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `DOMAIN_ORIGIN` | src/config.rs:596 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `DOMAIN_PATH` | src/config.rs:598 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
@@ -374,9 +374,9 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `INVITATION_ORG_NAME` | src/config.rs:672 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `EVENTS_DAYS_RETAIN` | src/config.rs:675 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `CLIENT_SUPPRESS_ONBOARDING` | src/config.rs:680 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `IP_HEADER` | src/config.rs:687 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `_IP_HEADER_ENABLED` | src/config.rs:689 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `IP_HEADER_TRUSTED_PROXIES` | src/config.rs:696 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `IP_HEADER` | src/config.rs:687 | 2 | Read like Vaultwarden and used: DOMAIN for mount path, origin, CORS, Host and token issuers; the IP settings for the client IP; the CSP sources in the security headers. |
+| ✅ | `_IP_HEADER_ENABLED` | src/config.rs:689 | 2 | Read like Vaultwarden and used: DOMAIN for mount path, origin, CORS, Host and token issuers; the IP settings for the client IP; the CSP sources in the security headers. |
+| ✅ | `IP_HEADER_TRUSTED_PROXIES` | src/config.rs:696 | 2 | Read like Vaultwarden and used: DOMAIN for mount path, origin, CORS, Host and token issuers; the IP settings for the client IP; the CSP sources in the security headers. |
 | 🟨 | `ICON_SERVICE` | src/config.rs:703 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `_ICON_SERVICE_URL` | src/config.rs:705 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `_ICON_SERVICE_CSP` | src/config.rs:707 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
@@ -406,8 +406,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `DATABASE_MIN_CONNS` | src/config.rs:780 | 1 | Read and validated like Vaultwarden; PHP opens one connection per request, so there is no pool to size yet. |
 | ✅ | `DATABASE_CONN_INIT` | src/config.rs:783 | 3 | Read like Vaultwarden (environment, *_FILE, config.json, default) and used: DATABASE_URL drives the default connection, the templates folder and reload drive the renderer. |
 | 🟨 | `DISABLE_ADMIN_TOKEN` | src/config.rs:786 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `ALLOWED_IFRAME_ANCESTORS` | src/config.rs:789 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `ALLOWED_CONNECT_SRC` | src/config.rs:792 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `ALLOWED_IFRAME_ANCESTORS` | src/config.rs:789 | 2 | Read like Vaultwarden and used: DOMAIN for mount path, origin, CORS, Host and token issuers; the IP settings for the client IP; the CSP sources in the security headers. |
+| ✅ | `ALLOWED_CONNECT_SRC` | src/config.rs:792 | 2 | Read like Vaultwarden and used: DOMAIN for mount path, origin, CORS, Host and token issuers; the IP settings for the client IP; the CSP sources in the security headers. |
 | 🟨 | `LOGIN_RATELIMIT_SECONDS` | src/config.rs:795 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `LOGIN_RATELIMIT_MAX_BURST` | src/config.rs:797 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `UNAUTHENTICATED_RATELIMIT_SECONDS` | src/config.rs:800 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
@@ -493,7 +493,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | `ciphers` | src/db/schema.rs:11 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
 | ✅ | `ciphers_collections` | src/db/schema.rs:30 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
 | ✅ | `collections` | src/db/schema.rs:37 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
-| ✅ | `devices` | src/db/schema.rs:46 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `devices` | src/db/schema.rs:46 | 3 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
 | ✅ | `event` | src/db/schema.rs:61 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
 | ✅ | `favorites` | src/db/schema.rs:82 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
 | ✅ | `folders` | src/db/schema.rs:89 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
@@ -505,7 +505,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | `twofactor` | src/db/schema.rs:157 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
 | ✅ | `twofactor_incomplete` | src/db/schema.rs:168 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
 | ✅ | `twofactor_duo_ctx` | src/db/schema.rs:179 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
-| ✅ | `users` | src/db/schema.rs:188 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `users` | src/db/schema.rs:188 | 3 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
 | ✅ | `users_collections` | src/db/schema.rs:225 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
 | ✅ | `users_organizations` | src/db/schema.rs:235 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
 | ✅ | `organization_api_key` | src/db/schema.rs:250 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |

@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Auth\Headers;
+use App\Auth\Jwt;
 use App\Auth\RsaKeys;
 use App\Config\Config;
 use App\Database\DatabaseUrl;
@@ -10,6 +12,7 @@ use App\Database\VaultwardenMigrator;
 use App\Templates\TemplateRenderer;
 use Illuminate\Database\Connectors\ConnectionFactory;
 use Illuminate\Database\DatabaseManager;
+use Illuminate\Http\Request;
 use Illuminate\Support\Env;
 use Illuminate\Support\ServiceProvider;
 
@@ -28,6 +31,13 @@ class AppServiceProvider extends ServiceProvider
 
         // Loads (or creates) the key file once per request.
         $this->app->singleton(RsaKeys::class);
+
+        // Request guards, resolved when a controller type-hints them, like Rocket's FromRequest.
+        $this->app->bind(Headers::class, fn (): Headers => Headers::fromRequest(
+            $this->app->make(Request::class),
+            $this->app->make(Config::class),
+            $this->app->make(Jwt::class),
+        ));
 
         $this->app->singleton(VaultwardenMigrator::class, fn (): VaultwardenMigrator => new VaultwardenMigrator(
             database_path('vaultwarden'),
