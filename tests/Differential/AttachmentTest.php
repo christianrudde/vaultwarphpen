@@ -50,6 +50,8 @@ class AttachmentTest extends DifferentialTestCase
             $steps['download without token'] = $server->send('GET', $url);
             $steps['download with a bad token'] = $server->send('GET', "{$url}?token=nope");
             $steps['download with two tokens'] = $server->send('GET', "{$url}?{$token}&{$token}");
+            $steps['download with the good token first'] = $server->send('GET', "{$url}?{$token}&token=nope");
+            $steps['download with the good token second'] = $server->send('GET', "{$url}?token=nope&{$token}");
             $steps['download another file'] = $server->send('GET', "/attachments/{$cipherId}/0123456789abcdef0123?{$token}");
 
             $second = $server->json('POST', "/api/ciphers/{$cipherId}/attachment/v2", ['key' => '2.key', 'fileName' => '2.name', 'fileSize' => 3 * 1024 * 1024], $auth)->jsonString('attachmentId');

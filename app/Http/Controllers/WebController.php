@@ -37,8 +37,8 @@ final readonly class WebController
     {
         $cipherId = Uuid::parameter($request, $cipherId);
         $fileId = Uuid::idParameter($request, $fileId);
-        // A missing or repeated token forwards to the web vault's catch-all.
-        $token = Query::single($request, 'token') ?? throw new HttpStatus(404, 'No token.');
+        // Without a token the request forwards to the web vault's catch-all.
+        $token = Query::first($request, 'token') ?? throw new HttpStatus(404, 'No token.');
 
         try {
             $claims = $this->jwt->decode($token, JwtIssuer::FileDownload);

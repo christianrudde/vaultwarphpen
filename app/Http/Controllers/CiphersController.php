@@ -973,21 +973,20 @@ final readonly class CiphersController
     }
 
     /**
-     * SyncData: the `excludeDomains` query field, a bool. Rocket parses it
-     * after the request guards; a bad or repeated value forwards the request
-     * to the web vault's catch-all, which finds no such file.
+     * SyncData: the `excludeDomains` query field, a bool that defaults to
+     * false; of repeated values the first counts. Rocket parses it after the
+     * request guards; a bad value forwards the request to the web vault's
+     * catch-all, which finds no such file.
      *
      * @throws HttpStatus
      */
     private static function excludeDomains(Request $request): bool
     {
-        $values = array_map(strtolower(...), Query::values($request, 'excludeDomains'));
+        $value = Query::first($request, 'excludeDomains');
 
-        return match (true) {
-            $values === [] => false,
-            count($values) > 1 => throw new HttpStatus(404, 'Duplicate query field.'),
-            in_array($values[0], ['off', 'false', 'no'], true) => false,
-            in_array($values[0], ['', 'on', 'true', 'yes'], true) => true,
+        return match ($value === null ? null : strtolower($value)) {
+            null, 'off', 'false', 'no' => false,
+            '', 'on', 'true', 'yes' => true,
             default => throw new HttpStatus(404, 'Query field is not a bool.'),
         };
     }

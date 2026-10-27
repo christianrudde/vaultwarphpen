@@ -84,6 +84,9 @@ class AttachmentTest extends TestCase
         $this->assertSame('hello world', $download->streamedContent());
         $this->get("/attachments/{$this->cipherId}/{$attachmentId}?token=nope")->assertStatus(404);
         $this->get("/attachments/{$this->cipherId}/{$attachmentId}")->assertStatus(404);
+        $query = (string) parse_url($url, PHP_URL_QUERY);
+        $this->get("/attachments/{$this->cipherId}/{$attachmentId}?{$query}&token=nope")->assertStatus(200);
+        $this->get("/attachments/{$this->cipherId}/{$attachmentId}?token=nope&{$query}")->assertStatus(404);
 
         $this->get('/api/ciphers/'.$this->cipherId, $this->auth)->assertJsonPath('attachments.0.id', $attachmentId);
     }

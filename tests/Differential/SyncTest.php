@@ -34,7 +34,7 @@ class SyncTest extends DifferentialTestCase
                 $steps["client {$version}"] = self::sorted($server->send('GET', '/api/sync', [...$auth, 'Bitwarden-Client-Version' => $version]));
             }
             foreach (['excludeDomains=true', 'excludeDomains', 'excludeDomains=YES', 'excludeDomains=off', 'excludeDomains=1',
-                'excludeDomains=true&excludeDomains=true', 'excludedomains=true', 'exclude%44omains=true', 'other=1'] as $query) {
+                'excludeDomains=true&excludeDomains=true', 'excludeDomains=true&excludeDomains=1', 'excludeDomains=1&excludeDomains=true', 'excludeDomains=off&excludeDomains=on', 'excludedomains=true', 'exclude%44omains=true', 'other=1'] as $query) {
                 $steps["query {$query}"] = self::sorted($server->send('GET', "/api/sync?{$query}", $auth));
             }
             $steps['unauthenticated'] = $server->send('GET', '/api/sync?excludeDomains=1', ['Accept' => 'application/json']);

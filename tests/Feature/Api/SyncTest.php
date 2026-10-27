@@ -82,7 +82,9 @@ class SyncTest extends TestCase
         $this->get('/api/sync?excludeDomains', $this->auth)->assertJsonPath('domains', null);
         $this->get('/api/sync?excludeDomains=Off', $this->auth)->assertJsonPath('domains.object', 'domains');
         $this->get('/api/sync?excludeDomains=1', $this->auth)->assertStatus(404)->assertJsonPath('error.code', 404);
-        $this->get('/api/sync?excludeDomains=true&excludeDomains=true', $this->auth)->assertStatus(404);
+        // The first of repeated values counts; the others are not parsed.
+        $this->get('/api/sync?excludeDomains=true&excludeDomains=1', $this->auth)->assertJsonPath('domains', null);
+        $this->get('/api/sync?excludeDomains=1&excludeDomains=true', $this->auth)->assertStatus(404);
         $this->get('/api/sync')->assertStatus(401);
 
         $folder = Folder::new($this->user->uuid, '2.folder');

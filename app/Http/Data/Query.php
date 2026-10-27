@@ -30,13 +30,12 @@ final class Query
     }
 
     /**
-     * A required field like `?<token>`: null when it is missing or repeated,
-     * where Rocket forwards the request.
+     * A field like `?<token>` or one of `?<data..>`: Rocket parses those
+     * leniently, so the first of repeated values counts and the rest are not
+     * even parsed. Null when the field is missing.
      */
-    public static function single(Request $request, string $name): ?string
+    public static function first(Request $request, string $name): ?string
     {
-        $values = self::values($request, $name);
-
-        return count($values) === 1 ? $values[0] : null;
+        return self::values($request, $name)[0] ?? null;
     }
 }
