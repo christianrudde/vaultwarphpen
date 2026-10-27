@@ -114,6 +114,7 @@ class LoginTest extends TestCase
         $this->assertSame(14, Device::findByUuidAndUser(self::DEVICE, $this->user->uuid)?->atype);
     }
 
+    #[Parity('config:PASSWORD_ITERATIONS')]
     public function test_server_side_iterations_are_raised_at_login(): void
     {
         $this->user->password_iterations = 100_000;
@@ -145,6 +146,8 @@ class LoginTest extends TestCase
         $this->postForm([...$fields, 'scope' => 'other'])->assertStatus(400)->assertJsonPath('message', 'Scope not supported');
     }
 
+    #[Parity('config:LOGIN_RATELIMIT_SECONDS')]
+    #[Parity('config:LOGIN_RATELIMIT_MAX_BURST')]
     public function test_logins_are_rate_limited(): void
     {
         for ($i = 0; $i < 10; $i++) {

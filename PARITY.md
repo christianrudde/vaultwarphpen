@@ -8,8 +8,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 
 | Area | Total | ✅ | 🟨 | ⬜ | ➖ | With tests |
 |---|--:|--:|--:|--:|--:|--:|
-| Routes | 294 | 5 | 0 | 288 | 1 | 5 |
-| Settings | 153 | 12 | 141 | 0 | 0 | 153 |
+| Routes | 294 | 11 | 7 | 275 | 1 | 18 |
+| Settings | 153 | 18 | 135 | 0 | 0 | 153 |
 | Scheduled jobs | 8 | 0 | 0 | 8 | 0 | 0 |
 | Database tables | 28 | 28 | 0 | 0 | 0 | 28 |
 | Templates | 74 | 0 | 74 | 0 | 0 | 74 |
@@ -20,8 +20,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | | Item | Source | Tests | Notes |
 |---|---|---|--:|---|
 | ⬜ | GET `/attachments/{cipher_id}/{file_id}` | src/api/web.rs:232 | 0 |  |
-| ✅ | GET `/alive` | src/api/web.rs:245 | 1 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
-| ✅ | HEAD `/alive` | src/api/web.rs:250 | 1 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
+| ✅ | GET `/alive` | src/api/web.rs:245 | 2 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
+| ✅ | HEAD `/alive` | src/api/web.rs:250 | 2 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
 | ⬜ | GET `/vw_static/{filename}` | src/api/web.rs:330 | 0 |  |
 | ⬜ | GET `/` | src/api/web.rs:154 | 0 |  |
 | ⬜ | GET `/index.html` | src/api/web.rs:161 | 0 |  |
@@ -35,18 +35,18 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ⬜ | POST `/api/settings/domains` | src/api/core/mod.rs:112 | 0 |  |
 | ⬜ | PUT `/api/settings/domains` | src/api/core/mod.rs:138 | 0 |  |
 | ⬜ | GET `/api/hibp/breach` | src/api/core/mod.rs:148 | 0 |  |
-| ✅ | GET `/api/alive` | src/api/core/mod.rs:183 | 1 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
-| ✅ | GET `/api/now` | src/api/core/mod.rs:188 | 1 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
-| ✅ | GET `/api/version` | src/api/core/mod.rs:193 | 1 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
+| ✅ | GET `/api/alive` | src/api/core/mod.rs:183 | 2 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
+| ✅ | GET `/api/now` | src/api/core/mod.rs:188 | 2 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
+| ✅ | GET `/api/version` | src/api/core/mod.rs:193 | 2 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
 | ⬜ | GET `/api/config` | src/api/core/mod.rs:210 | 0 |  |
 | ⬜ | GET `/api/webauthn` | src/api/core/mod.rs:198 | 0 |  |
-| ⬜ | GET `/api/accounts/profile` | src/api/core/accounts.rs:505 | 0 |  |
-| ⬜ | PUT `/api/accounts/profile` | src/api/core/accounts.rs:517 | 0 |  |
-| ⬜ | POST `/api/accounts/profile` | src/api/core/accounts.rs:522 | 0 |  |
-| ⬜ | PUT `/api/accounts/avatar` | src/api/core/accounts.rs:545 | 0 |  |
-| ⬜ | GET `/api/users/{user_id}/public-key` | src/api/core/accounts.rs:565 | 0 |  |
-| ⬜ | GET `/api/accounts/keys` | src/api/core/accounts.rs:580 | 0 |  |
-| ⬜ | POST `/api/accounts/keys` | src/api/core/accounts.rs:598 | 0 |  |
+| 🟨 | GET `/api/accounts/profile` | src/api/core/accounts.rs:505 | 1 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Not yet: users in organizations (answered with an error until organizations are ported). |
+| 🟨 | PUT `/api/accounts/profile` | src/api/core/accounts.rs:517 | 1 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Not yet: users in organizations (answered with an error until organizations are ported). |
+| 🟨 | POST `/api/accounts/profile` | src/api/core/accounts.rs:522 | 1 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Not yet: users in organizations (answered with an error until organizations are ported). |
+| 🟨 | PUT `/api/accounts/avatar` | src/api/core/accounts.rs:545 | 1 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Not yet: users in organizations (answered with an error until organizations are ported). |
+| ✅ | GET `/api/users/{user_id}/public-key` | src/api/core/accounts.rs:565 | 1 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
+| ✅ | GET `/api/accounts/keys` | src/api/core/accounts.rs:580 | 1 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
+| ✅ | POST `/api/accounts/keys` | src/api/core/accounts.rs:598 | 1 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
 | ⬜ | POST `/api/accounts/password` | src/api/core/accounts.rs:633 | 0 |  |
 | ⬜ | POST `/api/accounts/set-password` | src/api/core/accounts.rs:444 | 0 |  |
 | ⬜ | POST `/api/accounts/kdf` | src/api/core/accounts.rs:766 | 0 |  |
@@ -61,7 +61,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ⬜ | POST `/api/accounts/delete-recover-token` | src/api/core/accounts.rs:1303 | 0 |  |
 | ⬜ | POST `/api/accounts/delete` | src/api/core/accounts.rs:1321 | 0 |  |
 | ⬜ | DELETE `/api/accounts` | src/api/core/accounts.rs:1326 | 0 |  |
-| ⬜ | GET `/api/accounts/revision-date` | src/api/core/accounts.rs:1337 | 0 |  |
+| ✅ | GET `/api/accounts/revision-date` | src/api/core/accounts.rs:1337 | 1 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
 | ⬜ | POST `/api/accounts/password-hint` | src/api/core/accounts.rs:1349 | 0 |  |
 | ⬜ | POST `/api/accounts/verify-password` | src/api/core/accounts.rs:1462 | 0 |  |
 | ⬜ | POST `/api/accounts/api-key` | src/api/core/accounts.rs:1494 | 0 |  |
@@ -300,11 +300,11 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ⬜ | POST `/admin/users/{user_id}/invite/resend` | src/api/admin.rs:520 | 0 |  |
 | ⬜ | GET `/admin/diagnostics/http` | src/api/admin.rs:831 | 0 |  |
 | ⬜ | POST `/events/collect` | src/api/core/events.rs:158 | 0 |  |
-| ⬜ | POST `/identity/connect/token` | src/api/identity.rs:57 | 0 |  |
-| ⬜ | POST `/identity/accounts/prelogin` | src/api/identity.rs:1019 | 0 |  |
-| ⬜ | POST `/identity/accounts/prelogin/password` | src/api/identity.rs:1024 | 0 |  |
-| ⬜ | POST `/identity/accounts/register/send-verification-email` | src/api/identity.rs:1050 | 0 |  |
-| ⬜ | POST `/identity/accounts/register/finish` | src/api/identity.rs:1099 | 0 |  |
+| 🟨 | POST `/identity/connect/token` | src/api/identity.rs:57 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Password (with KDF upgrade and the 2FA organization policy), refresh token and user API key logins; accounts and tokens work across Vaultwarden and us on one database. Not yet: two-factor login, login with a device, SSO, organization API keys, Send access. |
+| ✅ | POST `/identity/accounts/prelogin` | src/api/identity.rs:1019 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
+| ✅ | POST `/identity/accounts/prelogin/password` | src/api/identity.rs:1024 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
+| 🟨 | POST `/identity/accounts/register/send-verification-email` | src/api/identity.rs:1050 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Not yet: sending the verification mail (SMTP is not ported). |
+| 🟨 | POST `/identity/accounts/register/finish` | src/api/identity.rs:1099 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Normal, organization and emergency access registrations. Not yet: welcome mails and email 2FA activation (SMTP is not ported). |
 | ⬜ | GET `/identity/sso/prevalidate` | src/api/identity.rs:1176 | 0 |  |
 | ⬜ | GET `/identity/connect/authorize` | src/api/identity.rs:1292 | 0 |  |
 | ⬜ | GET `/identity/connect/oidc-signin` | src/api/identity.rs:1190 | 0 |  |
@@ -356,7 +356,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `TRASH_AUTO_DELETE_DAYS` | src/config.rs:619 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `INCOMPLETE_2FA_TIME_LIMIT` | src/config.rs:626 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `DISABLE_ICON_DOWNLOAD` | src/config.rs:632 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SIGNUPS_ALLOWED` | src/config.rs:634 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `SIGNUPS_ALLOWED` | src/config.rs:634 | 2 | Read like Vaultwarden and used by registration and login. |
 | 🟨 | `SIGNUPS_VERIFY` | src/config.rs:637 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `SIGNUPS_VERIFY_RESEND_TIME` | src/config.rs:639 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `SIGNUPS_VERIFY_RESEND_LIMIT` | src/config.rs:641 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
@@ -367,7 +367,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `INVITATION_EXPIRATION_HOURS` | src/config.rs:653 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `EMERGENCY_ACCESS_ALLOWED` | src/config.rs:655 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `EMAIL_CHANGE_ALLOWED` | src/config.rs:657 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `PASSWORD_ITERATIONS` | src/config.rs:660 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `PASSWORD_ITERATIONS` | src/config.rs:660 | 2 | Read like Vaultwarden and used by registration and login. |
 | 🟨 | `PASSWORD_HINTS_ALLOWED` | src/config.rs:662 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `SHOW_PASSWORD_HINT` | src/config.rs:666 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `ADMIN_TOKEN` | src/config.rs:669 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
@@ -408,10 +408,10 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `DISABLE_ADMIN_TOKEN` | src/config.rs:786 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | ✅ | `ALLOWED_IFRAME_ANCESTORS` | src/config.rs:789 | 2 | Read like Vaultwarden and used: DOMAIN for mount path, origin, CORS, Host and token issuers; the IP settings for the client IP; the CSP sources in the security headers. |
 | ✅ | `ALLOWED_CONNECT_SRC` | src/config.rs:792 | 2 | Read like Vaultwarden and used: DOMAIN for mount path, origin, CORS, Host and token issuers; the IP settings for the client IP; the CSP sources in the security headers. |
-| 🟨 | `LOGIN_RATELIMIT_SECONDS` | src/config.rs:795 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `LOGIN_RATELIMIT_MAX_BURST` | src/config.rs:797 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `UNAUTHENTICATED_RATELIMIT_SECONDS` | src/config.rs:800 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `UNAUTHENTICATED_RATELIMIT_MAX_BURST` | src/config.rs:802 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `LOGIN_RATELIMIT_SECONDS` | src/config.rs:795 | 2 | Read like Vaultwarden and used by registration and login. |
+| ✅ | `LOGIN_RATELIMIT_MAX_BURST` | src/config.rs:797 | 2 | Read like Vaultwarden and used by registration and login. |
+| ✅ | `UNAUTHENTICATED_RATELIMIT_SECONDS` | src/config.rs:800 | 2 | Read like Vaultwarden and used by registration and login. |
+| ✅ | `UNAUTHENTICATED_RATELIMIT_MAX_BURST` | src/config.rs:802 | 2 | Read like Vaultwarden and used by registration and login. |
 | 🟨 | `ADMIN_RATELIMIT_SECONDS` | src/config.rs:805 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `ADMIN_RATELIMIT_MAX_BURST` | src/config.rs:807 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `ADMIN_SESSION_LIFETIME` | src/config.rs:810 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |

@@ -124,6 +124,7 @@ class RegistrationTest extends TestCase
             ->assertStatus(400)->assertJsonPath('message', 'Registration not allowed or user already exists');
     }
 
+    #[Parity('config:SIGNUPS_ALLOWED')]
     public function test_closed_signups_still_allow_invited_users(): void
     {
         $this->changeVaultwardenEnvironment(['SIGNUPS_ALLOWED' => 'false']);
@@ -139,6 +140,8 @@ class RegistrationTest extends TestCase
         $this->assertNull(Invitation::findByMail('ida@example.com'));
     }
 
+    #[Parity('config:UNAUTHENTICATED_RATELIMIT_SECONDS')]
+    #[Parity('config:UNAUTHENTICATED_RATELIMIT_MAX_BURST')]
     public function test_unauthenticated_requests_are_rate_limited(): void
     {
         for ($i = 0; $i < 50; $i++) {
