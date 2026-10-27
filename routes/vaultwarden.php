@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccountsController;
 use App\Http\Controllers\CoreController;
+use App\Http\Controllers\FoldersController;
 use App\Http\Controllers\IdentityController;
 use App\Http\Controllers\WebController;
 use Illuminate\Support\Facades\Route;
@@ -36,6 +37,15 @@ Route::prefix('/api')->group(function (): void {
     Route::get('/accounts/keys', [AccountsController::class, 'getKeys'])->name('core::accounts::get_keys');
     Route::post('/accounts/keys', [AccountsController::class, 'postKeys'])->name('core::accounts::post_keys');
     Route::get('/accounts/revision-date', [AccountsController::class, 'revisionDate'])->name('core::accounts::revision_date');
+
+    // core::folders
+    Route::get('/folders', [FoldersController::class, 'getFolders'])->name('core::folders::get_folders');
+    Route::get('/folders/{folderId}', [FoldersController::class, 'getFolder'])->name('core::folders::get_folder');
+    Route::post('/folders', [FoldersController::class, 'postFolders'])->name('core::folders::post_folders');
+    Route::post('/folders/{folderId}', [FoldersController::class, 'postFolder'])->name('core::folders::post_folder');
+    Route::put('/folders/{folderId}', [FoldersController::class, 'putFolder'])->name('core::folders::put_folder');
+    Route::post('/folders/{folderId}/delete', [FoldersController::class, 'deleteFolderPost'])->name('core::folders::delete_folder_post');
+    Route::delete('/folders/{folderId}', [FoldersController::class, 'deleteFolder'])->name('core::folders::delete_folder');
 });
 
 // api::identity_routes()
