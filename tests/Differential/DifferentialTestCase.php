@@ -65,28 +65,52 @@ abstract class DifferentialTestCase extends TestCase
     {
         $reference = self::send((string) getenv('VW_REFERENCE_URL'), $method, $path, $headers, $body);
         $subject = self::send((string) getenv('VW_SUBJECT_URL'), $method, $path, $headers, $body);
-        $request = "{$method} {$path}";
 
-        $this->assertSame($reference->status, $subject->status, "Status of {$request}");
-
-        foreach (self::HEADERS as $header) {
-            $this->assertSame($reference->header($header), $subject->header($header), "Header {$header} of {$request}");
-        }
-        $this->assertSame(
-            self::cacheDirectives($reference->header('Cache-Control')),
-            self::cacheDirectives($subject->header('Cache-Control')),
-            "Cache-Control of {$request}",
-        );
-
-        $this->assertSame(self::normalizedBody($reference), self::normalizedBody($subject), "Body of {$request}");
+        $this->assertSameExchange($reference, $subject, "{$method} {$path}");
 
         return [$reference, $subject];
     }
 
     /**
+     * Run a flow of requests on both servers, each with its own state (tokens,
+     * ids), and assert that every step answers alike.
+     *
+     * @param  callable(Server): array<string, Exchange>  $flow  The exchanges by step name
+     * @return array{array<string, Exchange>, array<string, Exchange>} Reference and subject
+     */
+    protected function assertSameFlows(callable $flow): array
+    {
+        $reference = $flow(new Server((string) getenv('VW_REFERENCE_URL')));
+        $subject = $flow(new Server((string) getenv('VW_SUBJECT_URL')));
+
+        $this->assertSame(array_keys($reference), array_keys($subject), 'Steps of the flow');
+        foreach ($reference as $step => $exchange) {
+            $this->assertSameExchange($exchange, $subject[$step], $step);
+        }
+
+        return [$reference, $subject];
+    }
+
+    protected function assertSameExchange(Exchange $reference, Exchange $subject, string $label): void
+    {
+        $this->assertSame($reference->status, $subject->status, "Status of {$label}");
+
+        foreach (self::HEADERS as $header) {
+            $this->assertSame($reference->header($header), $subject->header($header), "Header {$header} of {$label}");
+        }
+        $this->assertSame(
+            self::cacheDirectives($reference->header('Cache-Control')),
+            self::cacheDirectives($subject->header('Cache-Control')),
+            "Cache-Control of {$label}",
+        );
+
+        $this->assertSame(self::normalizedBody($reference), self::normalizedBody($subject), "Body of {$label}");
+    }
+
+    /**
      * @param  array<string, string>  $headers
      */
-    protected static function send(string $baseUrl, string $method, string $path, array $headers = [], ?string $body = null): Exchange
+    public static function send(string $baseUrl, string $method, string $path, array $headers = [], ?string $body = null): Exchange
     {
         self::$client ??= new Client(['http_errors' => false, 'allow_redirects' => false, 'timeout' => 30]);
 

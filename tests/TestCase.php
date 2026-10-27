@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use App\Config\Config;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
@@ -23,13 +24,20 @@ abstract class TestCase extends BaseTestCase
         mkdir($this->dataFolder, recursive: true);
 
         // Set before the application boots, which reads the settings and registers the routes.
-        foreach (['DATA_FOLDER' => $this->dataFolder, ...$this->vaultwardenEnvironment()] as $key => $value) {
-            putenv("{$key}={$value}");
-            $_ENV[$key] = $_SERVER[$key] = $value;
-            $this->setEnvironment[] = $key;
-        }
+        $this->setEnvironment(['DATA_FOLDER' => $this->dataFolder, ...$this->vaultwardenEnvironment()]);
 
         parent::setUp();
+    }
+
+    /**
+     * Change settings during a test; the configuration is read again when next used.
+     *
+     * @param  array<string, string>  $environment
+     */
+    protected function changeVaultwardenEnvironment(array $environment): void
+    {
+        $this->setEnvironment($environment);
+        $this->app->forgetInstance(Config::class);
     }
 
     protected function tearDown(): void
@@ -42,6 +50,18 @@ abstract class TestCase extends BaseTestCase
         }
         $this->setEnvironment = [];
         exec('rm -rf '.escapeshellarg($this->dataFolder));
+    }
+
+    /**
+     * @param  array<string, string>  $environment
+     */
+    private function setEnvironment(array $environment): void
+    {
+        foreach ($environment as $key => $value) {
+            putenv("{$key}={$value}");
+            $_ENV[$key] = $_SERVER[$key] = $value;
+            $this->setEnvironment[] = $key;
+        }
     }
 
     /**

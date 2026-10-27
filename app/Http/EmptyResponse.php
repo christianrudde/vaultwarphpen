@@ -6,8 +6,12 @@ use Illuminate\Http\Response;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
- * Rocket's `()` responder: status 200, no body and no Content-Type, which
- * Symfony would otherwise add (and PHP too, see public/index.php).
+ * Rocket's `()` responder: status 200, no body and no Content-Type.
+ *
+ * Laravel's responses extend Symfony's HttpFoundation Response, whose
+ * prepare() (called by Laravel's router) adds `text/html` when no type is
+ * set; it is removed again here. PHP itself would add one too, which
+ * public/index.php switches off.
  */
 final class EmptyResponse extends Response
 {

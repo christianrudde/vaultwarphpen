@@ -29,6 +29,7 @@ final readonly class ErrorRenderer
         return match (true) {
             $exception instanceof ApiError => $exception->toResponse(),
             $exception instanceof Unauthorized => $this->catch($request, 401),
+            $exception instanceof HttpStatus => $this->catch($request, $exception->status),
             // Errors converted with `?` carry the name of their kind as message.
             $exception instanceof QueryException, $exception instanceof PDOException => ApiError::message('Db')->toResponse(),
             // Rocket answers unmatched methods like unmatched paths.

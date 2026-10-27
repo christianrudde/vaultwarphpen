@@ -19,6 +19,10 @@ export WEB_VAULT_FOLDER="${work}/web-vault/"
 pids=()
 trap 'kill "${pids[@]}" 2> /dev/null || true' EXIT
 
+# One RSA key for both: unknown emails get KDF settings derived from it.
+DATA_FOLDER="${work}/subject" php artisan parity:token encode admin key --no-ansi > /dev/null
+cp "${work}/subject/rsa_key.pem" "${work}/reference/rsa_key.pem"
+
 DATA_FOLDER="${work}/reference" ROCKET_PORT=8000 "${binary}" > "${work}/reference.log" 2>&1 &
 pids+=($!)
 

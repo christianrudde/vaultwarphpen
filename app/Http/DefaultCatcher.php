@@ -52,7 +52,7 @@ final class DefaultCatcher
     {
         [$reason, $description] = self::STATUSES[$status] ?? ['Unknown Error', 'An unknown error has occurred.'];
 
-        if (self::prefersJson($request)) {
+        if (Accept::prefersJson($request)) {
             $json = "{\n  \"error\": {\n    \"code\": {$status},\n    \"reason\": \"{$reason}\",\n    \"description\": \"{$description}\"\n  }\n}";
 
             return new Response($json, $status, ['Content-Type' => 'application/json']);
@@ -80,34 +80,5 @@ final class DefaultCatcher
             HTML;
 
         return new Response($html, $status, ['Content-Type' => 'text/html; charset=utf-8']);
-    }
-
-    /**
-     * Rocket's Accept::preferred(): the media type with the highest quality, the first among equals.
-     */
-    private static function prefersJson(Request $request): bool
-    {
-        $header = $request->headers->get('Accept');
-        if ($header === null || trim($header) === '') {
-            return false;
-        }
-
-        $preferred = null;
-        $best = -1.0;
-        foreach (explode(',', $header) as $entry) {
-            $parts = array_map(trim(...), explode(';', $entry));
-            $quality = 1.0;
-            foreach (array_slice($parts, 1) as $parameter) {
-                if (preg_match('/^q\s*=\s*([0-9.]+)$/i', $parameter, $match)) {
-                    $quality = (float) $match[1];
-                }
-            }
-            if ($quality > $best) {
-                $best = $quality;
-                $preferred = strtolower($parts[0]);
-            }
-        }
-
-        return $preferred === 'application/json';
     }
 }

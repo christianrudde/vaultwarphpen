@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CoreController;
+use App\Http\Controllers\IdentityController;
 use App\Http\Controllers\WebController;
 use Illuminate\Support\Facades\Route;
 
@@ -24,4 +25,13 @@ Route::prefix('/api')->group(function (): void {
     Route::get('/alive', [CoreController::class, 'alive'])->name('core::alive');
     Route::get('/now', [CoreController::class, 'now'])->name('core::now');
     Route::get('/version', [CoreController::class, 'version'])->name('core::version');
+});
+
+// api::identity_routes()
+Route::prefix('/identity')->group(function (): void {
+    Route::post('/accounts/prelogin', [IdentityController::class, 'postPrelogin'])->name('identity::post_prelogin');
+    Route::post('/accounts/prelogin/password', [IdentityController::class, 'preloginPassword'])->name('identity::prelogin_password');
+    Route::post('/accounts/register/send-verification-email', [IdentityController::class, 'registerVerificationEmail'])
+        ->name('identity::register_verification_email');
+    Route::post('/accounts/register/finish', [IdentityController::class, 'registerFinish'])->name('identity::register_finish');
 });
