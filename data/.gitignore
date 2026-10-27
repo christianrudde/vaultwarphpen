@@ -1,0 +1,3 @@
+# The data folder holds the database, keys and uploads; it is never committed.
+*
+!.gitignore

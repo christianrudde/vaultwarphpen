@@ -2,8 +2,14 @@
 
 namespace App\Providers;
 
+use App\Config\Config;
+use App\Database\DatabaseUrl;
+use App\Database\SqlStatements;
 use App\Database\VaultwardenMigrator;
 use App\Templates\TemplateRenderer;
+use Illuminate\Database\Connectors\ConnectionFactory;
+use Illuminate\Database\DatabaseManager;
+use Illuminate\Support\Env;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -13,17 +19,41 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // Read from the raw environment: Laravel's env() would turn values like "null" or "(true)" into PHP values.
+        $this->app->singleton(Config::class, fn (): Config => Config::load(
+            static fn (string $key): ?string => Env::getRepository()->get($key),
+            base_path(),
+        ));
+
         $this->app->singleton(VaultwardenMigrator::class, fn (): VaultwardenMigrator => new VaultwardenMigrator(
             database_path('vaultwarden'),
         ));
 
-        $this->app->singleton(TemplateRenderer::class, fn (): TemplateRenderer => new TemplateRenderer(
-            builtinPath: resource_path('vaultwarden/templates'),
-            overridePath: config()->string('vaultwarden.templates_folder'),
-            vaultwardenVersion: config()->string('vaultwarden.version'),
-            webVaultVersion: config()->string('vaultwarden.web_vault_version'),
-            reload: config()->boolean('vaultwarden.reload_templates'),
-        ));
+        $this->app->singleton(TemplateRenderer::class, function (): TemplateRenderer {
+            $config = $this->app->make(Config::class);
+
+            return new TemplateRenderer(
+                builtinPath: resource_path('vaultwarden/templates'),
+                overridePath: $config->path('templates_folder'),
+                vaultwardenVersion: config()->string('vaultwarden.version'),
+                webVaultVersion: config()->string('vaultwarden.web_vault_version'),
+                reload: $config->bool('reload_templates'),
+            );
+        });
+
+        // The "vaultwarden" connection is configured by DATABASE_URL, like Vaultwarden's own.
+        $this->app->afterResolving('db', function (DatabaseManager $databases): void {
+            $databases->extend('vaultwarden', function (array $_, string $name) {
+                $config = $this->app->make(Config::class);
+                $connection = $this->app->make(ConnectionFactory::class)->make(DatabaseUrl::connection($config), $name);
+
+                foreach (SqlStatements::split($config->string('database_conn_init')) as $statement) {
+                    $connection->getPdo()->exec($statement);
+                }
+
+                return $connection;
+            });
+        });
     }
 
     /**

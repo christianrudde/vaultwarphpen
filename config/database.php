@@ -15,9 +15,12 @@ return [
     | the connection which will be utilized unless another connection
     | is explicitly specified when you execute a query / statement.
     |
+    | The "vaultwarden" connection follows Vaultwarden's DATABASE_URL; the
+    | other connections serve tests and tools that name them explicitly.
+    |
     */
 
-    'default' => env('DB_CONNECTION', 'sqlite'),
+    'default' => env('DB_CONNECTION', 'vaultwarden'),
 
     /*
     |--------------------------------------------------------------------------
@@ -32,16 +35,20 @@ return [
 
     'connections' => [
 
+        // Configured from DATABASE_URL when first used (see AppServiceProvider).
+        'vaultwarden' => [
+            'driver' => 'vaultwarden',
+        ],
+
         'sqlite' => [
             'driver' => 'sqlite',
             'url' => env('DB_URL'),
             'database' => env('DB_DATABASE', base_path('data/db.sqlite3')),
             'prefix' => '',
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
-            // Same connection settings as Vaultwarden (ENABLE_DB_WAL, default init statements).
-            'busy_timeout' => 5000,
-            'journal_mode' => env('ENABLE_DB_WAL', true) ? 'wal' : null,
-            'synchronous' => 'normal',
+            'busy_timeout' => null,
+            'journal_mode' => null,
+            'synchronous' => null,
             'transaction_mode' => 'DEFERRED',
         ],
 

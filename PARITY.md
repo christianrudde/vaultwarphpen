@@ -9,7 +9,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | Area | Total | ✅ | 🟨 | ⬜ | ➖ | With tests |
 |---|--:|--:|--:|--:|--:|--:|
 | Routes | 294 | 0 | 0 | 294 | 0 | 0 |
-| Settings | 153 | 0 | 0 | 153 | 0 | 0 |
+| Settings | 153 | 6 | 147 | 0 | 0 | 153 |
 | Scheduled jobs | 8 | 0 | 0 | 8 | 0 | 0 |
 | Database tables | 28 | 28 | 0 | 0 | 0 | 28 |
 | Templates | 74 | 0 | 74 | 0 | 0 | 74 |
@@ -318,159 +318,159 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 
 | | Item | Source | Tests | Notes |
 |---|---|---|--:|---|
-| ⬜ | `DATA_FOLDER` | src/config.rs:521 | 0 |  |
-| ⬜ | `DATABASE_URL` | src/config.rs:523 | 0 |  |
-| ⬜ | `ICON_CACHE_FOLDER` | src/config.rs:525 | 0 |  |
-| ⬜ | `ATTACHMENTS_FOLDER` | src/config.rs:527 | 0 |  |
-| ⬜ | `SENDS_FOLDER` | src/config.rs:529 | 0 |  |
-| ⬜ | `TMP_FOLDER` | src/config.rs:531 | 0 |  |
-| ⬜ | `TEMPLATES_FOLDER` | src/config.rs:533 | 0 |  |
-| ⬜ | `RSA_KEY_FILENAME` | src/config.rs:535 | 0 |  |
-| ⬜ | `WEB_VAULT_FOLDER` | src/config.rs:537 | 0 |  |
-| ⬜ | `ENABLE_WEBSOCKET` | src/config.rs:541 | 0 |  |
-| ⬜ | `PUSH_ENABLED` | src/config.rs:545 | 0 |  |
-| ⬜ | `PUSH_RELAY_URI` | src/config.rs:547 | 0 |  |
-| ⬜ | `PUSH_IDENTITY_URI` | src/config.rs:549 | 0 |  |
-| ⬜ | `PUSH_INSTALLATION_ID` | src/config.rs:551 | 0 |  |
-| ⬜ | `PUSH_INSTALLATION_KEY` | src/config.rs:553 | 0 |  |
-| ⬜ | `JOB_POLL_INTERVAL_MS` | src/config.rs:558 | 0 |  |
-| ⬜ | `SEND_PURGE_SCHEDULE` | src/config.rs:561 | 0 |  |
-| ⬜ | `TRASH_PURGE_SCHEDULE` | src/config.rs:564 | 0 |  |
-| ⬜ | `INCOMPLETE_2FA_SCHEDULE` | src/config.rs:567 | 0 |  |
-| ⬜ | `EMERGENCY_NOTIFICATION_REMINDER_SCHEDULE` | src/config.rs:570 | 0 |  |
-| ⬜ | `EMERGENCY_REQUEST_TIMEOUT_SCHEDULE` | src/config.rs:573 | 0 |  |
-| ⬜ | `EVENT_CLEANUP_SCHEDULE` | src/config.rs:576 | 0 |  |
-| ⬜ | `AUTH_REQUEST_PURGE_SCHEDULE` | src/config.rs:579 | 0 |  |
-| ⬜ | `DUO_CONTEXT_PURGE_SCHEDULE` | src/config.rs:582 | 0 |  |
-| ⬜ | `PURGE_INCOMPLETE_SSO_AUTH` | src/config.rs:585 | 0 |  |
-| ⬜ | `DOMAIN` | src/config.rs:592 | 0 |  |
-| ⬜ | `DOMAIN_SET` | src/config.rs:594 | 0 |  |
-| ⬜ | `DOMAIN_ORIGIN` | src/config.rs:596 | 0 |  |
-| ⬜ | `DOMAIN_PATH` | src/config.rs:598 | 0 |  |
-| ⬜ | `WEB_VAULT_ENABLED` | src/config.rs:600 | 0 |  |
-| ⬜ | `SENDS_ALLOWED` | src/config.rs:604 | 0 |  |
-| ⬜ | `HIBP_API_KEY` | src/config.rs:607 | 0 |  |
-| ⬜ | `USER_ATTACHMENT_LIMIT` | src/config.rs:610 | 0 |  |
-| ⬜ | `ORG_ATTACHMENT_LIMIT` | src/config.rs:612 | 0 |  |
-| ⬜ | `USER_SEND_LIMIT` | src/config.rs:614 | 0 |  |
-| ⬜ | `TRASH_AUTO_DELETE_DAYS` | src/config.rs:619 | 0 |  |
-| ⬜ | `INCOMPLETE_2FA_TIME_LIMIT` | src/config.rs:626 | 0 |  |
-| ⬜ | `DISABLE_ICON_DOWNLOAD` | src/config.rs:632 | 0 |  |
-| ⬜ | `SIGNUPS_ALLOWED` | src/config.rs:634 | 0 |  |
-| ⬜ | `SIGNUPS_VERIFY` | src/config.rs:637 | 0 |  |
-| ⬜ | `SIGNUPS_VERIFY_RESEND_TIME` | src/config.rs:639 | 0 |  |
-| ⬜ | `SIGNUPS_VERIFY_RESEND_LIMIT` | src/config.rs:641 | 0 |  |
-| ⬜ | `SIGNUPS_DOMAINS_WHITELIST` | src/config.rs:643 | 0 |  |
-| ⬜ | `ORG_EVENTS_ENABLED` | src/config.rs:645 | 0 |  |
-| ⬜ | `ORG_CREATION_USERS` | src/config.rs:648 | 0 |  |
-| ⬜ | `INVITATIONS_ALLOWED` | src/config.rs:650 | 0 |  |
-| ⬜ | `INVITATION_EXPIRATION_HOURS` | src/config.rs:653 | 0 |  |
-| ⬜ | `EMERGENCY_ACCESS_ALLOWED` | src/config.rs:655 | 0 |  |
-| ⬜ | `EMAIL_CHANGE_ALLOWED` | src/config.rs:657 | 0 |  |
-| ⬜ | `PASSWORD_ITERATIONS` | src/config.rs:660 | 0 |  |
-| ⬜ | `PASSWORD_HINTS_ALLOWED` | src/config.rs:662 | 0 |  |
-| ⬜ | `SHOW_PASSWORD_HINT` | src/config.rs:666 | 0 |  |
-| ⬜ | `ADMIN_TOKEN` | src/config.rs:669 | 0 |  |
-| ⬜ | `INVITATION_ORG_NAME` | src/config.rs:672 | 0 |  |
-| ⬜ | `EVENTS_DAYS_RETAIN` | src/config.rs:675 | 0 |  |
-| ⬜ | `CLIENT_SUPPRESS_ONBOARDING` | src/config.rs:680 | 0 |  |
-| ⬜ | `IP_HEADER` | src/config.rs:687 | 0 |  |
-| ⬜ | `_IP_HEADER_ENABLED` | src/config.rs:689 | 0 |  |
-| ⬜ | `IP_HEADER_TRUSTED_PROXIES` | src/config.rs:696 | 0 |  |
-| ⬜ | `ICON_SERVICE` | src/config.rs:703 | 0 |  |
-| ⬜ | `_ICON_SERVICE_URL` | src/config.rs:705 | 0 |  |
-| ⬜ | `_ICON_SERVICE_CSP` | src/config.rs:707 | 0 |  |
-| ⬜ | `ICON_REDIRECT_CODE` | src/config.rs:713 | 0 |  |
-| ⬜ | `ICON_CACHE_TTL` | src/config.rs:715 | 0 |  |
-| ⬜ | `ICON_CACHE_NEGTTL` | src/config.rs:717 | 0 |  |
-| ⬜ | `ICON_DOWNLOAD_TIMEOUT` | src/config.rs:719 | 0 |  |
-| ⬜ | `ICON_BLACKLIST_REGEX` | src/config.rs:722 | 0 |  |
-| ⬜ | `ICON_BLACKLIST_NON_GLOBAL_IPS` | src/config.rs:724 | 0 |  |
-| ⬜ | `HTTP_REQUEST_BLOCK_REGEX` | src/config.rs:728 | 0 |  |
-| ⬜ | `HTTP_REQUEST_BLOCK_NON_GLOBAL_IPS` | src/config.rs:731 | 0 |  |
-| ⬜ | `DISABLE_2FA_REMEMBER` | src/config.rs:735 | 0 |  |
-| ⬜ | `AUTHENTICATOR_DISABLE_TIME_DRIFT` | src/config.rs:739 | 0 |  |
-| ⬜ | `EXPERIMENTAL_CLIENT_FEATURE_FLAGS` | src/config.rs:742 | 0 |  |
-| ⬜ | `REQUIRE_DEVICE_EMAIL` | src/config.rs:746 | 0 |  |
-| ⬜ | `RELOAD_TEMPLATES` | src/config.rs:750 | 0 |  |
-| ⬜ | `EXTENDED_LOGGING` | src/config.rs:752 | 0 |  |
-| ⬜ | `LOG_TIMESTAMP_FORMAT` | src/config.rs:754 | 0 |  |
-| ⬜ | `USE_SYSLOG` | src/config.rs:756 | 0 |  |
-| ⬜ | `LOG_FILE` | src/config.rs:758 | 0 |  |
-| ⬜ | `LOG_LEVEL` | src/config.rs:761 | 0 |  |
-| ⬜ | `ENABLE_DB_WAL` | src/config.rs:765 | 0 |  |
-| ⬜ | `DB_CONNECTION_RETRIES` | src/config.rs:768 | 0 |  |
-| ⬜ | `DATABASE_TIMEOUT` | src/config.rs:771 | 0 |  |
-| ⬜ | `DATABASE_IDLE_TIMEOUT` | src/config.rs:774 | 0 |  |
-| ⬜ | `DATABASE_MAX_CONNS` | src/config.rs:777 | 0 |  |
-| ⬜ | `DATABASE_MIN_CONNS` | src/config.rs:780 | 0 |  |
-| ⬜ | `DATABASE_CONN_INIT` | src/config.rs:783 | 0 |  |
-| ⬜ | `DISABLE_ADMIN_TOKEN` | src/config.rs:786 | 0 |  |
-| ⬜ | `ALLOWED_IFRAME_ANCESTORS` | src/config.rs:789 | 0 |  |
-| ⬜ | `ALLOWED_CONNECT_SRC` | src/config.rs:792 | 0 |  |
-| ⬜ | `LOGIN_RATELIMIT_SECONDS` | src/config.rs:795 | 0 |  |
-| ⬜ | `LOGIN_RATELIMIT_MAX_BURST` | src/config.rs:797 | 0 |  |
-| ⬜ | `UNAUTHENTICATED_RATELIMIT_SECONDS` | src/config.rs:800 | 0 |  |
-| ⬜ | `UNAUTHENTICATED_RATELIMIT_MAX_BURST` | src/config.rs:802 | 0 |  |
-| ⬜ | `ADMIN_RATELIMIT_SECONDS` | src/config.rs:805 | 0 |  |
-| ⬜ | `ADMIN_RATELIMIT_MAX_BURST` | src/config.rs:807 | 0 |  |
-| ⬜ | `ADMIN_SESSION_LIFETIME` | src/config.rs:810 | 0 |  |
-| ⬜ | `ORG_GROUPS_ENABLED` | src/config.rs:813 | 0 |  |
-| ⬜ | `INCREASE_NOTE_SIZE_LIMIT` | src/config.rs:817 | 0 |  |
-| ⬜ | `_MAX_NOTE_SIZE` | src/config.rs:819 | 0 |  |
-| ⬜ | `ENFORCE_SINGLE_ORG_WITH_RESET_PW_POLICY` | src/config.rs:824 | 0 |  |
-| ⬜ | `DNS_PREFER_IPV6` | src/config.rs:828 | 0 |  |
-| ⬜ | `SSO_ENABLED` | src/config.rs:834 | 0 |  |
-| ⬜ | `SSO_ONLY` | src/config.rs:836 | 0 |  |
-| ⬜ | `SSO_SIGNUPS_ALLOWED` | src/config.rs:838 | 0 |  |
-| ⬜ | `SSO_SIGNUPS_MATCH_EMAIL` | src/config.rs:840 | 0 |  |
-| ⬜ | `SSO_ALLOW_UNKNOWN_EMAIL_VERIFICATION` | src/config.rs:842 | 0 |  |
-| ⬜ | `SSO_CLIENT_ID` | src/config.rs:844 | 0 |  |
-| ⬜ | `SSO_CLIENT_SECRET` | src/config.rs:846 | 0 |  |
-| ⬜ | `SSO_AUTHORITY` | src/config.rs:848 | 0 |  |
-| ⬜ | `SSO_SCOPES` | src/config.rs:850 | 0 |  |
-| ⬜ | `SSO_AUTHORIZE_EXTRA_PARAMS` | src/config.rs:852 | 0 |  |
-| ⬜ | `SSO_PKCE` | src/config.rs:854 | 0 |  |
-| ⬜ | `SSO_AUDIENCE_TRUSTED` | src/config.rs:856 | 0 |  |
-| ⬜ | `SSO_CALLBACK_PATH` | src/config.rs:858 | 0 |  |
-| ⬜ | `SSO_MASTER_PASSWORD_POLICY` | src/config.rs:860 | 0 |  |
-| ⬜ | `SSO_AUTH_ONLY_NOT_SESSION` | src/config.rs:862 | 0 |  |
-| ⬜ | `SSO_CLIENT_CACHE_EXPIRATION` | src/config.rs:864 | 0 |  |
-| ⬜ | `SSO_DEBUG_TOKENS` | src/config.rs:866 | 0 |  |
-| ⬜ | `_ENABLE_YUBICO` | src/config.rs:872 | 0 |  |
-| ⬜ | `YUBICO_CLIENT_ID` | src/config.rs:874 | 0 |  |
-| ⬜ | `YUBICO_SECRET_KEY` | src/config.rs:876 | 0 |  |
-| ⬜ | `YUBICO_SERVER` | src/config.rs:878 | 0 |  |
-| ⬜ | `_ENABLE_DUO` | src/config.rs:884 | 0 |  |
-| ⬜ | `DUO_IKEY` | src/config.rs:886 | 0 |  |
-| ⬜ | `DUO_SKEY` | src/config.rs:888 | 0 |  |
-| ⬜ | `DUO_HOST` | src/config.rs:890 | 0 |  |
-| ⬜ | `_ENABLE_SMTP` | src/config.rs:896 | 0 |  |
-| ⬜ | `USE_SENDMAIL` | src/config.rs:898 | 0 |  |
-| ⬜ | `SENDMAIL_COMMAND` | src/config.rs:900 | 0 |  |
-| ⬜ | `SMTP_HOST` | src/config.rs:902 | 0 |  |
-| ⬜ | `SMTP_SSL` | src/config.rs:904 | 0 |  |
-| ⬜ | `SMTP_EXPLICIT_TLS` | src/config.rs:906 | 0 |  |
-| ⬜ | `SMTP_SECURITY` | src/config.rs:908 | 0 |  |
-| ⬜ | `SMTP_PORT` | src/config.rs:910 | 0 |  |
-| ⬜ | `SMTP_FROM` | src/config.rs:912 | 0 |  |
-| ⬜ | `SMTP_FROM_NAME` | src/config.rs:914 | 0 |  |
-| ⬜ | `SMTP_USERNAME` | src/config.rs:916 | 0 |  |
-| ⬜ | `SMTP_PASSWORD` | src/config.rs:918 | 0 |  |
-| ⬜ | `SMTP_AUTH_MECHANISM` | src/config.rs:920 | 0 |  |
-| ⬜ | `SMTP_TIMEOUT` | src/config.rs:922 | 0 |  |
-| ⬜ | `HELO_NAME` | src/config.rs:924 | 0 |  |
-| ⬜ | `SMTP_EMBED_IMAGES` | src/config.rs:926 | 0 |  |
-| ⬜ | `_SMTP_IMG_SRC` | src/config.rs:928 | 0 |  |
-| ⬜ | `SMTP_DEBUG` | src/config.rs:930 | 0 |  |
-| ⬜ | `SMTP_ACCEPT_INVALID_CERTS` | src/config.rs:932 | 0 |  |
-| ⬜ | `SMTP_ACCEPT_INVALID_HOSTNAMES` | src/config.rs:934 | 0 |  |
-| ⬜ | `_ENABLE_EMAIL_2FA` | src/config.rs:940 | 0 |  |
-| ⬜ | `EMAIL_TOKEN_SIZE` | src/config.rs:942 | 0 |  |
-| ⬜ | `EMAIL_EXPIRATION_TIME` | src/config.rs:944 | 0 |  |
-| ⬜ | `EMAIL_ATTEMPTS_LIMIT` | src/config.rs:946 | 0 |  |
-| ⬜ | `EMAIL_2FA_ENFORCE_ON_VERIFIED_INVITE` | src/config.rs:948 | 0 |  |
-| ⬜ | `EMAIL_2FA_AUTO_FALLBACK` | src/config.rs:950 | 0 |  |
+| ✅ | `DATA_FOLDER` | src/config.rs:521 | 3 | Read like Vaultwarden (environment, *_FILE, config.json, default) and used: DATABASE_URL drives the default connection, the templates folder and reload drive the renderer. |
+| ✅ | `DATABASE_URL` | src/config.rs:523 | 3 | Read like Vaultwarden (environment, *_FILE, config.json, default) and used: DATABASE_URL drives the default connection, the templates folder and reload drive the renderer. |
+| 🟨 | `ICON_CACHE_FOLDER` | src/config.rs:525 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `ATTACHMENTS_FOLDER` | src/config.rs:527 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SENDS_FOLDER` | src/config.rs:529 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `TMP_FOLDER` | src/config.rs:531 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `TEMPLATES_FOLDER` | src/config.rs:533 | 3 | Read like Vaultwarden (environment, *_FILE, config.json, default) and used: DATABASE_URL drives the default connection, the templates folder and reload drive the renderer. |
+| 🟨 | `RSA_KEY_FILENAME` | src/config.rs:535 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `WEB_VAULT_FOLDER` | src/config.rs:537 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `ENABLE_WEBSOCKET` | src/config.rs:541 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `PUSH_ENABLED` | src/config.rs:545 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `PUSH_RELAY_URI` | src/config.rs:547 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `PUSH_IDENTITY_URI` | src/config.rs:549 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `PUSH_INSTALLATION_ID` | src/config.rs:551 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `PUSH_INSTALLATION_KEY` | src/config.rs:553 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `JOB_POLL_INTERVAL_MS` | src/config.rs:558 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SEND_PURGE_SCHEDULE` | src/config.rs:561 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `TRASH_PURGE_SCHEDULE` | src/config.rs:564 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `INCOMPLETE_2FA_SCHEDULE` | src/config.rs:567 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `EMERGENCY_NOTIFICATION_REMINDER_SCHEDULE` | src/config.rs:570 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `EMERGENCY_REQUEST_TIMEOUT_SCHEDULE` | src/config.rs:573 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `EVENT_CLEANUP_SCHEDULE` | src/config.rs:576 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `AUTH_REQUEST_PURGE_SCHEDULE` | src/config.rs:579 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `DUO_CONTEXT_PURGE_SCHEDULE` | src/config.rs:582 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `PURGE_INCOMPLETE_SSO_AUTH` | src/config.rs:585 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `DOMAIN` | src/config.rs:592 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `DOMAIN_SET` | src/config.rs:594 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `DOMAIN_ORIGIN` | src/config.rs:596 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `DOMAIN_PATH` | src/config.rs:598 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `WEB_VAULT_ENABLED` | src/config.rs:600 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SENDS_ALLOWED` | src/config.rs:604 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `HIBP_API_KEY` | src/config.rs:607 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `USER_ATTACHMENT_LIMIT` | src/config.rs:610 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `ORG_ATTACHMENT_LIMIT` | src/config.rs:612 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `USER_SEND_LIMIT` | src/config.rs:614 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `TRASH_AUTO_DELETE_DAYS` | src/config.rs:619 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `INCOMPLETE_2FA_TIME_LIMIT` | src/config.rs:626 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `DISABLE_ICON_DOWNLOAD` | src/config.rs:632 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SIGNUPS_ALLOWED` | src/config.rs:634 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SIGNUPS_VERIFY` | src/config.rs:637 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SIGNUPS_VERIFY_RESEND_TIME` | src/config.rs:639 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SIGNUPS_VERIFY_RESEND_LIMIT` | src/config.rs:641 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SIGNUPS_DOMAINS_WHITELIST` | src/config.rs:643 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `ORG_EVENTS_ENABLED` | src/config.rs:645 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `ORG_CREATION_USERS` | src/config.rs:648 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `INVITATIONS_ALLOWED` | src/config.rs:650 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `INVITATION_EXPIRATION_HOURS` | src/config.rs:653 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `EMERGENCY_ACCESS_ALLOWED` | src/config.rs:655 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `EMAIL_CHANGE_ALLOWED` | src/config.rs:657 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `PASSWORD_ITERATIONS` | src/config.rs:660 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `PASSWORD_HINTS_ALLOWED` | src/config.rs:662 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SHOW_PASSWORD_HINT` | src/config.rs:666 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `ADMIN_TOKEN` | src/config.rs:669 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `INVITATION_ORG_NAME` | src/config.rs:672 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `EVENTS_DAYS_RETAIN` | src/config.rs:675 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `CLIENT_SUPPRESS_ONBOARDING` | src/config.rs:680 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `IP_HEADER` | src/config.rs:687 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `_IP_HEADER_ENABLED` | src/config.rs:689 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `IP_HEADER_TRUSTED_PROXIES` | src/config.rs:696 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `ICON_SERVICE` | src/config.rs:703 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `_ICON_SERVICE_URL` | src/config.rs:705 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `_ICON_SERVICE_CSP` | src/config.rs:707 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `ICON_REDIRECT_CODE` | src/config.rs:713 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `ICON_CACHE_TTL` | src/config.rs:715 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `ICON_CACHE_NEGTTL` | src/config.rs:717 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `ICON_DOWNLOAD_TIMEOUT` | src/config.rs:719 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `ICON_BLACKLIST_REGEX` | src/config.rs:722 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `ICON_BLACKLIST_NON_GLOBAL_IPS` | src/config.rs:724 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `HTTP_REQUEST_BLOCK_REGEX` | src/config.rs:728 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `HTTP_REQUEST_BLOCK_NON_GLOBAL_IPS` | src/config.rs:731 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `DISABLE_2FA_REMEMBER` | src/config.rs:735 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `AUTHENTICATOR_DISABLE_TIME_DRIFT` | src/config.rs:739 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `EXPERIMENTAL_CLIENT_FEATURE_FLAGS` | src/config.rs:742 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `REQUIRE_DEVICE_EMAIL` | src/config.rs:746 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `RELOAD_TEMPLATES` | src/config.rs:750 | 2 | Read like Vaultwarden (environment, *_FILE, config.json, default) and used: DATABASE_URL drives the default connection, the templates folder and reload drive the renderer. |
+| 🟨 | `EXTENDED_LOGGING` | src/config.rs:752 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `LOG_TIMESTAMP_FORMAT` | src/config.rs:754 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `USE_SYSLOG` | src/config.rs:756 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `LOG_FILE` | src/config.rs:758 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `LOG_LEVEL` | src/config.rs:761 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `ENABLE_DB_WAL` | src/config.rs:765 | 2 | Read like Vaultwarden (environment, *_FILE, config.json, default) and used: DATABASE_URL drives the default connection, the templates folder and reload drive the renderer. |
+| 🟨 | `DB_CONNECTION_RETRIES` | src/config.rs:768 | 1 | Read and validated like Vaultwarden; PHP opens one connection per request, so there is no pool to size yet. |
+| 🟨 | `DATABASE_TIMEOUT` | src/config.rs:771 | 1 | Read and validated like Vaultwarden; PHP opens one connection per request, so there is no pool to size yet. |
+| 🟨 | `DATABASE_IDLE_TIMEOUT` | src/config.rs:774 | 1 | Read and validated like Vaultwarden; PHP opens one connection per request, so there is no pool to size yet. |
+| 🟨 | `DATABASE_MAX_CONNS` | src/config.rs:777 | 1 | Read and validated like Vaultwarden; PHP opens one connection per request, so there is no pool to size yet. |
+| 🟨 | `DATABASE_MIN_CONNS` | src/config.rs:780 | 1 | Read and validated like Vaultwarden; PHP opens one connection per request, so there is no pool to size yet. |
+| ✅ | `DATABASE_CONN_INIT` | src/config.rs:783 | 3 | Read like Vaultwarden (environment, *_FILE, config.json, default) and used: DATABASE_URL drives the default connection, the templates folder and reload drive the renderer. |
+| 🟨 | `DISABLE_ADMIN_TOKEN` | src/config.rs:786 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `ALLOWED_IFRAME_ANCESTORS` | src/config.rs:789 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `ALLOWED_CONNECT_SRC` | src/config.rs:792 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `LOGIN_RATELIMIT_SECONDS` | src/config.rs:795 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `LOGIN_RATELIMIT_MAX_BURST` | src/config.rs:797 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `UNAUTHENTICATED_RATELIMIT_SECONDS` | src/config.rs:800 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `UNAUTHENTICATED_RATELIMIT_MAX_BURST` | src/config.rs:802 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `ADMIN_RATELIMIT_SECONDS` | src/config.rs:805 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `ADMIN_RATELIMIT_MAX_BURST` | src/config.rs:807 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `ADMIN_SESSION_LIFETIME` | src/config.rs:810 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `ORG_GROUPS_ENABLED` | src/config.rs:813 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `INCREASE_NOTE_SIZE_LIMIT` | src/config.rs:817 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `_MAX_NOTE_SIZE` | src/config.rs:819 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `ENFORCE_SINGLE_ORG_WITH_RESET_PW_POLICY` | src/config.rs:824 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `DNS_PREFER_IPV6` | src/config.rs:828 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SSO_ENABLED` | src/config.rs:834 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SSO_ONLY` | src/config.rs:836 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SSO_SIGNUPS_ALLOWED` | src/config.rs:838 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SSO_SIGNUPS_MATCH_EMAIL` | src/config.rs:840 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SSO_ALLOW_UNKNOWN_EMAIL_VERIFICATION` | src/config.rs:842 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SSO_CLIENT_ID` | src/config.rs:844 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SSO_CLIENT_SECRET` | src/config.rs:846 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SSO_AUTHORITY` | src/config.rs:848 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SSO_SCOPES` | src/config.rs:850 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SSO_AUTHORIZE_EXTRA_PARAMS` | src/config.rs:852 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SSO_PKCE` | src/config.rs:854 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SSO_AUDIENCE_TRUSTED` | src/config.rs:856 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SSO_CALLBACK_PATH` | src/config.rs:858 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SSO_MASTER_PASSWORD_POLICY` | src/config.rs:860 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SSO_AUTH_ONLY_NOT_SESSION` | src/config.rs:862 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SSO_CLIENT_CACHE_EXPIRATION` | src/config.rs:864 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SSO_DEBUG_TOKENS` | src/config.rs:866 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `_ENABLE_YUBICO` | src/config.rs:872 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `YUBICO_CLIENT_ID` | src/config.rs:874 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `YUBICO_SECRET_KEY` | src/config.rs:876 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `YUBICO_SERVER` | src/config.rs:878 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `_ENABLE_DUO` | src/config.rs:884 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `DUO_IKEY` | src/config.rs:886 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `DUO_SKEY` | src/config.rs:888 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `DUO_HOST` | src/config.rs:890 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `_ENABLE_SMTP` | src/config.rs:896 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `USE_SENDMAIL` | src/config.rs:898 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SENDMAIL_COMMAND` | src/config.rs:900 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SMTP_HOST` | src/config.rs:902 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SMTP_SSL` | src/config.rs:904 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SMTP_EXPLICIT_TLS` | src/config.rs:906 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SMTP_SECURITY` | src/config.rs:908 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SMTP_PORT` | src/config.rs:910 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SMTP_FROM` | src/config.rs:912 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SMTP_FROM_NAME` | src/config.rs:914 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SMTP_USERNAME` | src/config.rs:916 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SMTP_PASSWORD` | src/config.rs:918 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SMTP_AUTH_MECHANISM` | src/config.rs:920 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SMTP_TIMEOUT` | src/config.rs:922 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `HELO_NAME` | src/config.rs:924 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SMTP_EMBED_IMAGES` | src/config.rs:926 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `_SMTP_IMG_SRC` | src/config.rs:928 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SMTP_DEBUG` | src/config.rs:930 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SMTP_ACCEPT_INVALID_CERTS` | src/config.rs:932 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `SMTP_ACCEPT_INVALID_HOSTNAMES` | src/config.rs:934 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `_ENABLE_EMAIL_2FA` | src/config.rs:940 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `EMAIL_TOKEN_SIZE` | src/config.rs:942 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `EMAIL_EXPIRATION_TIME` | src/config.rs:944 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `EMAIL_ATTEMPTS_LIMIT` | src/config.rs:946 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `EMAIL_2FA_ENFORCE_ON_VERIFIED_INVITE` | src/config.rs:948 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `EMAIL_2FA_AUTO_FALLBACK` | src/config.rs:950 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 
 ## Scheduled jobs
 

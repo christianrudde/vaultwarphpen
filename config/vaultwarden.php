@@ -1,27 +1,10 @@
 <?php
 
-// Settings keep Vaultwarden's environment variable names, so an existing
-// Vaultwarden .env can be reused unchanged.
-
-$dataFolder = env('DATA_FOLDER', base_path('data'));
+// Vaultwarden's own settings (DATA_FOLDER, DOMAIN, ...) are not Laravel
+// configuration; they are read like Vaultwarden reads them, see
+// App\Config\Config.
 
 return [
-
-    /*
-    |--------------------------------------------------------------------------
-    | Folders
-    |--------------------------------------------------------------------------
-    |
-    | The data folder has the same layout as Vaultwarden's: database,
-    | attachments, sends, icon cache, RSA key and template overrides.
-    |
-    */
-
-    'data_folder' => $dataFolder,
-
-    'templates_folder' => env('TEMPLATES_FOLDER', $dataFolder.'/templates'),
-
-    'reload_templates' => (bool) env('RELOAD_TEMPLATES', false),
 
     /*
     |--------------------------------------------------------------------------
