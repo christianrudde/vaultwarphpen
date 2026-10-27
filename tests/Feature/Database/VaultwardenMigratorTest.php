@@ -51,6 +51,20 @@ class VaultwardenMigratorTest extends TestCase
             'users.akey: nullable, schema.rs says not null',
             'users_organizations.akey: nullable, schema.rs says not null',
         ],
+        'pgsql' => [
+            // Created without NOT NULL on PostgreSQL only (2023-06-02); Vaultwarden always sets it.
+            'organization_api_key.api_key: nullable, schema.rs says not null',
+        ],
+    ];
+
+    /**
+     * The first migration of each dialect, as Diesel books it. PostgreSQL support
+     * started later, with its own initial migration.
+     */
+    private const array FIRST_VERSIONS = [
+        'sqlite' => '20180114171611',
+        'mysql' => '20180114171611',
+        'pgsql' => '20190912100000',
     ];
 
     /**
@@ -81,7 +95,7 @@ class VaultwardenMigratorTest extends TestCase
             $connection->select('SELECT version FROM '.VaultwardenMigrator::TABLE.' ORDER BY version'),
         );
         $this->assertSame(array_column($migrations, 'version'), $versions);
-        $this->assertContains('20180114171611', $versions);
+        $this->assertSame(self::FIRST_VERSIONS[$driver], $versions[0] ?? null);
     }
 
     #[DataProvider('drivers')]
