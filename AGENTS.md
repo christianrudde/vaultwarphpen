@@ -13,6 +13,10 @@ environment variables, so the official Bitwarden clients and existing Vaultwarde
   `VW_TEST_MYSQL_DATABASE=vaultwarphpen_test php86 artisan test`.
 - Static analysis (PHPStan, max level, PHP 8.5): `php86 vendor/bin/phpstan analyse --memory-limit=1G`.
 - Code style: `php86 vendor/bin/pint`.
+- Differential tests (`tests/Differential`) send the same requests to Vaultwarden and to us and
+  compare the answers. They are skipped unless `VW_REFERENCE_URL` and `VW_SUBJECT_URL` are set;
+  `.github/scripts/differential.sh <vaultwarden binary>` starts both servers and runs them. Write
+  one for every route you implement.
 - Database schema: `php86 artisan vaultwarden:migrate`.
 - CI (GitHub Actions): `tests.yml` runs Pint, PHPStan and the tests on SQLite, MySQL and PostgreSQL.
   `reference.yml` builds the pinned Vaultwarden for Linux, and for macOS (arm64) only when started by
@@ -74,5 +78,10 @@ Everything is measured against one pinned Vaultwarden commit.
   default catcher). Database errors become `{"message":"Db",...}` like Vaultwarden's `?` conversions.
 - JSON: use `App\Http\Json`. Values built with `json!()` in Rust have their keys sorted (serde_json runs
   without `preserve_order`), so pass them through `Json::sorted()`; derived structs keep field order.
+- Request guards like Rocket's (`App\Auth\Headers`, ...) are resolved by type-hinting them in a
+  controller method; failures throw `App\Http\Unauthorized` (401, reason logged).
+- Models (`app/Models`) extend `App\Models\Model`: `save()` writes every column with an upsert like
+  Diesel, bytes go through the `Binary` cast, timestamps through `NaiveDateTime`. `toApi()` is Rust's
+  `to_json()`.
 - Tokens: `App\Auth\Jwt` with the key file `App\Auth\RsaKeys` shares with Vaultwarden. Claims are arrays
   in the field order of the Rust struct. `.github/scripts/token-parity.sh` checks interop in CI.

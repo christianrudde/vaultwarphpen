@@ -11,6 +11,10 @@
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
         </testsuite>
+        <!-- Compares with a running Vaultwarden; see .github/scripts/differential.sh -->
+        <testsuite name="Differential">
+            <directory>tests/Differential</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

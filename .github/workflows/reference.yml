@@ -3,8 +3,8 @@ name: Reference
 # Builds the Vaultwarden commit pinned in parity/reference.json for Linux (and,
 # when started by hand, for macOS), so its behaviour can be compared with ours
 # without a local Rust toolchain. The binaries are kept as workflow artifacts.
-# The compare job then checks that Vaultwarden and we create the same databases
-# and accept each other's tokens (.github/scripts).
+# The compare job then checks that Vaultwarden and we create the same databases,
+# accept each other's tokens and answer requests alike (.github/scripts).
 on:
   push:
     paths:
@@ -12,10 +12,12 @@ on:
       - ".github/scripts/**"
       - "parity/reference.json"
       - "parity/schema/**"
-      - "app/Auth/**"
-      - "app/Config/**"
-      - "app/Database/**"
-      - "app/Console/Commands/Parity*.php"
+      - "app/**"
+      - "bootstrap/**"
+      - "config/**"
+      - "routes/**"
+      - "resources/**"
+      - "tests/Differential/**"
       - "database/vaultwarden/**"
   workflow_dispatch:
 
@@ -186,6 +188,10 @@ jobs:
       - name: Compare tokens
         if: ${{ !cancelled() }}
         run: .github/scripts/token-parity.sh "${RUNNER_TEMP}/vaultwarden/vaultwarden"
+
+      - name: Compare responses
+        if: ${{ !cancelled() }}
+        run: .github/scripts/differential.sh "${RUNNER_TEMP}/vaultwarden/vaultwarden"
 
       - name: Compare with the committed snapshots
         if: ${{ !cancelled() }}
