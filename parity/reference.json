@@ -1,0 +1,7 @@
+{
+    "repository": "https://github.com/dani-garcia/vaultwarden.git",
+    "commit": "0f44744ef86a2a7bea615af1c024044ce5736187",
+    "committed_at": "2026-10-25T20:42:35+01:00",
+    "release": "1.37.4",
+    "web_vault": "2026.8.0"
+}

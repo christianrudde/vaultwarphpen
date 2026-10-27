@@ -1,0 +1,50 @@
+<?php
+
+namespace App\Console\Commands;
+
+use App\Database\VaultwardenMigrator;
+use Illuminate\Console\Command;
+use Illuminate\Database\DatabaseManager;
+use Illuminate\Support\Facades\File;
+
+class VaultwardenMigrate extends Command
+{
+    /**
+     * @var string
+     */
+    protected $signature = 'vaultwarden:migrate {--database= : The database connection to use}';
+
+    /**
+     * @var string
+     */
+    protected $description = 'Run pending Vaultwarden schema migrations';
+
+    public function handle(DatabaseManager $databases, VaultwardenMigrator $migrator): int
+    {
+        $name = $this->option('database');
+        $connection = $databases->connection(is_string($name) ? $name : null);
+
+        // Like Vaultwarden, create a missing SQLite database file on first start.
+        $file = $connection->getConfig('database');
+        if ($connection->getDriverName() === 'sqlite' && is_string($file) && $file !== ':memory:' && ! File::exists($file)) {
+            File::ensureDirectoryExists(dirname($file));
+            File::put($file, '');
+        }
+
+        $applied = $migrator->migrate($connection);
+
+        if ($applied === []) {
+            $this->components->info('Nothing to migrate.');
+
+            return self::SUCCESS;
+        }
+
+        foreach ($applied as $migration) {
+            $this->components->twoColumnDetail($migration, '<fg=green;options=bold>DONE</>');
+        }
+
+        $this->components->info(count($applied).' migrations applied.');
+
+        return self::SUCCESS;
+    }
+}

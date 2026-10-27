@@ -1,0 +1,13 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: max
+    phpVersion: 80500
+    paths:
+        - app
+        - database
+        - routes
+        - tests
+    excludePaths:
+        - tests/Fixtures
