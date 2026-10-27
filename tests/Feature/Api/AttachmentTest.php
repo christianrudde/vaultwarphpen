@@ -15,6 +15,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Testing\TestResponse;
 use Symfony\Component\HttpFoundation\File\UploadedFile as SymfonyUploadedFile;
 use Symfony\Component\HttpFoundation\Response;
+use Tests\Attributes\Parity;
 use Tests\Concerns\UsesVaultwardenDatabase;
 use Tests\TestCase;
 
@@ -56,6 +57,7 @@ class AttachmentTest extends TestCase
         $this->cipherId = $id;
     }
 
+    #[Parity('config:ATTACHMENTS_FOLDER')]
     public function test_v2_upload_and_download(): void
     {
         $created = $this->postJson("/api/ciphers/{$this->cipherId}/attachment/v2", ['key' => '2.key', 'fileName' => '2.name', 'fileSize' => '5'], $this->auth)
@@ -139,6 +141,7 @@ class AttachmentTest extends TestCase
         $this->delete("/api/ciphers/{$this->cipherId}/attachment/no_such!id", [], $this->auth)->assertStatus(422);
     }
 
+    #[Parity('config:USER_ATTACHMENT_LIMIT')]
     public function test_attachments_can_be_disabled(): void
     {
         $this->changeVaultwardenEnvironment(['USER_ATTACHMENT_LIMIT' => '0']);
@@ -146,6 +149,7 @@ class AttachmentTest extends TestCase
             ->assertStatus(400)->assertJsonPath('message', 'Attachments are disabled');
     }
 
+    #[Parity('config:USER_ATTACHMENT_LIMIT')]
     public function test_storage_limit(): void
     {
         $this->changeVaultwardenEnvironment(['USER_ATTACHMENT_LIMIT' => '1']);

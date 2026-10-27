@@ -8,8 +8,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 
 | Area | Total | ✅ | 🟨 | ⬜ | ➖ | With tests |
 |---|--:|--:|--:|--:|--:|--:|
-| Routes | 294 | 22 | 42 | 229 | 1 | 63 |
-| Settings | 153 | 18 | 135 | 0 | 0 | 153 |
+| Routes | 294 | 24 | 54 | 215 | 1 | 77 |
+| Settings | 153 | 20 | 133 | 0 | 0 | 153 |
 | Scheduled jobs | 8 | 0 | 0 | 8 | 0 | 0 |
 | Database tables | 28 | 28 | 0 | 0 | 0 | 28 |
 | Templates | 74 | 0 | 74 | 0 | 0 | 74 |
@@ -19,7 +19,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 
 | | Item | Source | Tests | Notes |
 |---|---|---|--:|---|
-| ⬜ | GET `/attachments/{cipher_id}/{file_id}` | src/api/web.rs:232 | 0 |  |
+| ✅ | GET `/attachments/{cipher_id}/{file_id}` | src/api/web.rs:232 | 1 | Compared with Vaultwarden in tests/Differential/AttachmentTest. |
 | ✅ | GET `/alive` | src/api/web.rs:245 | 2 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
 | ✅ | HEAD `/alive` | src/api/web.rs:250 | 2 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
 | ⬜ | GET `/vw_static/{filename}` | src/api/web.rs:330 | 0 |  |
@@ -87,19 +87,19 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | GET `/api/ciphers/{cipher_id}/details` | src/api/core/ciphers.rs:253 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
 | 🟨 | POST `/api/ciphers` | src/api/core/ciphers.rs:384 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
 | 🟨 | PUT `/api/ciphers/{cipher_id}/admin` | src/api/core/ciphers.rs:682 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
-| ⬜ | POST `/api/ciphers/admin` | src/api/core/ciphers.rs:338 | 0 |  |
-| ⬜ | POST `/api/ciphers/create` | src/api/core/ciphers.rs:346 | 0 |  |
-| ⬜ | POST `/api/ciphers/import` | src/api/core/ciphers.rs:630 | 0 |  |
-| ⬜ | GET `/api/ciphers/{cipher_id}/attachment/{attachment_id}` | src/api/core/ciphers.rs:1181 | 0 |  |
-| ⬜ | POST `/api/ciphers/{cipher_id}/attachment/v2` | src/api/core/ciphers.rs:1221 | 0 |  |
-| ⬜ | POST `/api/ciphers/{cipher_id}/attachment/{attachment_id}` | src/api/core/ciphers.rs:1447 | 0 |  |
-| ⬜ | POST `/api/ciphers/{cipher_id}/attachment` | src/api/core/ciphers.rs:1468 | 0 |  |
-| ⬜ | POST `/api/ciphers/{cipher_id}/attachment-admin` | src/api/core/ciphers.rs:1485 | 0 |  |
-| ⬜ | POST `/api/ciphers/{cipher_id}/attachment/{attachment_id}/share` | src/api/core/ciphers.rs:1496 | 0 |  |
-| ⬜ | POST `/api/ciphers/{cipher_id}/attachment/{attachment_id}/delete` | src/api/core/ciphers.rs:1520 | 0 |  |
-| ⬜ | POST `/api/ciphers/{cipher_id}/attachment/{attachment_id}/delete-admin` | src/api/core/ciphers.rs:1509 | 0 |  |
-| ⬜ | DELETE `/api/ciphers/{cipher_id}/attachment/{attachment_id}` | src/api/core/ciphers.rs:1531 | 0 |  |
-| ⬜ | DELETE `/api/ciphers/{cipher_id}/attachment/{attachment_id}/admin` | src/api/core/ciphers.rs:1542 | 0 |  |
+| 🟨 | POST `/api/ciphers/admin` | src/api/core/ciphers.rs:338 | 1 | Personal ciphers and clones compared with Vaultwarden in tests/Differential/CipherTest; collections of organizations answer "Organizations are not implemented yet". |
+| 🟨 | POST `/api/ciphers/create` | src/api/core/ciphers.rs:346 | 1 | Personal ciphers and clones compared with Vaultwarden in tests/Differential/CipherTest; collections of organizations answer "Organizations are not implemented yet". |
+| ✅ | POST `/api/ciphers/import` | src/api/core/ciphers.rs:630 | 1 | Compared with Vaultwarden in tests/Differential/CipherTest, including the validation and partial imports. |
+| 🟨 | GET `/api/ciphers/{cipher_id}/attachment/{attachment_id}` | src/api/core/ciphers.rs:1181 | 1 | Personal ciphers compared with Vaultwarden in tests/Differential/AttachmentTest; organization ciphers answer "Organizations are not implemented yet". Local storage only, no other OpenDAL backends. |
+| 🟨 | POST `/api/ciphers/{cipher_id}/attachment/v2` | src/api/core/ciphers.rs:1221 | 1 | Personal ciphers compared with Vaultwarden in tests/Differential/AttachmentTest; organization ciphers answer "Organizations are not implemented yet". Local storage only, no other OpenDAL backends. |
+| 🟨 | POST `/api/ciphers/{cipher_id}/attachment/{attachment_id}` | src/api/core/ciphers.rs:1447 | 1 | Personal ciphers compared with Vaultwarden in tests/Differential/AttachmentTest; organization ciphers answer "Organizations are not implemented yet". Local storage only, no other OpenDAL backends. |
+| 🟨 | POST `/api/ciphers/{cipher_id}/attachment` | src/api/core/ciphers.rs:1468 | 1 | Personal ciphers compared with Vaultwarden in tests/Differential/AttachmentTest; organization ciphers answer "Organizations are not implemented yet". Local storage only, no other OpenDAL backends. |
+| 🟨 | POST `/api/ciphers/{cipher_id}/attachment-admin` | src/api/core/ciphers.rs:1485 | 1 | Personal ciphers compared with Vaultwarden in tests/Differential/AttachmentTest; organization ciphers answer "Organizations are not implemented yet". Local storage only, no other OpenDAL backends. |
+| 🟨 | POST `/api/ciphers/{cipher_id}/attachment/{attachment_id}/share` | src/api/core/ciphers.rs:1496 | 1 | Personal ciphers compared with Vaultwarden in tests/Differential/AttachmentTest; organization ciphers answer "Organizations are not implemented yet". Local storage only, no other OpenDAL backends. |
+| 🟨 | POST `/api/ciphers/{cipher_id}/attachment/{attachment_id}/delete` | src/api/core/ciphers.rs:1520 | 1 | Personal ciphers compared with Vaultwarden in tests/Differential/AttachmentTest; organization ciphers answer "Organizations are not implemented yet". Local storage only, no other OpenDAL backends. |
+| 🟨 | POST `/api/ciphers/{cipher_id}/attachment/{attachment_id}/delete-admin` | src/api/core/ciphers.rs:1509 | 1 | Personal ciphers compared with Vaultwarden in tests/Differential/AttachmentTest; organization ciphers answer "Organizations are not implemented yet". Local storage only, no other OpenDAL backends. |
+| 🟨 | DELETE `/api/ciphers/{cipher_id}/attachment/{attachment_id}` | src/api/core/ciphers.rs:1531 | 1 | Personal ciphers compared with Vaultwarden in tests/Differential/AttachmentTest; organization ciphers answer "Organizations are not implemented yet". Local storage only, no other OpenDAL backends. |
+| 🟨 | DELETE `/api/ciphers/{cipher_id}/attachment/{attachment_id}/admin` | src/api/core/ciphers.rs:1542 | 1 | Personal ciphers compared with Vaultwarden in tests/Differential/AttachmentTest; organization ciphers answer "Organizations are not implemented yet". Local storage only, no other OpenDAL backends. |
 | 🟨 | POST `/api/ciphers/{cipher_id}/admin` | src/api/core/ciphers.rs:693 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
 | ⬜ | POST `/api/ciphers/{cipher_id}/share` | src/api/core/ciphers.rs:988 | 0 |  |
 | ⬜ | PUT `/api/ciphers/{cipher_id}/share` | src/api/core/ciphers.rs:1001 | 0 |  |
@@ -321,7 +321,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | `DATA_FOLDER` | src/config.rs:521 | 3 | Read like Vaultwarden (environment, *_FILE, config.json, default) and used: DATABASE_URL drives the default connection, the templates folder and reload drive the renderer. |
 | ✅ | `DATABASE_URL` | src/config.rs:523 | 3 | Read like Vaultwarden (environment, *_FILE, config.json, default) and used: DATABASE_URL drives the default connection, the templates folder and reload drive the renderer. |
 | 🟨 | `ICON_CACHE_FOLDER` | src/config.rs:525 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `ATTACHMENTS_FOLDER` | src/config.rs:527 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `ATTACHMENTS_FOLDER` | src/config.rs:527 | 2 | Attachments are stored and served from <ATTACHMENTS_FOLDER>/<cipher>/<id>, like the filesystem backend. |
 | 🟨 | `SENDS_FOLDER` | src/config.rs:529 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `TMP_FOLDER` | src/config.rs:531 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | ✅ | `TEMPLATES_FOLDER` | src/config.rs:533 | 3 | Read like Vaultwarden (environment, *_FILE, config.json, default) and used: DATABASE_URL drives the default connection, the templates folder and reload drive the renderer. |
@@ -350,7 +350,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `WEB_VAULT_ENABLED` | src/config.rs:600 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `SENDS_ALLOWED` | src/config.rs:604 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `HIBP_API_KEY` | src/config.rs:607 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `USER_ATTACHMENT_LIMIT` | src/config.rs:610 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `USER_ATTACHMENT_LIMIT` | src/config.rs:610 | 3 | Enforced on uploads like save_attachment (tests/Feature/Api/AttachmentTest). |
 | 🟨 | `ORG_ATTACHMENT_LIMIT` | src/config.rs:612 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `USER_SEND_LIMIT` | src/config.rs:614 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `TRASH_AUTO_DELETE_DAYS` | src/config.rs:619 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
