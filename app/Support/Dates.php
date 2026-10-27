@@ -24,14 +24,44 @@ final class Dates
      */
     public static function parseNaive(string $value): ?DateTimeImmutable
     {
-        if (! preg_match('/^(\d{4}-\d{2}-\d{2})[Tt ](\d{2}:\d{2}:\d{2})(?:\.(\d+))?\s*(?:[Zz]|UTC|(?:[+-]|\x{2212})\d{2}[:\s]*[0-5]\d)$/Diu', $value, $match)) {
+        return self::parseRelaxed($value)[0] ?? null;
+    }
+
+    /**
+     * A DateTime<Utc> as serde reads it: the same relaxed RFC 3339, with the
+     * offset applied.
+     */
+    public static function parseUtc(string $value): ?DateTimeImmutable
+    {
+        $parsed = self::parseRelaxed($value);
+        if ($parsed === null) {
+            return null;
+        }
+        [$date, $offsetSeconds] = $parsed;
+
+        // FixedOffset takes less than a day either way.
+        return abs($offsetSeconds) < 86_400 ? $date->modify(($offsetSeconds >= 0 ? '-' : '+').abs($offsetSeconds).' seconds') : null;
+    }
+
+    /**
+     * @return array{DateTimeImmutable, int}|null The local time and the offset in seconds
+     */
+    private static function parseRelaxed(string $value): ?array
+    {
+        if (! preg_match('/^(\d{4}-\d{2}-\d{2})[Tt ](\d{2}:\d{2}:\d{2})(?:\.(\d+))?\s*(?:[Zz]|UTC|(?<sign>[+-]|\x{2212})(?<hours>\d{2})[:\s]*(?<minutes>[0-5]\d))$/Diu', $value, $match, PREG_UNMATCHED_AS_NULL)) {
             return null;
         }
 
         $micros = substr(str_pad($match[3] ?? '', 6, '0'), 0, 6);
         $date = DateTimeImmutable::createFromFormat('!Y-m-d H:i:s.u', "{$match[1]} {$match[2]}.{$micros}", new DateTimeZone('UTC'));
+        if ($date === false || $date->format('Y-m-d H:i:s') !== "{$match[1]} {$match[2]}") {
+            return null;
+        }
 
-        return $date !== false && $date->format('Y-m-d H:i:s') === "{$match[1]} {$match[2]}" ? $date : null;
+        ['sign' => $sign, 'hours' => $hours, 'minutes' => $minutes] = $match;
+        $offset = $sign === null || $hours === null || $minutes === null ? 0 : ((int) $hours * 3600 + (int) $minutes * 60) * ($sign === '+' ? 1 : -1);
+
+        return [$date, $offset];
     }
 
     /**

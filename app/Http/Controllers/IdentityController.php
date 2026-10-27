@@ -22,6 +22,7 @@ use App\Models\Device;
 use App\Models\Invitation;
 use App\Models\Membership;
 use App\Models\OrgPolicy;
+use App\Models\Send;
 use App\Models\TwoFactor;
 use App\Models\User;
 use App\Support\Dates;
@@ -82,9 +83,68 @@ final readonly class IdentityController
             ),
             $grantType === 'authorization_code' && $this->config->bool('sso_enabled') => throw ApiError::message('SSO sign-in is not implemented yet'),
             $grantType === 'authorization_code' => throw ApiError::message('SSO sign-in is not available'),
-            $grantType === 'send_access' => throw ApiError::message('Send access is not implemented yet'),
+            $grantType === 'send_access' => $this->sendAccessLogin(
+                fn (): string => $required('client_id', 'client_id cannot be blank'),
+                // Fields without aliases.
+                Body::optionalFormField($data, ['send_id']),
+                Body::optionalFormField($data, ['password_hash_b64']),
+                $ip,
+            ),
             default => throw ApiError::message('Invalid type'),
         };
+    }
+
+    /**
+     * The send_access grant (auth::send::SendTokens): a two-minute token for
+     * the Send behind an access id, checked against its password.
+     *
+     * @param  callable(): string  $clientId  Required, but checked after the rate limit
+     *
+     * @throws ApiError
+     */
+    private function sendAccessLogin(callable $clientId, ?string $accessId, ?string $password, string $ip): Response
+    {
+        $this->limiter->check('unauthenticated', $ip);
+        $clientId();
+        $accessId ?? throw ApiError::message('send_id cannot be blank');
+
+        $invalid = static fn (string $log, string $type): ApiError => ApiError::json(
+            Json::sorted(['kind' => 'expected_server', 'error' => 'invalid_grant', 'send_access_error_type' => $type]),
+            $log,
+            404,
+        );
+
+        $sendId = Send::uuidFromAccessId($accessId) ?? throw $invalid("Can't convert {$accessId}", 'send_id_invalid');
+        $send = Send::findByUuid($sendId) ?? throw $invalid("Can't find {$sendId}", 'send_id_invalid');
+
+        if ($send->max_access_count !== null && $send->access_count >= $send->max_access_count) {
+            throw $invalid("Send {$sendId}, max access reached", 'send_id_invalid');
+        }
+        if (! $send->isAccessible()) {
+            throw $invalid("Send {$sendId}, not accessible", 'send_id_invalid');
+        }
+
+        if ($send->password_hash !== null) {
+            if ($password === null) {
+                throw ApiError::json(
+                    Json::sorted(['kind' => 'expected_server', 'error' => 'invalid_request', 'send_access_error_type' => 'password_hash_b64_required']),
+                    'Password required',
+                );
+            }
+            if (! $send->checkPassword($password)) {
+                throw $invalid("Send {$sendId}, Invalid password from {$ip}", 'password_hash_b64_invalid');
+            }
+        }
+
+        $now = Dates::now()->getTimestamp();
+        $claims = ['nbf' => $now, 'exp' => $now + 120, 'iss' => $this->jwt->issuer(JwtIssuer::Send), 'sub' => $sendId];
+
+        return Json::response(Json::sorted([
+            'access_token' => $this->jwt->encode($claims),
+            'expires_in' => $claims['exp'] - Dates::now()->getTimestamp(),
+            'token_type' => 'Bearer',
+            'scope' => 'api.send.access',
+        ]));
     }
 
     /**

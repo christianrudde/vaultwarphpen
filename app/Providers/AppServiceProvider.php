@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Auth\Headers;
 use App\Auth\Jwt;
 use App\Auth\RsaKeys;
+use App\Auth\SendHeaders;
 use App\Config\Config;
 use App\Database\DatabaseUrl;
 use App\Database\SqlStatements;
@@ -36,6 +37,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(Headers::class, fn (): Headers => Headers::fromRequest(
             $this->app->make(Request::class),
             $this->app->make(Config::class),
+            $this->app->make(Jwt::class),
+        ));
+        $this->app->bind(SendHeaders::class, fn (): SendHeaders => SendHeaders::fromRequest(
+            $this->app->make(Request::class),
             $this->app->make(Jwt::class),
         ));
 

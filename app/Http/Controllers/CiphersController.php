@@ -9,6 +9,7 @@ use App\Http\ApiError;
 use App\Http\Data\Body;
 use App\Http\Data\CipherData;
 use App\Http\Data\Fields;
+use App\Http\Data\NumberOrString;
 use App\Http\Data\PasswordOrOtpData;
 use App\Http\Data\Query;
 use App\Http\Data\UploadData;
@@ -42,7 +43,7 @@ final readonly class CiphersController
     /**
      * sends::SIZE_525_MB, the largest upload.
      */
-    private const int SIZE_525_MB = 550_502_400;
+    public const int SIZE_525_MB = 550_502_400;
 
     private const int ATTACHMENT_SIZE_LEEWAY = 1024 * 1024;
 
@@ -307,10 +308,7 @@ final readonly class CiphersController
         $body = Body::json($request);
         $key = $body->string('key');
         $fileName = $body->string('fileName');
-        $fileSize = $body->value('fileSize');
-        if (! is_int($fileSize) && ! is_string($fileSize)) {
-            throw new HttpStatus(422, 'Field `fileSize` must be a number or a string.');
-        }
+        $fileSize = NumberOrString::optional($body, 'fileSize') ?? throw new HttpStatus(422, 'Missing field `fileSize`.');
         $adminRequest = $body->optionalBool('adminRequest');
 
         $cipher = Cipher::findByUuid($cipherId) ?? throw ApiError::message("Cipher doesn't exist");
@@ -318,7 +316,7 @@ final readonly class CiphersController
             throw ApiError::message('Cipher is not write accessible');
         }
 
-        $size = is_int($fileSize) ? $fileSize : self::parseI64($fileSize);
+        $size = NumberOrString::intoI64($fileSize);
         if ($size < 0) {
             throw ApiError::message("Attachment size can't be negative");
         }
@@ -866,25 +864,6 @@ final readonly class CiphersController
         $cipher->updateUsersRevision();
 
         return Json::sorted(['cipher' => $cipher->toApi($headers->host, $headers->user->uuid)]);
-    }
-
-    /**
-     * NumberOrString::into_i64 for a string: Rust's i64 parsing.
-     *
-     * @throws ApiError
-     */
-    private static function parseI64(string $value): int
-    {
-        $digits = ltrim(ltrim($value, '+-'), '0');
-        $negative = str_starts_with($value, '-');
-        $fits = strlen($digits) < 19
-            || (strlen($digits) === 19 && strcmp($digits, $negative ? '9223372036854775808' : '9223372036854775807') <= 0);
-
-        if (! preg_match('/^[+-]?[0-9]+$/D', $value) || ! $fits) {
-            throw ApiError::message("Can't convert to number", logMessage: 'invalid digit found in string');
-        }
-
-        return $negative && $digits === '9223372036854775808' ? PHP_INT_MIN : (int) $value;
     }
 
     /**

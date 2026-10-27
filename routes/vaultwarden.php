@@ -5,6 +5,7 @@ use App\Http\Controllers\CiphersController;
 use App\Http\Controllers\CoreController;
 use App\Http\Controllers\FoldersController;
 use App\Http\Controllers\IdentityController;
+use App\Http\Controllers\SendsController;
 use App\Http\Controllers\WebController;
 use Illuminate\Support\Facades\Route;
 
@@ -95,6 +96,20 @@ Route::prefix('/api')->group(function (): void {
     Route::put('/ciphers/{cipherId}/restore-admin', [CiphersController::class, 'restoreCipher'])->name('core::ciphers::restore_cipher_put_admin');
     Route::put('/ciphers/{cipherId}/archive', [CiphersController::class, 'archiveCipher'])->name('core::ciphers::archive_cipher_put');
     Route::put('/ciphers/{cipherId}/unarchive', [CiphersController::class, 'unarchiveCipher'])->name('core::ciphers::unarchive_cipher_put');
+
+    // core::sends
+    Route::get('/sends', [SendsController::class, 'getSends'])->name('core::sends::get_sends');
+    Route::post('/sends', [SendsController::class, 'postSend'])->name('core::sends::post_send');
+    Route::post('/sends/file/v2', [SendsController::class, 'postSendFileV2'])->name('core::sends::post_send_file_v2');
+    Route::post('/sends/access', [SendsController::class, 'postAccess'])->name('core::sends::post_access');
+    // Before the file upload, whose send id would take "access" too.
+    Route::post('/sends/access/file/{fileId}', [SendsController::class, 'postAccessFile'])->name('core::sends::post_access_file');
+    Route::post('/sends/{sendId}/file/{fileId}', [SendsController::class, 'postSendFileV2Data'])->name('core::sends::post_send_file_v2_data');
+    Route::get('/sends/{sendId}', [SendsController::class, 'getSend'])->name('core::sends::get_send');
+    Route::get('/sends/{sendId}/{fileId}', [SendsController::class, 'downloadSend'])->name('core::sends::download_send');
+    Route::put('/sends/{sendId}', [SendsController::class, 'putSend'])->name('core::sends::put_send');
+    Route::delete('/sends/{sendId}', [SendsController::class, 'deleteSend'])->name('core::sends::delete_send');
+    Route::put('/sends/{sendId}/remove-password', [SendsController::class, 'putRemovePassword'])->name('core::sends::put_remove_password');
 
     // core::folders
     Route::get('/folders', [FoldersController::class, 'getFolders'])->name('core::folders::get_folders');
