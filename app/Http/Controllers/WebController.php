@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\EmptyResponse;
 use App\Http\Json;
 use App\Support\Dates;
 use Illuminate\Database\DatabaseManager;
@@ -31,11 +32,11 @@ final readonly class WebController
     /**
      * HEAD /alive
      */
-    public function aliveHead(): Response
+    public function aliveHead(): EmptyResponse
     {
         $this->database();
 
-        return new Response;
+        return new EmptyResponse;
     }
 
     /**

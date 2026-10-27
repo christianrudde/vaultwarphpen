@@ -28,7 +28,7 @@ class CoreRoutesTest extends TestCase
     #[Parity('route:HEAD /alive')]
     public function test_head_alive_is_empty(): void
     {
-        $this->call('HEAD', '/alive')->assertStatus(200)->assertContent('');
+        $this->call('HEAD', '/alive')->assertStatus(200)->assertContent('')->assertHeaderMissing('Content-Type');
     }
 
     #[Parity('route:GET /api/version')]
