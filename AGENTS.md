@@ -15,8 +15,8 @@ environment variables, so the official Bitwarden clients and existing Vaultwarde
 - Code style: `php86 vendor/bin/pint`.
 - Database schema: `php86 artisan vaultwarden:migrate`.
 - CI (GitHub Actions): `tests.yml` runs Pint, PHPStan and the tests on SQLite, MySQL and PostgreSQL.
-  `reference.yml` builds the pinned Vaultwarden for Linux and macOS (arm64) and keeps the binaries as
-  workflow artifacts. Its databases job lets Vaultwarden create SQLite, MySQL and PostgreSQL databases
+  `reference.yml` builds the pinned Vaultwarden for Linux, and for macOS (arm64) only when started by
+  hand (Actions → Reference → Run workflow), and keeps the binaries as workflow artifacts. Its databases job lets Vaultwarden create SQLite, MySQL and PostgreSQL databases
   and checks both directions with `.github/scripts/database-parity.sh`. It runs when the pin, the
   snapshots or the migrator change, or on demand.
 

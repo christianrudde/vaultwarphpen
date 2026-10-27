@@ -1,8 +1,8 @@
 name: Reference
 
-# Builds the Vaultwarden commit pinned in parity/reference.json, so its behaviour
-# can be compared with ours without a local Rust toolchain. The binaries are
-# kept as workflow artifacts. The databases job then compares the databases
+# Builds the Vaultwarden commit pinned in parity/reference.json for Linux (and,
+# when started by hand, for macOS), so its behaviour can be compared with ours
+# without a local Rust toolchain. The binaries are kept as workflow artifacts. The databases job then compares the databases
 # Vaultwarden creates with ours (.github/scripts/database-parity.sh).
 on:
   push:
@@ -26,19 +26,16 @@ concurrency:
 jobs:
   build:
     name: Build Vaultwarden (${{ matrix.target }})
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.target == 'macos-arm64' && 'macos-15' || 'ubuntu-24.04' }}
     timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-24.04
-            target: linux-x86_64
-            features: sqlite,mysql,postgresql
-          # For local comparisons on a Mac; SQLite is linked in, so no client libraries are needed.
-          - os: macos-15
-            target: macos-arm64
-            features: sqlite
+        # GitHub's macOS runners are often unavailable, so macOS is only built when started by hand.
+        target: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["linux-x86_64", "macos-arm64"]' || '["linux-x86_64"]') }}
+    env:
+      # The macOS build is for local comparisons; SQLite is linked in, so it needs no client libraries.
+      FEATURES: ${{ matrix.target == 'macos-arm64' && 'sqlite' || 'sqlite,mysql,postgresql' }}
 
     steps:
       - name: Install dependencies
@@ -79,12 +76,11 @@ jobs:
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: reference/vaultwarden -> target
-          key: ${{ matrix.features }}
+          key: ${{ env.FEATURES }}
 
       - name: Build
         working-directory: reference/vaultwarden
         env:
-          FEATURES: ${{ matrix.features }}
           VW_VERSION: ${{ steps.pin.outputs.version }}
         run: cargo build --locked --profile release-low --features "${FEATURES}"
 
