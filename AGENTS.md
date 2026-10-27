@@ -14,6 +14,9 @@ environment variables, so the official Bitwarden clients and existing Vaultwarde
 - Static analysis (PHPStan, max level, PHP 8.5): `php86 vendor/bin/phpstan analyse --memory-limit=1G`.
 - Code style: `php86 vendor/bin/pint`.
 - Database schema: `php86 artisan vaultwarden:migrate`.
+- CI (GitHub Actions): `tests.yml` runs Pint, PHPStan and the tests on SQLite, MySQL and PostgreSQL.
+  `reference.yml` builds the pinned Vaultwarden for Linux and macOS (arm64) and keeps the binaries as
+  workflow artifacts; it runs when `parity/reference.json` changes or on demand.
 
 ## Parity workflow
 

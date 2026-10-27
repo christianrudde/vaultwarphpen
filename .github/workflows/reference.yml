@@ -1,0 +1,105 @@
+name: Reference
+
+# Builds the Vaultwarden commit pinned in parity/reference.json, so its behaviour
+# can be compared with ours without a local Rust toolchain. The binaries are
+# kept as workflow artifacts.
+on:
+  push:
+    paths:
+      - ".github/workflows/reference.yml"
+      - "parity/reference.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Vaultwarden (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: linux-x86_64
+            features: sqlite,mysql,postgresql
+          # For local comparisons on a Mac; SQLite is linked in, so no client libraries are needed.
+          - os: macos-15
+            target: macos-arm64
+            features: sqlite
+
+    steps:
+      - name: Install dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential libmariadb-dev-compat libpq-dev libssl-dev pkg-config
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Read the pinned commit
+        id: pin
+        run: echo "commit=$(jq -r .commit parity/reference.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout Vaultwarden
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: dani-garcia/vaultwarden
+          ref: ${{ steps.pin.outputs.commit }}
+          path: reference/vaultwarden
+          persist-credentials: false
+
+      - name: Install the Rust toolchain
+        working-directory: reference/vaultwarden
+        run: |
+          channel="$(sed -nE 's/^channel = "(.*)"/\1/p' rust-toolchain.toml)"
+          rm rust-toolchain.toml
+          rustup toolchain install "${channel}" --profile minimal --no-self-update
+          rustup default "${channel}"
+          rustc -vV
+
+      - name: Rust caching
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: reference/vaultwarden -> target
+          key: ${{ matrix.features }}
+
+      - name: Build
+        working-directory: reference/vaultwarden
+        env:
+          FEATURES: ${{ matrix.features }}
+        run: cargo build --locked --profile release-low --features "${FEATURES}"
+
+      - name: Smoke test
+        working-directory: reference/vaultwarden
+        run: |
+          mkdir -p "${RUNNER_TEMP}/data"
+          DATA_FOLDER="${RUNNER_TEMP}/data" WEB_VAULT_ENABLED=false ROCKET_PORT=8000 \
+            target/release-low/vaultwarden > "${RUNNER_TEMP}/vaultwarden.log" 2>&1 &
+          pid=$!
+          for _ in $(seq 60); do
+            curl -fsS http://127.0.0.1:8000/alive > /dev/null 2>&1 && break
+            sleep 1
+          done
+          status=0
+          curl -fsS http://127.0.0.1:8000/api/version || status=1
+          echo
+          kill "${pid}" || true
+          cat "${RUNNER_TEMP}/vaultwarden.log"
+          test -f "${RUNNER_TEMP}/data/db.sqlite3" || status=1
+          exit "${status}"
+
+      - name: Upload binary
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vaultwarden-${{ steps.pin.outputs.commit }}-${{ matrix.target }}
+          path: reference/vaultwarden/target/release-low/vaultwarden
+          if-no-files-found: error
+          retention-days: 90
