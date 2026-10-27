@@ -46,7 +46,11 @@ jobs:
 
       - name: Read the pinned commit
         id: pin
-        run: echo "commit=$(jq -r .commit parity/reference.json)" >> "$GITHUB_OUTPUT"
+        run: |
+          commit="$(jq -r .commit parity/reference.json)"
+          echo "commit=${commit}" >> "$GITHUB_OUTPUT"
+          # What build.rs derives from git on main; the shallow checkout has no tags to derive it from.
+          echo "version=$(jq -r .release parity/reference.json)-${commit:0:8}" >> "$GITHUB_OUTPUT"
 
       - name: Checkout Vaultwarden
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -75,10 +79,13 @@ jobs:
         working-directory: reference/vaultwarden
         env:
           FEATURES: ${{ matrix.features }}
+          VW_VERSION: ${{ steps.pin.outputs.version }}
         run: cargo build --locked --profile release-low --features "${FEATURES}"
 
       - name: Smoke test
         working-directory: reference/vaultwarden
+        env:
+          EXPECTED_VERSION: ${{ steps.pin.outputs.version }}
         run: |
           mkdir -p "${RUNNER_TEMP}/data"
           DATA_FOLDER="${RUNNER_TEMP}/data" WEB_VAULT_ENABLED=false ROCKET_PORT=8000 \
@@ -89,8 +96,9 @@ jobs:
             sleep 1
           done
           status=0
-          curl -fsS http://127.0.0.1:8000/api/version || status=1
-          echo
+          version="$(curl -fsS http://127.0.0.1:8000/api/version)" || status=1
+          echo "Version: ${version}"
+          test "${version}" = "\"${EXPECTED_VERSION}\"" || status=1
           kill "${pid}" || true
           cat "${RUNNER_TEMP}/vaultwarden.log"
           test -f "${RUNNER_TEMP}/data/db.sqlite3" || status=1
