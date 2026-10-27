@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Database;
 
+use App\Database\SchemaSnapshot;
 use App\Database\VaultwardenMigrator;
 use App\Parity\Matrix;
 use Illuminate\Database\Connection;
@@ -107,6 +108,22 @@ class VaultwardenMigratorTest extends TestCase
         $migrator->migrate($connection);
 
         $this->assertSame([], $migrator->migrate($connection));
+    }
+
+    #[DataProvider('drivers')]
+    public function test_schema_is_the_one_vaultwarden_creates(string $driver): void
+    {
+        $connection = $this->connection($driver);
+        $migrator = $this->app->make(VaultwardenMigrator::class);
+        $migrator->migrate($connection);
+
+        // Snapshots of databases Vaultwarden created itself, written by the Reference workflow on
+        // MySQL 8.4 and PostgreSQL 17. Other server versions may legitimately differ: MySQL 8.4
+        // ignores inline REFERENCES clauses, so most foreign keys exist on SQLite and PostgreSQL only.
+        $this->assertStringEqualsFile(
+            base_path('parity/schema/'.$migrator->dialect($connection).'.json'),
+            SchemaSnapshot::json(SchemaSnapshot::of($connection)),
+        );
     }
 
     #[DataProvider('drivers')]

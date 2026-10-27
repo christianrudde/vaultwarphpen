@@ -11,7 +11,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | Routes | 294 | 0 | 0 | 294 | 0 | 0 |
 | Settings | 153 | 0 | 0 | 153 | 0 | 0 |
 | Scheduled jobs | 8 | 0 | 0 | 8 | 0 | 0 |
-| Database tables | 28 | 0 | 28 | 0 | 0 | 28 |
+| Database tables | 28 | 28 | 0 | 0 | 0 | 28 |
 | Templates | 74 | 0 | 74 | 0 | 0 | 74 |
 | Static assets | 21 | 0 | 0 | 21 | 0 | 0 |
 
@@ -489,34 +489,34 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 
 | | Item | Source | Tests | Notes |
 |---|---|---|--:|---|
-| 🟨 | `attachments` | src/db/schema.rs:1 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
-| 🟨 | `ciphers` | src/db/schema.rs:11 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
-| 🟨 | `ciphers_collections` | src/db/schema.rs:30 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
-| 🟨 | `collections` | src/db/schema.rs:37 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
-| 🟨 | `devices` | src/db/schema.rs:46 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
-| 🟨 | `event` | src/db/schema.rs:61 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
-| 🟨 | `favorites` | src/db/schema.rs:82 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
-| 🟨 | `folders` | src/db/schema.rs:89 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
-| 🟨 | `folders_ciphers` | src/db/schema.rs:99 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
-| 🟨 | `invitations` | src/db/schema.rs:106 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
-| 🟨 | `org_policies` | src/db/schema.rs:112 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
-| 🟨 | `organizations` | src/db/schema.rs:123 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
-| 🟨 | `sends` | src/db/schema.rs:133 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
-| 🟨 | `twofactor` | src/db/schema.rs:157 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
-| 🟨 | `twofactor_incomplete` | src/db/schema.rs:168 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
-| 🟨 | `twofactor_duo_ctx` | src/db/schema.rs:179 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
-| 🟨 | `users` | src/db/schema.rs:188 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
-| 🟨 | `users_collections` | src/db/schema.rs:225 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
-| 🟨 | `users_organizations` | src/db/schema.rs:235 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
-| 🟨 | `organization_api_key` | src/db/schema.rs:250 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
-| 🟨 | `sso_auth` | src/db/schema.rs:260 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
-| 🟨 | `sso_users` | src/db/schema.rs:275 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
-| 🟨 | `emergency_access` | src/db/schema.rs:282 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
-| 🟨 | `groups` | src/db/schema.rs:299 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
-| 🟨 | `groups_users` | src/db/schema.rs:311 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
-| 🟨 | `collections_groups` | src/db/schema.rs:318 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
-| 🟨 | `auth_requests` | src/db/schema.rs:328 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
-| 🟨 | `archives` | src/db/schema.rs:348 | 2 | Schema from the upstream migrations; checked against schema.rs on SQLite and MySQL. Open: PostgreSQL, comparison with a database written by Vaultwarden. |
+| ✅ | `attachments` | src/db/schema.rs:1 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `ciphers` | src/db/schema.rs:11 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `ciphers_collections` | src/db/schema.rs:30 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `collections` | src/db/schema.rs:37 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `devices` | src/db/schema.rs:46 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `event` | src/db/schema.rs:61 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `favorites` | src/db/schema.rs:82 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `folders` | src/db/schema.rs:89 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `folders_ciphers` | src/db/schema.rs:99 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `invitations` | src/db/schema.rs:106 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `org_policies` | src/db/schema.rs:112 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `organizations` | src/db/schema.rs:123 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `sends` | src/db/schema.rs:133 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `twofactor` | src/db/schema.rs:157 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `twofactor_incomplete` | src/db/schema.rs:168 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `twofactor_duo_ctx` | src/db/schema.rs:179 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `users` | src/db/schema.rs:188 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `users_collections` | src/db/schema.rs:225 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `users_organizations` | src/db/schema.rs:235 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `organization_api_key` | src/db/schema.rs:250 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `sso_auth` | src/db/schema.rs:260 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `sso_users` | src/db/schema.rs:275 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `emergency_access` | src/db/schema.rs:282 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `groups` | src/db/schema.rs:299 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `groups_users` | src/db/schema.rs:311 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `collections_groups` | src/db/schema.rs:318 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `auth_requests` | src/db/schema.rs:328 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `archives` | src/db/schema.rs:348 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
 
 ## Templates
 

@@ -16,7 +16,9 @@ environment variables, so the official Bitwarden clients and existing Vaultwarde
 - Database schema: `php86 artisan vaultwarden:migrate`.
 - CI (GitHub Actions): `tests.yml` runs Pint, PHPStan and the tests on SQLite, MySQL and PostgreSQL.
   `reference.yml` builds the pinned Vaultwarden for Linux and macOS (arm64) and keeps the binaries as
-  workflow artifacts; it runs when `parity/reference.json` changes or on demand.
+  workflow artifacts. Its databases job lets Vaultwarden create SQLite, MySQL and PostgreSQL databases
+  and checks both directions with `.github/scripts/database-parity.sh`. It runs when the pin, the
+  snapshots or the migrator change, or on demand.
 
 ## Parity workflow
 
@@ -32,7 +34,8 @@ Everything is measured against one pinned Vaultwarden commit.
   `#[Parity('<id>')]` (a trailing `*` matches a prefix); `tests/Unit/Parity/ParityMatrixTest` enforces this.
 - Set a status with `php artisan parity:report --mark='route:GET /api/sync' --status=done --note='...'`.
 - Moving to a newer upstream: update `parity/reference.json`, then `parity:fetch`, `parity:sync`,
-  `parity:generate`, and work through the added and removed items.
+  `parity:generate`, and work through the added and removed items. Push, and commit the
+  `parity-schema` artifact of the Reference run to `parity/schema`.
 
 ## Rules
 
@@ -44,6 +47,11 @@ Everything is measured against one pinned Vaultwarden commit.
   queues use file or sync drivers.
 - Where `src/db/schema.rs` and the migrations disagree, the migrations win. The known cases are listed
   in `tests/Feature/Database/VaultwardenMigratorTest.php`.
+- `parity/schema/<dialect>.json` describes the databases Vaultwarden itself creates (booked migrations,
+  tables, columns, indexes, foreign keys; see `App\Database\SchemaSnapshot`). The Reference workflow
+  writes them with `php artisan parity:schema` and fails when they differ from the committed ones;
+  never edit them by hand, commit its `parity-schema` artifact instead. The migrator tests compare
+  our databases against them.
 - Keep Vaultwarden's environment variable names (`DATA_FOLDER`, `TEMPLATES_FOLDER`, ...);
   settings live in `config/vaultwarden.php`.
 - The project is licensed AGPL-3.0-only, like Vaultwarden, from which it is derived.

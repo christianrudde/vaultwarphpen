@@ -1,0 +1,2498 @@
+{
+    "migrations": [
+        "20190912100000",
+        "20190916150000",
+        "20191010083032",
+        "20191117011009",
+        "20200313205045",
+        "20200409235005",
+        "20200701214531",
+        "20200802025025",
+        "20201130224000",
+        "20201209173101",
+        "20210311190243",
+        "20210315163412",
+        "20210430233251",
+        "20210511205202",
+        "20210701203140",
+        "20210830193501",
+        "20211024164321",
+        "20220117234911",
+        "20220302210038",
+        "20220727110000",
+        "20221018170602",
+        "20230106151600",
+        "20230111205851",
+        "20230131222222",
+        "20230218125735",
+        "20230602200424",
+        "20230617200424",
+        "20230628133700",
+        "20230901170620",
+        "20230902212336",
+        "20230910133000",
+        "20230914133000",
+        "20231021221242",
+        "20240112210182",
+        "20240214135953",
+        "20240214170000",
+        "20240226170000",
+        "20240306170000",
+        "20240313170000",
+        "20240605131359",
+        "20240904091351",
+        "20250109172300",
+        "20250820120000",
+        "20260309005927",
+        "20260425120000",
+        "20260505120000",
+        "20260902120000",
+        "20261007120000"
+    ],
+    "tables": {
+        "__diesel_schema_migrations": {
+            "columns": [
+                {
+                    "name": "version",
+                    "type": "character varying(50)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "run_on",
+                    "type": "timestamp without time zone",
+                    "nullable": false,
+                    "default": "CURRENT_TIMESTAMP",
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "__diesel_schema_migrations_pkey",
+                    "columns": [
+                        "version"
+                    ],
+                    "unique": true,
+                    "primary": true
+                }
+            ],
+            "foreign_keys": []
+        },
+        "archives": {
+            "columns": [
+                {
+                    "name": "user_uuid",
+                    "type": "character(36)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "cipher_uuid",
+                    "type": "character(36)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "archived_at",
+                    "type": "timestamp without time zone",
+                    "nullable": false,
+                    "default": "now()",
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "archives_pkey",
+                    "columns": [
+                        "user_uuid",
+                        "cipher_uuid"
+                    ],
+                    "unique": true,
+                    "primary": true
+                }
+            ],
+            "foreign_keys": [
+                {
+                    "name": "archives_cipher_uuid_fkey",
+                    "columns": [
+                        "cipher_uuid"
+                    ],
+                    "foreign_table": "ciphers",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "cascade"
+                },
+                {
+                    "name": "archives_user_uuid_fkey",
+                    "columns": [
+                        "user_uuid"
+                    ],
+                    "foreign_table": "users",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "cascade"
+                }
+            ]
+        },
+        "attachments": {
+            "columns": [
+                {
+                    "name": "id",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "cipher_uuid",
+                    "type": "character varying(40)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "file_name",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "file_size",
+                    "type": "bigint",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "akey",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "attachments_pkey",
+                    "columns": [
+                        "id"
+                    ],
+                    "unique": true,
+                    "primary": true
+                }
+            ],
+            "foreign_keys": [
+                {
+                    "name": "attachments_cipher_uuid_fkey",
+                    "columns": [
+                        "cipher_uuid"
+                    ],
+                    "foreign_table": "ciphers",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                }
+            ]
+        },
+        "auth_requests": {
+            "columns": [
+                {
+                    "name": "uuid",
+                    "type": "character(36)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "user_uuid",
+                    "type": "character(36)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "organization_uuid",
+                    "type": "character(36)",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "request_device_identifier",
+                    "type": "character(36)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "device_type",
+                    "type": "integer",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "request_ip",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "response_device_id",
+                    "type": "character(36)",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "access_code",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "public_key",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "enc_key",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "master_password_hash",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "approved",
+                    "type": "boolean",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "creation_date",
+                    "type": "timestamp without time zone",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "response_date",
+                    "type": "timestamp without time zone",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "authentication_date",
+                    "type": "timestamp without time zone",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "auth_requests_pkey",
+                    "columns": [
+                        "uuid"
+                    ],
+                    "unique": true,
+                    "primary": true
+                }
+            ],
+            "foreign_keys": [
+                {
+                    "name": "auth_requests_organization_uuid_fkey",
+                    "columns": [
+                        "organization_uuid"
+                    ],
+                    "foreign_table": "organizations",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                },
+                {
+                    "name": "auth_requests_user_uuid_fkey",
+                    "columns": [
+                        "user_uuid"
+                    ],
+                    "foreign_table": "users",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                }
+            ]
+        },
+        "ciphers": {
+            "columns": [
+                {
+                    "name": "uuid",
+                    "type": "character varying(40)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "created_at",
+                    "type": "timestamp without time zone",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "updated_at",
+                    "type": "timestamp without time zone",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "user_uuid",
+                    "type": "character varying(40)",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "organization_uuid",
+                    "type": "character varying(40)",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "atype",
+                    "type": "integer",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "name",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "notes",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "fields",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "data",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "password_history",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "deleted_at",
+                    "type": "timestamp without time zone",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "reprompt",
+                    "type": "integer",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "key",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "ciphers_pkey",
+                    "columns": [
+                        "uuid"
+                    ],
+                    "unique": true,
+                    "primary": true
+                }
+            ],
+            "foreign_keys": [
+                {
+                    "name": "ciphers_organization_uuid_fkey",
+                    "columns": [
+                        "organization_uuid"
+                    ],
+                    "foreign_table": "organizations",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                },
+                {
+                    "name": "ciphers_user_uuid_fkey",
+                    "columns": [
+                        "user_uuid"
+                    ],
+                    "foreign_table": "users",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                }
+            ]
+        },
+        "ciphers_collections": {
+            "columns": [
+                {
+                    "name": "cipher_uuid",
+                    "type": "character varying(40)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "collection_uuid",
+                    "type": "character varying(40)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "ciphers_collections_pkey",
+                    "columns": [
+                        "cipher_uuid",
+                        "collection_uuid"
+                    ],
+                    "unique": true,
+                    "primary": true
+                }
+            ],
+            "foreign_keys": [
+                {
+                    "name": "ciphers_collections_cipher_uuid_fkey",
+                    "columns": [
+                        "cipher_uuid"
+                    ],
+                    "foreign_table": "ciphers",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                },
+                {
+                    "name": "ciphers_collections_collection_uuid_fkey",
+                    "columns": [
+                        "collection_uuid"
+                    ],
+                    "foreign_table": "collections",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                }
+            ]
+        },
+        "collections": {
+            "columns": [
+                {
+                    "name": "uuid",
+                    "type": "character varying(40)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "org_uuid",
+                    "type": "character varying(40)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "name",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "external_id",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "collections_pkey",
+                    "columns": [
+                        "uuid"
+                    ],
+                    "unique": true,
+                    "primary": true
+                }
+            ],
+            "foreign_keys": [
+                {
+                    "name": "collections_org_uuid_fkey",
+                    "columns": [
+                        "org_uuid"
+                    ],
+                    "foreign_table": "organizations",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                }
+            ]
+        },
+        "collections_groups": {
+            "columns": [
+                {
+                    "name": "collections_uuid",
+                    "type": "character varying(40)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "groups_uuid",
+                    "type": "character(36)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "read_only",
+                    "type": "boolean",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "hide_passwords",
+                    "type": "boolean",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "manage",
+                    "type": "boolean",
+                    "nullable": false,
+                    "default": "false",
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "collections_groups_pkey",
+                    "columns": [
+                        "collections_uuid",
+                        "groups_uuid"
+                    ],
+                    "unique": true,
+                    "primary": true
+                }
+            ],
+            "foreign_keys": [
+                {
+                    "name": "collections_groups_collections_uuid_fkey",
+                    "columns": [
+                        "collections_uuid"
+                    ],
+                    "foreign_table": "collections",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                },
+                {
+                    "name": "collections_groups_groups_uuid_fkey",
+                    "columns": [
+                        "groups_uuid"
+                    ],
+                    "foreign_table": "groups",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                }
+            ]
+        },
+        "devices": {
+            "columns": [
+                {
+                    "name": "uuid",
+                    "type": "character varying(40)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "created_at",
+                    "type": "timestamp without time zone",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "updated_at",
+                    "type": "timestamp without time zone",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "user_uuid",
+                    "type": "character varying(40)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "name",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "atype",
+                    "type": "integer",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "push_token",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "refresh_token",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "twofactor_remember",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "push_uuid",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "devices_pkey",
+                    "columns": [
+                        "uuid",
+                        "user_uuid"
+                    ],
+                    "unique": true,
+                    "primary": true
+                }
+            ],
+            "foreign_keys": [
+                {
+                    "name": "devices_user_uuid_fkey",
+                    "columns": [
+                        "user_uuid"
+                    ],
+                    "foreign_table": "users",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                }
+            ]
+        },
+        "emergency_access": {
+            "columns": [
+                {
+                    "name": "uuid",
+                    "type": "character(36)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "grantor_uuid",
+                    "type": "character(36)",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "grantee_uuid",
+                    "type": "character(36)",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "email",
+                    "type": "character varying(255)",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "key_encrypted",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "atype",
+                    "type": "integer",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "status",
+                    "type": "integer",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "wait_time_days",
+                    "type": "integer",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "recovery_initiated_at",
+                    "type": "timestamp without time zone",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "last_notification_at",
+                    "type": "timestamp without time zone",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "updated_at",
+                    "type": "timestamp without time zone",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "created_at",
+                    "type": "timestamp without time zone",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "emergency_access_pkey",
+                    "columns": [
+                        "uuid"
+                    ],
+                    "unique": true,
+                    "primary": true
+                }
+            ],
+            "foreign_keys": [
+                {
+                    "name": "emergency_access_grantee_uuid_fkey",
+                    "columns": [
+                        "grantee_uuid"
+                    ],
+                    "foreign_table": "users",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                },
+                {
+                    "name": "emergency_access_grantor_uuid_fkey",
+                    "columns": [
+                        "grantor_uuid"
+                    ],
+                    "foreign_table": "users",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                }
+            ]
+        },
+        "event": {
+            "columns": [
+                {
+                    "name": "uuid",
+                    "type": "character(36)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "event_type",
+                    "type": "integer",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "user_uuid",
+                    "type": "character(36)",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "org_uuid",
+                    "type": "character(36)",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "cipher_uuid",
+                    "type": "character(36)",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "collection_uuid",
+                    "type": "character(36)",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "group_uuid",
+                    "type": "character(36)",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "org_user_uuid",
+                    "type": "character(36)",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "act_user_uuid",
+                    "type": "character(36)",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "device_type",
+                    "type": "integer",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "ip_address",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "event_date",
+                    "type": "timestamp without time zone",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "policy_uuid",
+                    "type": "character(36)",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "provider_uuid",
+                    "type": "character(36)",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "provider_user_uuid",
+                    "type": "character(36)",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "provider_org_uuid",
+                    "type": "character(36)",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "event_pkey",
+                    "columns": [
+                        "uuid"
+                    ],
+                    "unique": true,
+                    "primary": true
+                }
+            ],
+            "foreign_keys": []
+        },
+        "favorites": {
+            "columns": [
+                {
+                    "name": "user_uuid",
+                    "type": "character varying(40)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "cipher_uuid",
+                    "type": "character varying(40)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "favorites_pkey",
+                    "columns": [
+                        "user_uuid",
+                        "cipher_uuid"
+                    ],
+                    "unique": true,
+                    "primary": true
+                }
+            ],
+            "foreign_keys": [
+                {
+                    "name": "favorites_cipher_uuid_fkey",
+                    "columns": [
+                        "cipher_uuid"
+                    ],
+                    "foreign_table": "ciphers",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                },
+                {
+                    "name": "favorites_user_uuid_fkey",
+                    "columns": [
+                        "user_uuid"
+                    ],
+                    "foreign_table": "users",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                }
+            ]
+        },
+        "folders": {
+            "columns": [
+                {
+                    "name": "uuid",
+                    "type": "character varying(40)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "created_at",
+                    "type": "timestamp without time zone",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "updated_at",
+                    "type": "timestamp without time zone",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "user_uuid",
+                    "type": "character varying(40)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "name",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "folders_pkey",
+                    "columns": [
+                        "uuid"
+                    ],
+                    "unique": true,
+                    "primary": true
+                }
+            ],
+            "foreign_keys": [
+                {
+                    "name": "folders_user_uuid_fkey",
+                    "columns": [
+                        "user_uuid"
+                    ],
+                    "foreign_table": "users",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                }
+            ]
+        },
+        "folders_ciphers": {
+            "columns": [
+                {
+                    "name": "cipher_uuid",
+                    "type": "character varying(40)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "folder_uuid",
+                    "type": "character varying(40)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "folders_ciphers_pkey",
+                    "columns": [
+                        "cipher_uuid",
+                        "folder_uuid"
+                    ],
+                    "unique": true,
+                    "primary": true
+                }
+            ],
+            "foreign_keys": [
+                {
+                    "name": "folders_ciphers_cipher_uuid_fkey",
+                    "columns": [
+                        "cipher_uuid"
+                    ],
+                    "foreign_table": "ciphers",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                },
+                {
+                    "name": "folders_ciphers_folder_uuid_fkey",
+                    "columns": [
+                        "folder_uuid"
+                    ],
+                    "foreign_table": "folders",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                }
+            ]
+        },
+        "groups": {
+            "columns": [
+                {
+                    "name": "uuid",
+                    "type": "character(36)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "organizations_uuid",
+                    "type": "character varying(40)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "name",
+                    "type": "character varying(100)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "access_all",
+                    "type": "boolean",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "external_id",
+                    "type": "character varying(300)",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "creation_date",
+                    "type": "timestamp without time zone",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "revision_date",
+                    "type": "timestamp without time zone",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "groups_pkey",
+                    "columns": [
+                        "uuid"
+                    ],
+                    "unique": true,
+                    "primary": true
+                }
+            ],
+            "foreign_keys": [
+                {
+                    "name": "groups_organizations_uuid_fkey",
+                    "columns": [
+                        "organizations_uuid"
+                    ],
+                    "foreign_table": "organizations",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                }
+            ]
+        },
+        "groups_users": {
+            "columns": [
+                {
+                    "name": "groups_uuid",
+                    "type": "character(36)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "users_organizations_uuid",
+                    "type": "character varying(36)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "groups_users_pkey",
+                    "columns": [
+                        "groups_uuid",
+                        "users_organizations_uuid"
+                    ],
+                    "unique": true,
+                    "primary": true
+                }
+            ],
+            "foreign_keys": [
+                {
+                    "name": "groups_users_groups_uuid_fkey",
+                    "columns": [
+                        "groups_uuid"
+                    ],
+                    "foreign_table": "groups",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                },
+                {
+                    "name": "groups_users_users_organizations_uuid_fkey",
+                    "columns": [
+                        "users_organizations_uuid"
+                    ],
+                    "foreign_table": "users_organizations",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                }
+            ]
+        },
+        "invitations": {
+            "columns": [
+                {
+                    "name": "email",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "invitations_pkey",
+                    "columns": [
+                        "email"
+                    ],
+                    "unique": true,
+                    "primary": true
+                }
+            ],
+            "foreign_keys": []
+        },
+        "org_policies": {
+            "columns": [
+                {
+                    "name": "uuid",
+                    "type": "character(36)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "org_uuid",
+                    "type": "character(36)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "atype",
+                    "type": "integer",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "enabled",
+                    "type": "boolean",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "data",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "revision_date",
+                    "type": "timestamp without time zone",
+                    "nullable": false,
+                    "default": "'1970-01-01 00:00:00'::timestamp without time zone",
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "org_policies_org_uuid_atype_key",
+                    "columns": [
+                        "org_uuid",
+                        "atype"
+                    ],
+                    "unique": true,
+                    "primary": false
+                },
+                {
+                    "name": "org_policies_pkey",
+                    "columns": [
+                        "uuid"
+                    ],
+                    "unique": true,
+                    "primary": true
+                }
+            ],
+            "foreign_keys": [
+                {
+                    "name": "org_policies_org_uuid_fkey",
+                    "columns": [
+                        "org_uuid"
+                    ],
+                    "foreign_table": "organizations",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                }
+            ]
+        },
+        "organization_api_key": {
+            "columns": [
+                {
+                    "name": "uuid",
+                    "type": "character(36)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "org_uuid",
+                    "type": "character(36)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "atype",
+                    "type": "integer",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "api_key",
+                    "type": "character varying(255)",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "revision_date",
+                    "type": "timestamp without time zone",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "organization_api_key_pkey",
+                    "columns": [
+                        "uuid",
+                        "org_uuid"
+                    ],
+                    "unique": true,
+                    "primary": true
+                }
+            ],
+            "foreign_keys": [
+                {
+                    "name": "organization_api_key_org_uuid_fkey",
+                    "columns": [
+                        "org_uuid"
+                    ],
+                    "foreign_table": "organizations",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                }
+            ]
+        },
+        "organizations": {
+            "columns": [
+                {
+                    "name": "uuid",
+                    "type": "character varying(40)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "name",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "billing_email",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "private_key",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "public_key",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "organizations_pkey",
+                    "columns": [
+                        "uuid"
+                    ],
+                    "unique": true,
+                    "primary": true
+                }
+            ],
+            "foreign_keys": []
+        },
+        "sends": {
+            "columns": [
+                {
+                    "name": "uuid",
+                    "type": "character(36)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "user_uuid",
+                    "type": "character(36)",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "organization_uuid",
+                    "type": "character(36)",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "name",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "notes",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "atype",
+                    "type": "integer",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "data",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "akey",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "password_hash",
+                    "type": "bytea",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "password_salt",
+                    "type": "bytea",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "password_iter",
+                    "type": "integer",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "max_access_count",
+                    "type": "integer",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "access_count",
+                    "type": "integer",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "creation_date",
+                    "type": "timestamp without time zone",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "revision_date",
+                    "type": "timestamp without time zone",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "expiration_date",
+                    "type": "timestamp without time zone",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "deletion_date",
+                    "type": "timestamp without time zone",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "disabled",
+                    "type": "boolean",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "hide_email",
+                    "type": "boolean",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "sends_pkey",
+                    "columns": [
+                        "uuid"
+                    ],
+                    "unique": true,
+                    "primary": true
+                }
+            ],
+            "foreign_keys": [
+                {
+                    "name": "sends_organization_uuid_fkey",
+                    "columns": [
+                        "organization_uuid"
+                    ],
+                    "foreign_table": "organizations",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                },
+                {
+                    "name": "sends_user_uuid_fkey",
+                    "columns": [
+                        "user_uuid"
+                    ],
+                    "foreign_table": "users",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                }
+            ]
+        },
+        "sso_auth": {
+            "columns": [
+                {
+                    "name": "state",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "client_challenge",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "nonce",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "redirect_uri",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "code_response",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "auth_response",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "created_at",
+                    "type": "timestamp without time zone",
+                    "nullable": false,
+                    "default": "now()",
+                    "auto_increment": false
+                },
+                {
+                    "name": "updated_at",
+                    "type": "timestamp without time zone",
+                    "nullable": false,
+                    "default": "now()",
+                    "auto_increment": false
+                },
+                {
+                    "name": "binding_hash",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "code_response_error",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "sso_auth_pkey",
+                    "columns": [
+                        "state"
+                    ],
+                    "unique": true,
+                    "primary": true
+                }
+            ],
+            "foreign_keys": []
+        },
+        "sso_users": {
+            "columns": [
+                {
+                    "name": "user_uuid",
+                    "type": "character(36)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "identifier",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "created_at",
+                    "type": "timestamp without time zone",
+                    "nullable": false,
+                    "default": "now()",
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "sso_users_identifier_key",
+                    "columns": [
+                        "identifier"
+                    ],
+                    "unique": true,
+                    "primary": false
+                },
+                {
+                    "name": "sso_users_pkey",
+                    "columns": [
+                        "user_uuid"
+                    ],
+                    "unique": true,
+                    "primary": true
+                }
+            ],
+            "foreign_keys": [
+                {
+                    "name": "sso_users_user_uuid_fkey",
+                    "columns": [
+                        "user_uuid"
+                    ],
+                    "foreign_table": "users",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "cascade",
+                    "on_delete": "cascade"
+                }
+            ]
+        },
+        "twofactor": {
+            "columns": [
+                {
+                    "name": "uuid",
+                    "type": "character varying(40)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "user_uuid",
+                    "type": "character varying(40)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "atype",
+                    "type": "integer",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "enabled",
+                    "type": "boolean",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "data",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "last_used",
+                    "type": "bigint",
+                    "nullable": false,
+                    "default": "0",
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "twofactor_pkey",
+                    "columns": [
+                        "uuid"
+                    ],
+                    "unique": true,
+                    "primary": true
+                },
+                {
+                    "name": "twofactor_user_uuid_atype_key",
+                    "columns": [
+                        "user_uuid",
+                        "atype"
+                    ],
+                    "unique": true,
+                    "primary": false
+                }
+            ],
+            "foreign_keys": [
+                {
+                    "name": "twofactor_user_uuid_fkey",
+                    "columns": [
+                        "user_uuid"
+                    ],
+                    "foreign_table": "users",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                }
+            ]
+        },
+        "twofactor_duo_ctx": {
+            "columns": [
+                {
+                    "name": "state",
+                    "type": "character varying(64)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "user_email",
+                    "type": "character varying(255)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "nonce",
+                    "type": "character varying(64)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "exp",
+                    "type": "bigint",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "twofactor_duo_ctx_pkey",
+                    "columns": [
+                        "state"
+                    ],
+                    "unique": true,
+                    "primary": true
+                }
+            ],
+            "foreign_keys": []
+        },
+        "twofactor_incomplete": {
+            "columns": [
+                {
+                    "name": "user_uuid",
+                    "type": "character varying(40)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "device_uuid",
+                    "type": "character varying(40)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "device_name",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "login_time",
+                    "type": "timestamp without time zone",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "ip_address",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "device_type",
+                    "type": "integer",
+                    "nullable": false,
+                    "default": "14",
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "twofactor_incomplete_pkey",
+                    "columns": [
+                        "user_uuid",
+                        "device_uuid"
+                    ],
+                    "unique": true,
+                    "primary": true
+                }
+            ],
+            "foreign_keys": [
+                {
+                    "name": "twofactor_incomplete_user_uuid_fkey",
+                    "columns": [
+                        "user_uuid"
+                    ],
+                    "foreign_table": "users",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                }
+            ]
+        },
+        "users": {
+            "columns": [
+                {
+                    "name": "uuid",
+                    "type": "character varying(40)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "created_at",
+                    "type": "timestamp without time zone",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "updated_at",
+                    "type": "timestamp without time zone",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "email",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "name",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "password_hash",
+                    "type": "bytea",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "salt",
+                    "type": "bytea",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "password_iterations",
+                    "type": "integer",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "password_hint",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "akey",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "private_key",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "public_key",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "totp_secret",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "totp_recover",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "security_stamp",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "equivalent_domains",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "excluded_globals",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "client_kdf_type",
+                    "type": "integer",
+                    "nullable": false,
+                    "default": "0",
+                    "auto_increment": false
+                },
+                {
+                    "name": "client_kdf_iter",
+                    "type": "integer",
+                    "nullable": false,
+                    "default": "100000",
+                    "auto_increment": false
+                },
+                {
+                    "name": "verified_at",
+                    "type": "timestamp without time zone",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "last_verifying_at",
+                    "type": "timestamp without time zone",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "login_verify_count",
+                    "type": "integer",
+                    "nullable": false,
+                    "default": "0",
+                    "auto_increment": false
+                },
+                {
+                    "name": "email_new",
+                    "type": "character varying(255)",
+                    "nullable": true,
+                    "default": "NULL::character varying",
+                    "auto_increment": false
+                },
+                {
+                    "name": "email_new_token",
+                    "type": "character varying(16)",
+                    "nullable": true,
+                    "default": "NULL::character varying",
+                    "auto_increment": false
+                },
+                {
+                    "name": "enabled",
+                    "type": "boolean",
+                    "nullable": false,
+                    "default": "true",
+                    "auto_increment": false
+                },
+                {
+                    "name": "stamp_exception",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "api_key",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "avatar_color",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "client_kdf_memory",
+                    "type": "integer",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "client_kdf_parallelism",
+                    "type": "integer",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "external_id",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "key_id",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "users_email_key",
+                    "columns": [
+                        "email"
+                    ],
+                    "unique": true,
+                    "primary": false
+                },
+                {
+                    "name": "users_pkey",
+                    "columns": [
+                        "uuid"
+                    ],
+                    "unique": true,
+                    "primary": true
+                }
+            ],
+            "foreign_keys": []
+        },
+        "users_collections": {
+            "columns": [
+                {
+                    "name": "user_uuid",
+                    "type": "character varying(40)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "collection_uuid",
+                    "type": "character varying(40)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "read_only",
+                    "type": "boolean",
+                    "nullable": false,
+                    "default": "false",
+                    "auto_increment": false
+                },
+                {
+                    "name": "hide_passwords",
+                    "type": "boolean",
+                    "nullable": false,
+                    "default": "false",
+                    "auto_increment": false
+                },
+                {
+                    "name": "manage",
+                    "type": "boolean",
+                    "nullable": false,
+                    "default": "false",
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "users_collections_pkey",
+                    "columns": [
+                        "user_uuid",
+                        "collection_uuid"
+                    ],
+                    "unique": true,
+                    "primary": true
+                }
+            ],
+            "foreign_keys": [
+                {
+                    "name": "users_collections_collection_uuid_fkey",
+                    "columns": [
+                        "collection_uuid"
+                    ],
+                    "foreign_table": "collections",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                },
+                {
+                    "name": "users_collections_user_uuid_fkey",
+                    "columns": [
+                        "user_uuid"
+                    ],
+                    "foreign_table": "users",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                }
+            ]
+        },
+        "users_organizations": {
+            "columns": [
+                {
+                    "name": "uuid",
+                    "type": "character varying(40)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "user_uuid",
+                    "type": "character varying(40)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "org_uuid",
+                    "type": "character varying(40)",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "access_all",
+                    "type": "boolean",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "akey",
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "status",
+                    "type": "integer",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "atype",
+                    "type": "integer",
+                    "nullable": false,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "reset_password_key",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "external_id",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                },
+                {
+                    "name": "invited_by_email",
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "auto_increment": false
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "users_organizations_pkey",
+                    "columns": [
+                        "uuid"
+                    ],
+                    "unique": true,
+                    "primary": true
+                },
+                {
+                    "name": "users_organizations_user_uuid_org_uuid_key",
+                    "columns": [
+                        "user_uuid",
+                        "org_uuid"
+                    ],
+                    "unique": true,
+                    "primary": false
+                }
+            ],
+            "foreign_keys": [
+                {
+                    "name": "users_organizations_org_uuid_fkey",
+                    "columns": [
+                        "org_uuid"
+                    ],
+                    "foreign_table": "organizations",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                },
+                {
+                    "name": "users_organizations_user_uuid_fkey",
+                    "columns": [
+                        "user_uuid"
+                    ],
+                    "foreign_table": "users",
+                    "foreign_columns": [
+                        "uuid"
+                    ],
+                    "on_update": "no action",
+                    "on_delete": "no action"
+                }
+            ]
+        }
+    }
+}
