@@ -111,6 +111,37 @@ final readonly class Fields
     }
 
     /**
+     * A Vec of structs.
+     *
+     * @return list<self>
+     *
+     * @throws HttpStatus
+     */
+    public function objectList(string $name, string ...$aliases): array
+    {
+        $value = $this->get($name, array_values($aliases)) ?? throw new HttpStatus(422, "Missing field `{$name}`.");
+        if (! is_array($value) || ! array_is_list($value)) {
+            throw new HttpStatus(422, "Field `{$name}` must be a sequence.");
+        }
+
+        return array_map(self::of(...), $value);
+    }
+
+    /**
+     * A usize.
+     *
+     * @return int<0, max>
+     *
+     * @throws HttpStatus
+     */
+    public function unsigned(string $name, string ...$aliases): int
+    {
+        $value = $this->get($name, array_values($aliases));
+
+        return is_int($value) && $value >= 0 ? $value : throw new HttpStatus(422, "Field `{$name}` must be a usize.");
+    }
+
+    /**
      * A Vec<String> or HashSet<String>.
      *
      * @return list<string>

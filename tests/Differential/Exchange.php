@@ -2,6 +2,8 @@
 
 namespace Tests\Differential;
 
+use RuntimeException;
+
 /**
  * One server's answer to a request.
  */
@@ -34,11 +36,15 @@ final readonly class Exchange
         return $value;
     }
 
+    /**
+     * A string the flow needs to go on; anything else is a broken setup, not a
+     * difference worth comparing.
+     */
     public function jsonString(string $path): string
     {
         $value = $this->json($path);
 
-        return is_string($value) ? $value : '';
+        return is_string($value) ? $value : throw new RuntimeException("No string at {$path} in a {$this->status} response: {$this->body}");
     }
 
     /**

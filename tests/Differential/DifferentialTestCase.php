@@ -44,6 +44,10 @@ abstract class DifferentialTestCase extends TestCase
         '/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/' => '<jwt>',
         // The reference is built from git, so its version carries the commit.
         '/^1\.37\.4(-[0-9a-f]{8})?$/' => '<version>',
+        // Attachment ids.
+        '/\b[0-9a-f]{20}\b/' => '<id>',
+        // Each server builds URLs with its own address.
+        '#http://127\.0\.0\.1:\d+#' => '<host>',
     ];
 
     private static ?Client $client = null;

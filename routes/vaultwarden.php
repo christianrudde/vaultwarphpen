@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/alive', [WebController::class, 'alive'])->name('web::alive');
 // Registered after the GET route, which would otherwise answer HEAD too.
 Route::match(['HEAD'], '/alive', [WebController::class, 'aliveHead'])->name('web::alive_head');
+Route::get('/attachments/{cipherId}/{fileId}', [WebController::class, 'attachments'])->name('web::attachments');
 
 // api::core_routes()
 Route::prefix('/api')->group(function (): void {
@@ -56,6 +57,9 @@ Route::prefix('/api')->group(function (): void {
     Route::post('/ciphers/move', [CiphersController::class, 'moveCiphers'])->name('core::ciphers::move_cipher_selected');
     Route::put('/ciphers/move', [CiphersController::class, 'moveCiphers'])->name('core::ciphers::move_cipher_selected_put');
     Route::post('/ciphers/purge', [CiphersController::class, 'purgeVault'])->name('core::ciphers::purge_personal_vault');
+    Route::post('/ciphers/create', [CiphersController::class, 'postCiphersCreate'])->name('core::ciphers::post_ciphers_create');
+    Route::post('/ciphers/admin', [CiphersController::class, 'postCiphersCreate'])->name('core::ciphers::post_ciphers_admin');
+    Route::post('/ciphers/import', [CiphersController::class, 'postCiphersImport'])->name('core::ciphers::post_ciphers_import');
     Route::put('/ciphers/archive', [CiphersController::class, 'archiveCiphers'])->name('core::ciphers::archive_cipher_selected');
     Route::put('/ciphers/unarchive', [CiphersController::class, 'unarchiveCiphers'])->name('core::ciphers::unarchive_cipher_selected');
 
@@ -70,6 +74,17 @@ Route::prefix('/api')->group(function (): void {
     Route::post('/ciphers/{cipherId}/admin', [CiphersController::class, 'putCipher'])->name('core::ciphers::post_cipher_admin');
     Route::put('/ciphers/{cipherId}/partial', [CiphersController::class, 'putCipherPartial'])->name('core::ciphers::put_cipher_partial');
     Route::post('/ciphers/{cipherId}/partial', [CiphersController::class, 'putCipherPartial'])->name('core::ciphers::post_cipher_partial');
+    Route::get('/ciphers/{cipherId}/attachment/{attachmentId}', [CiphersController::class, 'getAttachment'])->name('core::ciphers::get_attachment');
+    // Before the data upload, whose attachment id would take "v2" too.
+    Route::post('/ciphers/{cipherId}/attachment/v2', [CiphersController::class, 'postAttachmentV2'])->name('core::ciphers::post_attachment_v2');
+    Route::post('/ciphers/{cipherId}/attachment/{attachmentId}', [CiphersController::class, 'postAttachmentV2Data'])->name('core::ciphers::post_attachment_v2_data');
+    Route::post('/ciphers/{cipherId}/attachment', [CiphersController::class, 'postAttachment'])->name('core::ciphers::post_attachment');
+    Route::post('/ciphers/{cipherId}/attachment-admin', [CiphersController::class, 'postAttachment'])->name('core::ciphers::post_attachment_admin');
+    Route::post('/ciphers/{cipherId}/attachment/{attachmentId}/share', [CiphersController::class, 'postAttachmentShare'])->name('core::ciphers::post_attachment_share');
+    Route::post('/ciphers/{cipherId}/attachment/{attachmentId}/delete-admin', [CiphersController::class, 'deleteAttachment'])->name('core::ciphers::delete_attachment_post_admin');
+    Route::post('/ciphers/{cipherId}/attachment/{attachmentId}/delete', [CiphersController::class, 'deleteAttachment'])->name('core::ciphers::delete_attachment_post');
+    Route::delete('/ciphers/{cipherId}/attachment/{attachmentId}', [CiphersController::class, 'deleteAttachment'])->name('core::ciphers::delete_attachment');
+    Route::delete('/ciphers/{cipherId}/attachment/{attachmentId}/admin', [CiphersController::class, 'deleteAttachment'])->name('core::ciphers::delete_attachment_admin');
     Route::post('/ciphers/{cipherId}/delete', [CiphersController::class, 'deleteCipher'])->name('core::ciphers::delete_cipher_post');
     Route::post('/ciphers/{cipherId}/delete-admin', [CiphersController::class, 'deleteCipher'])->name('core::ciphers::delete_cipher_post_admin');
     Route::put('/ciphers/{cipherId}/delete', [CiphersController::class, 'softDeleteCipher'])->name('core::ciphers::delete_cipher_put');

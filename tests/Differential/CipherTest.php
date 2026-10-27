@@ -270,6 +270,79 @@ class CipherTest extends DifferentialTestCase
         });
     }
 
+    #[Parity('route:POST /api/ciphers/create')]
+    #[Parity('route:POST /api/ciphers/admin')]
+    public function test_creating_through_the_share_route(): void
+    {
+        $this->assertSameFlows(function (Server $server): array {
+            [$auth, $userId] = self::session($server, 'create@example.com');
+            $note = [...self::cipher($userId, 2, '2.created'), 'secureNote' => ['type' => 0]];
+            $unknown = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+            $steps = [];
+
+            $steps['create'] = $server->json('POST', '/api/ciphers/create', ['cipher' => $note, 'collectionIds' => []], $auth);
+            $steps['admin with old names'] = $server->json('POST', '/api/ciphers/admin', ['Cipher' => [...$note, 'name' => '2.admin'], 'CollectionIds' => []], $auth);
+            $steps['clone with a revision'] = $server->json('POST', '/api/ciphers/create', ['cipher' => [...$note, 'name' => '2.clone', 'lastKnownRevisionDate' => '2000-01-01T00:00:00Z'], 'collectionIds' => []], $auth);
+            $steps['data missing'] = $server->json('POST', '/api/ciphers/create', ['cipher' => self::cipher($userId, 2, '2.broken'), 'collectionIds' => []], $auth);
+            $steps['unknown collection'] = $server->json('POST', '/api/ciphers/create', ['cipher' => [...$note, 'organizationId' => $unknown], 'collectionIds' => [$unknown]], $auth);
+            $steps['organization of others'] = $server->json('POST', '/api/ciphers/create', ['cipher' => [...$note, 'organizationId' => $unknown], 'collectionIds' => []], $auth);
+            $steps['other user'] = $server->json('POST', '/api/ciphers/create', ['cipher' => [...$note, 'encryptedFor' => $unknown], 'collectionIds' => []], $auth);
+            $steps['no collection ids'] = $server->json('POST', '/api/ciphers/create', ['cipher' => $note], $auth);
+            $steps['both names'] = $server->json('POST', '/api/ciphers/create', ['cipher' => $note, 'Cipher' => $note, 'collectionIds' => []], $auth);
+            $list = $server->send('GET', '/api/ciphers', $auth);
+            $steps['list'] = $list->withBody(self::sortedByName($list->body));
+
+            return $steps;
+        });
+    }
+
+    #[Parity('route:POST /api/ciphers/import')]
+    public function test_import(): void
+    {
+        $this->assertSameFlows(function (Server $server): array {
+            [$auth, $userId] = self::session($server, 'import@example.com');
+            $existing = $server->json('POST', '/api/folders', ['name' => '2.existing'], $auth)->jsonString('id');
+            $note = static fn (string $name): array => [...self::cipher($userId, 2, $name), 'secureNote' => ['type' => 0]];
+            $steps = [];
+
+            $steps['import'] = $server->json('POST', '/api/ciphers/import', [
+                'folders' => [['name' => '2.new', 'id' => 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'], ['name' => '2.ignored', 'id' => $existing], ['name' => '2.second', 'id' => '']],
+                'folderRelationships' => [['key' => 0, 'value' => 0], ['key' => 1, 'value' => 2], ['key' => 1, 'value' => 1], ['key' => 2, 'value' => 9]],
+                'ciphers' => [
+                    [...$note('2.a'), 'folderId' => $existing, 'favorite' => true],
+                    $note('2.b'),
+                    [...self::cipher($userId, 1, '2.c'), 'login' => ['username' => '2.u'], 'lastKnownRevisionDate' => '2000-01-01T00:00:00Z'],
+                    [...$note('2.d'), 'encryptedFor' => 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'],
+                ],
+            ], $auth);
+            $folders = $server->send('GET', '/api/folders', $auth);
+            $steps['folders'] = $folders->withBody(self::sortedByName($folders->body));
+            $list = $server->send('GET', '/api/ciphers', $auth);
+            $steps['ciphers'] = $list->withBody(self::sortedByName($list->body));
+
+            $steps['validation'] = $server->json('POST', '/api/ciphers/import', ['folders' => [['name' => '2.f']], 'folderRelationships' => [], 'ciphers' => [
+                $note('2.ok'),
+                [...$note('2.long'), 'notes' => str_repeat('n', 10001)],
+                [...$note('2.null'), 'passwordHistory' => [['password' => '2.p'], ['password' => null], ['password' => 5]]],
+                [...$note('2.both'), 'notes' => str_repeat('n', 10001), 'passwordHistory' => [['password' => null]]],
+            ]], $auth);
+            $steps['invalid type stops'] = $server->json('POST', '/api/ciphers/import', ['folders' => [], 'folderRelationships' => [], 'ciphers' => [
+                $note('2.first'), [...$note('2.invalid'), 'type' => 9], $note('2.never'),
+            ]], $auth);
+            $steps['organization'] = $server->json('POST', '/api/ciphers/import', ['folders' => [], 'folderRelationships' => [], 'ciphers' => [
+                [...$note('2.org'), 'organizationId' => 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'],
+            ]], $auth);
+            $steps['no relationships'] = $server->json('POST', '/api/ciphers/import', ['folders' => [], 'ciphers' => []], $auth);
+            $steps['negative relationship'] = $server->json('POST', '/api/ciphers/import', ['folders' => [], 'folderRelationships' => [['key' => -1, 'value' => 0]], 'ciphers' => []], $auth);
+            $steps['folder without name'] = $server->json('POST', '/api/ciphers/import', ['folders' => [['id' => $existing]], 'folderRelationships' => [], 'ciphers' => []], $auth);
+            $steps['nothing'] = $server->json('POST', '/api/ciphers/import', ['folders' => [], 'folderRelationships' => [], 'ciphers' => []], $auth);
+            $list = $server->send('GET', '/api/ciphers', $auth);
+            $steps['ciphers after all'] = $list->withBody(self::sortedByName($list->body));
+
+            return $steps;
+        });
+    }
+
     /**
      * A secure note, the cipher with the least data.
      *

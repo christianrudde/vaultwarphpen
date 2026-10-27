@@ -15,6 +15,8 @@ work="$(mktemp -d)"
 mkdir -p "${work}/reference" "${work}/subject" "${work}/shared" "${work}/web-vault"
 echo '<!DOCTYPE html><title>Web vault</title>' > "${work}/web-vault/index.html"
 export WEB_VAULT_FOLDER="${work}/web-vault/"
+# Every flow logs in; Vaultwarden's limits (10 logins, then one a minute) would cut the suite short.
+export LOGIN_RATELIMIT_MAX_BURST=10000 UNAUTHENTICATED_RATELIMIT_MAX_BURST=10000
 
 pids=()
 trap 'kill "${pids[@]}" 2> /dev/null || true' EXIT
@@ -35,10 +37,10 @@ pids+=($!)
 export DATA_FOLDER="${work}/subject"
 php artisan vaultwarden:migrate --no-ansi > /dev/null
 # Each PHP server has a cache of its own: the rate limits are per server, like Vaultwarden's.
-(cd public && CACHE_PATH="${work}/subject-cache" exec php -S 127.0.0.1:8080 ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php) \
+(cd public && CACHE_PATH="${work}/subject-cache" exec php -d upload_max_filesize=525M -d post_max_size=0 -S 127.0.0.1:8080 ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php) \
     > "${work}/subject.log" 2>&1 &
 pids+=($!)
-(cd public && DATA_FOLDER="${work}/shared" CACHE_PATH="${work}/shared-cache" exec php -S 127.0.0.1:8081 ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php) \
+(cd public && DATA_FOLDER="${work}/shared" CACHE_PATH="${work}/shared-cache" exec php -d upload_max_filesize=525M -d post_max_size=0 -S 127.0.0.1:8081 ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php) \
     > "${work}/shared-subject.log" 2>&1 &
 pids+=($!)
 

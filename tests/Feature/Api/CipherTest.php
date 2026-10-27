@@ -262,6 +262,82 @@ class CipherTest extends TestCase
         $this->assertNull(TwoFactor::findByUserAndType($this->user->uuid, TwoFactor::TYPE_PROTECTED_ACTIONS));
     }
 
+    public function test_creating_through_the_share_route(): void
+    {
+        $this->postJson('/api/ciphers/create', ['cipher' => [...$this->cipher(2, '2.created'), 'secureNote' => ['type' => 0]], 'collectionIds' => []], $this->auth)
+            ->assertStatus(200)->assertJsonPath('name', '2.created')->assertJsonPath('object', 'cipherDetails');
+        $this->postJson('/api/ciphers/admin', ['Cipher' => [...$this->cipher(2, '2.admin'), 'secureNote' => ['type' => 0]], 'CollectionIds' => []], $this->auth)
+            ->assertStatus(200)->assertJsonPath('name', '2.admin');
+        $this->assertSame(2, Cipher::query()->count());
+
+        // A failure removes the cipher that was saved first.
+        $this->postJson('/api/ciphers/create', ['cipher' => $this->cipher(2, '2.broken'), 'collectionIds' => []], $this->auth)
+            ->assertStatus(400)->assertJsonPath('message', 'Data missing');
+        $this->postJson('/api/ciphers/create', ['cipher' => [...$this->cipher(2, '2.org'), 'secureNote' => [], 'organizationId' => Random::uuid()],
+            'collectionIds' => [Random::uuid()]], $this->auth)->assertStatus(400)->assertJsonPath('message', 'Invalid collection ID provided');
+        $this->assertCount(2, Cipher::all());
+
+        $this->postJson('/api/ciphers/create', ['cipher' => [...$this->cipher(2, '2.x'), 'encryptedFor' => Random::uuid()], 'collectionIds' => []], $this->auth)
+            ->assertStatus(422)->assertJsonPath('message', 'Invalid user cipher');
+        $this->postJson('/api/ciphers/create', ['cipher' => $this->cipher(2, '2.x')], $this->auth)->assertStatus(422);
+    }
+
+    public function test_import(): void
+    {
+        $existing = Folder::new($this->user->uuid, '2.existing');
+        $existing->save();
+
+        $this->postJson('/api/ciphers/import', [
+            'folders' => [['name' => '2.new', 'id' => Random::uuid()], ['name' => '2.ignored', 'id' => $existing->uuid], ['name' => '2.second']],
+            'folderRelationships' => [['key' => 0, 'value' => 0], ['key' => 1, 'value' => 2], ['key' => 1, 'value' => 1], ['key' => 2, 'value' => 9]],
+            'ciphers' => [
+                [...$this->cipher(2, '2.a'), 'secureNote' => ['type' => 0], 'folderId' => Random::uuid()],
+                [...$this->cipher(2, '2.b'), 'secureNote' => ['type' => 0]],
+                [...$this->cipher(1, '2.c'), 'login' => [], 'lastKnownRevisionDate' => '2000-01-01T00:00:00Z'],
+            ],
+        ], $this->auth)->assertStatus(200)->assertContent('');
+
+        $this->assertSame(['2.existing', '2.new', '2.second'], Folder::query()->orderBy('name')->pluck('name')->all());
+        $new = Folder::query()->where('name', '2.new')->value('uuid');
+        $this->assertIsString($new);
+        $this->assertSame($new, $this->folderOfNamed('2.a'));
+        $this->assertSame($existing->uuid, $this->folderOfNamed('2.b'));
+        $this->assertNull($this->folderOfNamed('2.c'));
+    }
+
+    public function test_import_validation(): void
+    {
+        $response = $this->postJson('/api/ciphers/import', ['folders' => [['name' => '2.f']], 'folderRelationships' => [], 'ciphers' => [
+            [...$this->cipher(2, '2.a'), 'secureNote' => [], 'notes' => str_repeat('n', 10001)],
+            [...$this->cipher(2, '2.b'), 'secureNote' => [], 'passwordHistory' => [['password' => '2.ok'], ['password' => null]]],
+        ]], $this->auth)->assertStatus(400);
+        $this->assertSame([
+            'message' => 'The model state is invalid.',
+            'object' => 'error',
+            'validationErrors' => [
+                'Ciphers[0].Notes' => ['The field Notes exceeds the maximum encrypted value length of 10000 characters.'],
+                'Ciphers[1].Notes' => ['The password history contains a `null` value. Only strings are allowed.'],
+            ],
+        ], $response->json());
+        $this->assertSame(0, Folder::query()->count());
+
+        // Items are saved one by one; an invalid one stops the rest.
+        $this->postJson('/api/ciphers/import', ['folders' => [], 'folderRelationships' => [], 'ciphers' => [
+            [...$this->cipher(2, '2.a'), 'secureNote' => []],
+            [...$this->cipher(9, '2.b'), 'secureNote' => []],
+            [...$this->cipher(2, '2.c'), 'secureNote' => []],
+        ]], $this->auth)->assertStatus(400)->assertJsonPath('message', 'Invalid type');
+        $this->assertSame(['2.a'], Cipher::query()->pluck('name')->all());
+
+        $this->postJson('/api/ciphers/import', ['folders' => [], 'ciphers' => []], $this->auth)->assertStatus(422);
+        $this->postJson('/api/ciphers/import', ['folders' => [], 'folderRelationships' => [['key' => -1, 'value' => 0]], 'ciphers' => []], $this->auth)->assertStatus(422);
+    }
+
+    private function folderOfNamed(string $name): ?string
+    {
+        return Cipher::query()->where('name', $name)->first()?->folderUuid($this->user->uuid);
+    }
+
     private function folderOf(string $cipherId): ?string
     {
         return Cipher::findByUuid($cipherId)?->folderUuid($this->user->uuid);

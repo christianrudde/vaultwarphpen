@@ -8,7 +8,10 @@ use App\Config\Config;
 use App\Http\ApiError;
 use App\Http\Data\Body;
 use App\Http\Data\CipherData;
+use App\Http\Data\Fields;
 use App\Http\Data\PasswordOrOtpData;
+use App\Http\Data\Query;
+use App\Http\Data\UploadData;
 use App\Http\EmptyResponse;
 use App\Http\HttpStatus;
 use App\Http\Json;
@@ -22,10 +25,13 @@ use App\Models\FolderCipher;
 use App\Models\Membership;
 use App\Models\OrgPolicy;
 use App\Models\Send;
+use App\Support\CheckedInt;
 use App\Support\Dates;
 use App\Support\Uuid;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 
 /**
  * src/api/core/ciphers.rs; so far the personal vault. Live notifications to
@@ -33,6 +39,13 @@ use Illuminate\Http\Response;
  */
 final readonly class CiphersController
 {
+    /**
+     * sends::SIZE_525_MB, the largest upload.
+     */
+    private const int SIZE_525_MB = 550_502_400;
+
+    private const int ATTACHMENT_SIZE_LEEWAY = 1024 * 1024;
+
     public function __construct(
         private Config $config,
     ) {}
@@ -138,6 +151,88 @@ final readonly class CiphersController
     }
 
     /**
+     * POST /api/ciphers/create, also POST /api/ciphers/admin: a new cipher of
+     * the user or an organization, or a clone.
+     */
+    public function postCiphersCreate(Headers $headers, Request $request): Response
+    {
+        $body = Body::json($request);
+        $data = CipherData::fromFields($body->object('cipher', 'Cipher'));
+        $collectionIds = $body->stringList('collectionIds', 'CollectionIds');
+
+        if ($data->encryptedFor !== $headers->user->uuid) {
+            throw ApiError::message('Invalid user cipher', 422);
+        }
+        // Checked here too, or an empty cipher would be saved below.
+        $this->enforcePersonalOwnershipPolicy($data, $headers);
+
+        $cipher = Cipher::new($data->type, $data->name);
+        $cipher->user_uuid = $headers->user->uuid;
+        $cipher->save();
+
+        // Clones carry the revision of the original; a new cipher has none to compare.
+        $data->lastKnownRevisionDate = null;
+
+        try {
+            return Json::response($this->shareCipherByUuid($cipher->uuid, $data, $collectionIds, $headers));
+        } catch (ApiError|QueryException $error) {
+            $cipher->deleteCipher();
+
+            throw $error;
+        }
+    }
+
+    /**
+     * POST /api/ciphers/import: all items or none pass the validation; the
+     * folders are created first, then the ciphers one by one.
+     */
+    public function postCiphersImport(Headers $headers, Request $request): EmptyResponse
+    {
+        $body = Body::json($request);
+        $ciphers = array_map(CipherData::fromFields(...), $body->objectList('ciphers'));
+        $folders = array_map(
+            static fn (Fields $folder): array => [$folder->string('name'), $folder->optionalNonEmptyString('id')],
+            $body->objectList('folders'),
+        );
+        $relations = array_map(
+            static fn (Fields $relation): array => [$relation->unsigned('key'), $relation->unsigned('value')],
+            $body->objectList('folderRelationships'),
+        );
+
+        $this->enforcePersonalOwnershipPolicy(null, $headers);
+        $this->validateCipherData($ciphers);
+
+        $userUuid = $headers->user->uuid;
+        $existing = Folder::findByUser($userUuid)->pluck('uuid')->all();
+        $folderIds = [];
+        foreach ($folders as [$name, $id]) {
+            if ($id !== null && in_array($id, $existing, true)) {
+                $folderIds[] = $id;
+            } else {
+                $folder = Folder::new($userUuid, $name);
+                $folder->save();
+                $folderIds[] = $folder->uuid;
+            }
+        }
+
+        // A cipher is in one folder at most; the last relation wins.
+        $folderOfCipher = [];
+        foreach ($relations as [$cipherIndex, $folderIndex]) {
+            $folderOfCipher[$cipherIndex] = $folderIndex;
+        }
+
+        foreach ($ciphers as $index => $data) {
+            $data->folderId = isset($folderOfCipher[$index]) ? ($folderIds[$folderOfCipher[$index]] ?? null) : null;
+            $cipher = Cipher::new($data->type, $data->name);
+            $this->updateCipherFromData($cipher, $data, $headers, checkRevision: false);
+        }
+
+        $headers->user->updateRevision();
+
+        return new EmptyResponse;
+    }
+
+    /**
      * PUT /api/ciphers/{cipher_id}, also POST and the /admin variants.
      */
     public function putCipher(Headers $headers, Request $request, string $cipherId): Response
@@ -178,6 +273,139 @@ final readonly class CiphersController
         $cipher->setFavorite($favorite, $headers->user->uuid);
 
         return Json::response($cipher->toApi($headers->host, $headers->user->uuid));
+    }
+
+    /**
+     * GET /api/ciphers/{cipher_id}/attachment/{attachment_id}: the attachment
+     * with a fresh download URL.
+     */
+    public function getAttachment(Headers $headers, Request $request, string $cipherId, string $attachmentId): Response
+    {
+        $cipherId = Uuid::parameter($request, $cipherId);
+        $attachmentId = Uuid::idParameter($request, $attachmentId);
+
+        $cipher = Cipher::findByUuid($cipherId) ?? throw ApiError::message("Cipher doesn't exist");
+        if (! $cipher->isAccessibleToUser($headers->user->uuid)) {
+            throw ApiError::message('Cipher is not accessible');
+        }
+
+        $attachment = Attachment::findById($attachmentId) ?? throw ApiError::message("Attachment doesn't exist");
+        if ($attachment->cipher_uuid !== $cipherId) {
+            throw ApiError::message("Attachment doesn't belong to cipher");
+        }
+
+        return Json::response($attachment->toApi($headers->host));
+    }
+
+    /**
+     * POST /api/ciphers/{cipher_id}/attachment/v2: the record of a new
+     * attachment, and where to upload its data.
+     */
+    public function postAttachmentV2(Headers $headers, Request $request, string $cipherId): Response
+    {
+        $cipherId = Uuid::parameter($request, $cipherId);
+        $body = Body::json($request);
+        $key = $body->string('key');
+        $fileName = $body->string('fileName');
+        $fileSize = $body->value('fileSize');
+        if (! is_int($fileSize) && ! is_string($fileSize)) {
+            throw new HttpStatus(422, 'Field `fileSize` must be a number or a string.');
+        }
+        $adminRequest = $body->optionalBool('adminRequest');
+
+        $cipher = Cipher::findByUuid($cipherId) ?? throw ApiError::message("Cipher doesn't exist");
+        if (! $cipher->isWriteAccessibleToUser($headers->user->uuid)) {
+            throw ApiError::message('Cipher is not write accessible');
+        }
+
+        $size = is_int($fileSize) ? $fileSize : self::parseI64($fileSize);
+        if ($size < 0) {
+            throw ApiError::message("Attachment size can't be negative");
+        }
+        // The upload limit; nothing larger arrives.
+        if ($size > self::SIZE_525_MB) {
+            throw ApiError::message('Max file size is 525 MB.');
+        }
+
+        $attachmentId = Attachment::generateId();
+        Attachment::new($attachmentId, $cipher->uuid, $fileName, $size, $key)->save();
+
+        return Json::response(Json::sorted([
+            'object' => 'attachment-fileUpload',
+            'attachmentId' => $attachmentId,
+            'url' => "/ciphers/{$cipher->uuid}/attachment/{$attachmentId}",
+            // FileUploadType::Direct: to this server, not to Azure.
+            'fileUploadType' => 0,
+            ($adminRequest === true ? 'cipherMiniResponse' : 'cipherResponse') => $cipher->toApi($headers->host, $headers->user->uuid),
+        ]));
+    }
+
+    /**
+     * POST /api/ciphers/{cipher_id}/attachment/{attachment_id}: the data of
+     * an attachment created through the v2 API.
+     */
+    public function postAttachmentV2Data(Request $request, string $cipherId, string $attachmentId): EmptyResponse
+    {
+        UploadData::requireMultipart($request);
+        $headers = app(Headers::class);
+        $cipherId = Uuid::parameter($request, $cipherId);
+        $attachmentId = Uuid::idParameter($request, $attachmentId);
+        $data = UploadData::fromRequest($request);
+
+        $attachment = Attachment::findById($attachmentId) ?? throw ApiError::message("Attachment doesn't exist");
+        if ($attachment->cipher_uuid !== $cipherId) {
+            throw ApiError::message("Attachment doesn't belong to cipher");
+        }
+
+        $this->saveAttachment($attachment, $cipherId, $data, $headers);
+
+        return new EmptyResponse;
+    }
+
+    /**
+     * POST /api/ciphers/{cipher_id}/attachment, also /attachment-admin: the
+     * legacy upload, record and data at once.
+     */
+    public function postAttachment(Request $request, string $cipherId): Response
+    {
+        UploadData::requireMultipart($request);
+        $headers = app(Headers::class);
+        $cipherId = Uuid::parameter($request, $cipherId);
+        $data = UploadData::fromRequest($request);
+
+        $cipher = $this->saveAttachment(null, $cipherId, $data, $headers);
+
+        return Json::response($cipher->toApi($headers->host, $headers->user->uuid));
+    }
+
+    /**
+     * POST /api/ciphers/{cipher_id}/attachment/{attachment_id}/share: replace
+     * an attachment by a new upload.
+     */
+    public function postAttachmentShare(Request $request, string $cipherId, string $attachmentId): Response
+    {
+        UploadData::requireMultipart($request);
+        $headers = app(Headers::class);
+        $cipherId = Uuid::parameter($request, $cipherId);
+        $attachmentId = Uuid::idParameter($request, $attachmentId);
+        $data = UploadData::fromRequest($request);
+
+        $this->deleteAttachmentById($cipherId, $attachmentId, $headers);
+        $cipher = $this->saveAttachment(null, $cipherId, $data, $headers);
+
+        return Json::response($cipher->toApi($headers->host, $headers->user->uuid));
+    }
+
+    /**
+     * DELETE /api/ciphers/{cipher_id}/attachment/{attachment_id}, also /admin,
+     * and POST .../delete and .../delete-admin
+     */
+    public function deleteAttachment(Headers $headers, Request $request, string $cipherId, string $attachmentId): Response
+    {
+        $cipherId = Uuid::parameter($request, $cipherId);
+        $attachmentId = Uuid::idParameter($request, $attachmentId);
+
+        return Json::response($this->deleteAttachmentById($cipherId, $attachmentId, $headers));
     }
 
     /**
@@ -461,6 +689,205 @@ final readonly class CiphersController
     }
 
     /**
+     * ciphers::share_cipher_by_uuid: an update that may move the cipher into
+     * collections of an organization.
+     *
+     * @param  list<string>  $collectionIds
+     * @return array<string, mixed>
+     *
+     * @throws ApiError
+     */
+    private function shareCipherByUuid(string $cipherId, CipherData $data, array $collectionIds, Headers $headers): array
+    {
+        $cipher = Cipher::findByUuid($cipherId) ?? throw ApiError::message("Cipher doesn't exist");
+        if (! $cipher->isWriteAccessibleToUser($headers->user->uuid)) {
+            throw ApiError::message('Cipher is not write accessible');
+        }
+
+        // Checked before the collections are linked; there is no transaction.
+        if ($cipher->organization_uuid !== null && $cipher->organization_uuid !== $data->organizationId) {
+            throw ApiError::message('Organization mismatch. Please resync the client before updating the cipher');
+        }
+
+        if ($data->organizationId !== null) {
+            foreach ($collectionIds as $collectionId) {
+                $exists = DB::table('collections')->where('uuid', $collectionId)->where('org_uuid', $data->organizationId)->exists();
+
+                throw $exists ? ApiError::message('Organizations are not implemented yet') : ApiError::message('Invalid collection ID provided');
+            }
+        }
+
+        $this->updateCipherFromData($cipher, $data, $headers, checkRevision: true);
+
+        return $cipher->toApi($headers->host, $headers->user->uuid);
+    }
+
+    /**
+     * Cipher::validate_cipher_data: the import's notes and password histories.
+     *
+     * @param  list<CipherData>  $ciphers
+     *
+     * @throws ApiError
+     */
+    private function validateCipherData(array $ciphers): void
+    {
+        $maxNoteSize = $this->config->int('_max_note_size');
+        $errors = [];
+        foreach ($ciphers as $index => $cipher) {
+            if ($cipher->notes !== null && strlen($cipher->notes) > $maxNoteSize) {
+                $errors["Ciphers[{$index}].Notes"] = ["The field Notes exceeds the maximum encrypted value length of {$maxNoteSize} characters."];
+            }
+
+            // Upstream files this one under Notes too.
+            if (is_array($cipher->passwordHistory) && array_is_list($cipher->passwordHistory)) {
+                foreach ($cipher->passwordHistory as $entry) {
+                    if (is_array($entry) && ! array_is_list($entry) && array_key_exists('password', $entry) && ! is_string($entry['password'])) {
+                        $errors["Ciphers[{$index}].Notes"] = ['The password history contains a `null` value. Only strings are allowed.'];
+
+                        break;
+                    }
+                }
+            }
+        }
+
+        if ($errors !== []) {
+            throw ApiError::json(Json::sorted([
+                'message' => 'The model state is invalid.',
+                'validationErrors' => $errors,
+                'object' => 'error',
+            ]), 'Import validation errors');
+        }
+    }
+
+    /**
+     * ciphers::save_attachment: checks the storage limit and stores the data.
+     * The v2 API passes the record it created; the legacy API creates it here.
+     *
+     * @throws ApiError
+     */
+    private function saveAttachment(?Attachment $attachment, string $cipherId, UploadData $data, Headers $headers): Cipher
+    {
+        $size = $data->size();
+
+        $cipher = Cipher::findByUuid($cipherId) ?? throw ApiError::message("Cipher doesn't exist");
+        if (! $cipher->isWriteAccessibleToUser($headers->user->uuid)) {
+            throw ApiError::message('Cipher is not write accessible');
+        }
+
+        // The v2 record already counts towards the limit.
+        $sizeAdjust = $attachment === null ? 0 : $attachment->file_size;
+        $sizeLimit = match (true) {
+            $cipher->user_uuid !== null => $this->attachmentSpaceLeft('user_attachment_limit', Attachment::sizeByUser($cipher->user_uuid), $sizeAdjust),
+            $cipher->organization_uuid !== null => $this->attachmentSpaceLeft('org_attachment_limit', Attachment::sizeByOrg($cipher->organization_uuid), $sizeAdjust),
+            default => throw ApiError::message('Cipher is neither owned by a user nor an organization'),
+        };
+        if ($sizeLimit !== null && $size > $sizeLimit) {
+            throw ApiError::message('Attachment storage limit exceeded with this file');
+        }
+
+        $fileId = $attachment === null ? Attachment::generateId() : $attachment->id;
+
+        if ($attachment !== null) {
+            // The data may differ from the announced size by 1 MiB, like upstream allows.
+            $maxSize = CheckedInt::add($attachment->file_size, self::ATTACHMENT_SIZE_LEEWAY) ?? throw ApiError::message('Invalid attachment size max');
+            $minSize = CheckedInt::sub($attachment->file_size, self::ATTACHMENT_SIZE_LEEWAY) ?? throw ApiError::message('Invalid attachment size min');
+
+            if ($minSize <= $size && $size <= $maxSize) {
+                if ($size !== $attachment->file_size) {
+                    $attachment->file_size = $size;
+                    $attachment->save();
+                }
+            } else {
+                try {
+                    $attachment->deleteAttachment();
+                } catch (ApiError) {
+                    // Upstream ignores this too.
+                }
+
+                throw ApiError::message("Attachment size mismatch (expected within [{$minSize}, {$maxSize}], got {$size})");
+            }
+        } else {
+            $fileName = $data->rawName() ?? throw ApiError::message('No filename provided');
+            $key = $data->key ?? throw ApiError::message('No attachment key provided');
+            Attachment::new($fileId, $cipherId, $fileName, $size, $key)->save();
+        }
+
+        $data->store(Attachment::path($cipherId, $fileId));
+        $cipher->updateUsersRevision();
+
+        return $cipher;
+    }
+
+    /**
+     * The bytes left under a limit in kB; null without a limit.
+     *
+     * @throws ApiError
+     */
+    private function attachmentSpaceLeft(string $setting, int $used, int $sizeAdjust): ?int
+    {
+        $limit = $this->config->optionalInt($setting);
+        if ($limit === 0) {
+            throw ApiError::message('Attachments are disabled');
+        }
+        if ($limit === null) {
+            return null;
+        }
+
+        $left = CheckedInt::mul($limit, 1024);
+        $left = $left === null ? null : CheckedInt::sub($left, $used);
+        $left = ($left === null ? null : CheckedInt::add($left, $sizeAdjust)) ?? throw ApiError::message('Attachment size overflow');
+        if ($left <= 0) {
+            throw ApiError::message('Attachment storage limit reached! Delete some attachments to free up space');
+        }
+
+        return $left;
+    }
+
+    /**
+     * ciphers::delete_cipher_attachment_by_id
+     *
+     * @return array<string, mixed>
+     *
+     * @throws ApiError
+     */
+    private function deleteAttachmentById(string $cipherId, string $attachmentId, Headers $headers): array
+    {
+        $attachment = Attachment::findById($attachmentId) ?? throw ApiError::message("Attachment doesn't exist");
+        if ($attachment->cipher_uuid !== $cipherId) {
+            throw ApiError::message('Attachment from other cipher');
+        }
+
+        $cipher = Cipher::findByUuid($cipherId) ?? throw ApiError::message("Cipher doesn't exist");
+        if (! $cipher->isWriteAccessibleToUser($headers->user->uuid)) {
+            throw ApiError::message('Cipher cannot be deleted by user');
+        }
+
+        $attachment->deleteAttachment();
+        $cipher->updateUsersRevision();
+
+        return Json::sorted(['cipher' => $cipher->toApi($headers->host, $headers->user->uuid)]);
+    }
+
+    /**
+     * NumberOrString::into_i64 for a string: Rust's i64 parsing.
+     *
+     * @throws ApiError
+     */
+    private static function parseI64(string $value): int
+    {
+        $digits = ltrim(ltrim($value, '+-'), '0');
+        $negative = str_starts_with($value, '-');
+        $fits = strlen($digits) < 19
+            || (strlen($digits) === 19 && strcmp($digits, $negative ? '9223372036854775808' : '9223372036854775807') <= 0);
+
+        if (! preg_match('/^[+-]?[0-9]+$/D', $value) || ! $fits) {
+            throw ApiError::message("Can't convert to number", logMessage: 'invalid digit found in string');
+        }
+
+        return $negative && $digits === '9223372036854775808' ? PHP_INT_MIN : (int) $value;
+    }
+
+    /**
      * ciphers::delete_cipher_by_uuid
      *
      * @throws ApiError
@@ -554,15 +981,7 @@ final readonly class CiphersController
      */
     private static function excludeDomains(Request $request): bool
     {
-        // The raw query: Symfony's normalized one keeps only the last of repeated fields.
-        $query = $request->server->get('QUERY_STRING');
-        $values = [];
-        foreach (explode('&', is_string($query) ? $query : '') as $pair) {
-            [$name, $value] = array_pad(explode('=', $pair, 2), 2, '');
-            if (urldecode($name) === 'excludeDomains') {
-                $values[] = strtolower(urldecode($value));
-            }
-        }
+        $values = array_map(strtolower(...), Query::values($request, 'excludeDomains'));
 
         return match (true) {
             $values === [] => false,

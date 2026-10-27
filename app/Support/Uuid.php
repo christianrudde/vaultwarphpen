@@ -33,4 +33,20 @@ final class Uuid
 
         return $value;
     }
+
+    /**
+     * An id path parameter of the IdFromParam derive (attachment and send
+     * file ids): ASCII letters, digits and hyphens. A bad one forwards like
+     * a bad UUID.
+     *
+     * @throws HttpStatus
+     */
+    public static function idParameter(Request $request, string $value): string
+    {
+        if (! preg_match('/^[A-Za-z0-9-]*$/D', $value)) {
+            throw new HttpStatus(in_array($request->getMethod(), ['GET', 'HEAD'], true) ? 404 : 422, 'Path parameter is not an id.');
+        }
+
+        return $value;
+    }
 }

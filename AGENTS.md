@@ -16,7 +16,11 @@ environment variables, so the official Bitwarden clients and existing Vaultwarde
 - Differential tests (`tests/Differential`) send the same requests to Vaultwarden and to us and
   compare the answers. They are skipped unless `VW_REFERENCE_URL` and `VW_SUBJECT_URL` are set;
   `.github/scripts/differential.sh <vaultwarden binary>` starts both servers and runs them. Write
-  one for every route you implement.
+  one for every route you implement. The script raises the login and unauthenticated rate limits,
+  since every flow logs in; `Exchange::jsonString()` throws, so a broken setup fails loudly.
+- Uploads: Vaultwarden takes files up to 525 MB, so PHP needs `upload_max_filesize=525M` and a
+  `post_max_size` above it (or `0`). PHP cuts uploaded file names at the last slash, which encrypted
+  names contain; read them with `getClientOriginalPath()` (see `App\Http\Data\UploadData`).
 - Database schema: `php86 artisan vaultwarden:migrate`.
 - CI (GitHub Actions): `tests.yml` runs Pint, PHPStan and the tests on SQLite, MySQL and PostgreSQL.
   `reference.yml` builds the pinned Vaultwarden for Linux, and for macOS (arm64) only when started by

@@ -8,11 +8,13 @@ use App\Config\Config;
 use App\Http\ApiError;
 use App\Http\Json;
 use App\Support\Dates;
+use App\Support\Random;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\QueryException;
 
 /**
- * A cipher's file (src/db/models/attachment.rs); so far listing and deleting.
+ * A cipher's file (src/db/models/attachment.rs), stored as
+ * `<ATTACHMENTS_FOLDER>/<cipher_uuid>/<id>`.
  *
  * @property string $id
  * @property string $cipher_uuid
@@ -29,6 +31,53 @@ final class Attachment extends Model
     protected function casts(): array
     {
         return ['file_size' => 'integer'];
+    }
+
+    public static function new(string $id, string $cipherUuid, string $fileName, int $fileSize, ?string $key): self
+    {
+        $attachment = new self;
+        $attachment->setRawAttributes([
+            'id' => $id,
+            'cipher_uuid' => $cipherUuid,
+            'file_name' => $fileName,
+            'file_size' => $fileSize,
+            'akey' => $key,
+        ]);
+
+        return $attachment;
+    }
+
+    /**
+     * crypto::generate_attachment_id: 80 random bits, scoped to the cipher.
+     */
+    public static function generateId(): string
+    {
+        return Random::hex(10);
+    }
+
+    /**
+     * @param  array<string, mixed>  $options
+     *
+     * @throws ApiError
+     */
+    public function save(array $options = []): bool
+    {
+        $this->upsertRow(['id'], 'Error saving attachment');
+
+        return true;
+    }
+
+    public function filePath(): string
+    {
+        return self::path($this->cipher_uuid, $this->id);
+    }
+
+    /**
+     * Where the file of an attachment lies.
+     */
+    public static function path(string $cipherUuid, string $id): string
+    {
+        return app(Config::class)->path('attachments_folder')."/{$cipherUuid}/{$id}";
     }
 
     /**
@@ -69,10 +118,32 @@ final class Attachment extends Model
             }
         }
 
-        $file = app(Config::class)->path('attachments_folder')."/{$this->cipher_uuid}/{$this->id}";
+        $file = $this->filePath();
         if (is_file($file)) {
             unlink($file);
         }
+    }
+
+    /**
+     * Ids are stored in lower case.
+     */
+    public static function findById(string $id): ?self
+    {
+        return self::query()->where('id', strtolower($id))->first();
+    }
+
+    /**
+     * The bytes of all attachments of the user's own ciphers; i64::MAX when
+     * the sum does not fit.
+     */
+    public static function sizeByUser(string $userUuid): int
+    {
+        return self::sumOfSizes(self::query()->join('ciphers', 'ciphers.uuid', '=', 'attachments.cipher_uuid')->where('ciphers.user_uuid', $userUuid)->sum('attachments.file_size'));
+    }
+
+    public static function sizeByOrg(string $orgUuid): int
+    {
+        return self::sumOfSizes(self::query()->join('ciphers', 'ciphers.uuid', '=', 'attachments.cipher_uuid')->where('ciphers.organization_uuid', $orgUuid)->sum('attachments.file_size'));
     }
 
     /**
@@ -107,6 +178,18 @@ final class Attachment extends Model
         }
 
         return sprintf('%.2f %s', $value, $units[$unit]);
+    }
+
+    private static function sumOfSizes(mixed $sum): int
+    {
+        if (is_int($sum)) {
+            return $sum;
+        }
+        if (! is_numeric($sum)) {
+            return 0;
+        }
+
+        return (float) $sum >= (float) PHP_INT_MAX ? PHP_INT_MAX : (int) $sum;
     }
 
     /**
