@@ -11,7 +11,6 @@ use App\Support\Random;
 use DateTimeImmutable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\QueryException;
-use LogicException;
 use stdClass;
 
 /**
@@ -329,9 +328,8 @@ final class Cipher extends Model
         }
 
         foreach ($fields as $index => $field) {
-            if (! is_array($field)) {
-                continue;
-            }
+            // Every item is an object; an empty one gets a type too.
+            $field = is_array($field) ? $field : [];
             $type = $field['type'] ?? null;
             if (is_string($type)) {
                 $field['type'] = preg_match('/^\+?[0-9]+$/D', $type) && (int) ltrim($type, '+') <= 255 ? (int) ltrim($type, '+') : 1;
@@ -372,12 +370,16 @@ final class Cipher extends Model
     private function typeDataJson(): mixed
     {
         [$ok, $decoded] = JsonValue::decode($this->data);
-        $data = $ok && ($decoded instanceof stdClass || is_array($decoded)) ? JsonValue::lowercaseKeys($decoded) : new stdClass;
+        // LowerCase<Value> reads objects only; anything else becomes an empty object.
+        $data = $ok && $decoded instanceof stdClass ? JsonValue::lowercaseKeys($decoded) : new stdClass;
 
-        if ($this->atype === 1 && is_array($data) && ! array_is_list($data)) {
+        if ($this->atype === 1) {
+            $data = is_array($data) ? $data : [];
             // Upstream always has an uri: the first of the uris.
             $data['uri'] = null;
-            if (is_array($data['uris'] ?? null) && array_is_list($data['uris']) && $data['uris'] !== []) {
+            // Upstream reads uris through a mutable index, which adds the key.
+            $data['uris'] ??= null;
+            if (is_array($data['uris']) && array_is_list($data['uris']) && $data['uris'] !== []) {
                 $uris = $data['uris'];
                 foreach ($uris as $index => $uri) {
                     $match = is_array($uri) ? ($uri['match'] ?? null) : null;
@@ -394,11 +396,6 @@ final class Cipher extends Model
             if (is_string($data['passwordRevisionDate'] ?? null)) {
                 $data['passwordRevisionDate'] = JsonValue::formatRfc3339($data['passwordRevisionDate']);
             }
-        } elseif ($this->atype === 1 && $data instanceof stdClass) {
-            $data = ['uri' => null];
-        } elseif ($this->atype === 1) {
-            // Upstream indexes the list by key, which panics; Rocket answers 500.
-            throw new LogicException("Cipher {$this->uuid} has a login that is a list");
         }
 
         // A secure note needs a numeric type, or mobile clients break.
@@ -433,8 +430,9 @@ final class Cipher extends Model
         if (! $ok || ! is_array($decoded)) {
             return null;
         }
+        // Vec<LowerCase<Value>>: a list of objects, or nothing.
         foreach ($decoded as $item) {
-            if (! $item instanceof stdClass && ! is_array($item)) {
+            if (! $item instanceof stdClass) {
                 return null;
             }
         }

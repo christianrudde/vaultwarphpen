@@ -10,6 +10,7 @@ use App\Models\Cipher;
 use App\Models\Device;
 use App\Models\Favorite;
 use App\Models\Folder;
+use App\Models\TwoFactor;
 use App\Models\User;
 use App\Support\Random;
 use Tests\Concerns\UsesVaultwardenDatabase;
@@ -113,12 +114,20 @@ class CipherTest extends TestCase
         $this->assertSame(0, Cipher::query()->count());
     }
 
-    public function test_a_login_that_is_a_list_breaks_like_upstream(): void
+    public function test_stored_data_that_is_no_object_reads_as_empty(): void
     {
-        // Saved first, then serde_json panics while building the answer.
-        $this->postJson('/api/ciphers', [...$this->cipher(1, '2.x'), 'login' => []], $this->auth)->assertStatus(500);
+        // Stored as given; read back as an empty object, with the keys upstream always adds.
+        $this->postJson('/api/ciphers', [...$this->cipher(1, '2.x'), 'login' => []], $this->auth)
+            ->assertStatus(200)->assertJsonPath('login', ['uri' => null, 'uris' => null]);
         $this->assertSame('[]', Cipher::query()->value('data'));
-        $this->get('/api/ciphers', $this->auth)->assertStatus(500);
+
+        $cipher = Cipher::query()->firstOrFail();
+        $cipher->fields = '[{"Name":"2.a"},{}]';
+        $cipher->password_history = '[{"password":"2.p"},[]]';
+        $cipher->save();
+        $this->get("/api/ciphers/{$cipher->uuid}", $this->auth)
+            ->assertJsonPath('fields', [['name' => '2.a', 'type' => 1], ['type' => 1]])
+            ->assertJsonPath('passwordHistory', []);
     }
 
     public function test_stale_client_copies_are_rejected(): void
@@ -148,6 +157,122 @@ class CipherTest extends TestCase
         $this->putJson("/api/ciphers/{$cipher->uuid}/partial", ['favorite' => true], $this->auth)
             ->assertStatus(400)->assertJsonPath('message', 'Cipher does not exist');
         $this->get('/api/ciphers', $this->auth)->assertJsonCount(0, 'data');
+    }
+
+    public function test_trash_and_deletion(): void
+    {
+        $first = $this->create('2.first');
+        $second = $this->create('2.second');
+        $third = $this->create('2.third');
+
+        $this->put("/api/ciphers/{$first}/delete", [], $this->auth)->assertStatus(200)->assertContent('');
+        $this->get("/api/ciphers/{$first}", $this->auth)->assertJsonPath('deletedDate', fn (mixed $date): bool => is_string($date));
+
+        $this->putJson('/api/ciphers/restore', ['ids' => [$first, $first]], $this->auth)
+            ->assertJsonPath('object', 'list')->assertJsonCount(1, 'data')->assertJsonPath('data.0.deletedDate', null);
+        $this->put("/api/ciphers/{$first}/restore", [], $this->auth)->assertJsonPath('id', $first);
+
+        $this->putJson('/api/ciphers/delete', ['ids' => [$first, $second]], $this->auth)->assertStatus(200);
+        $this->assertNotNull(Cipher::findByUuid($second)?->deleted_at);
+
+        $this->delete("/api/ciphers/{$first}", [], $this->auth)->assertStatus(200);
+        $this->assertNull(Cipher::findByUuid($first));
+        $this->post("/api/ciphers/{$second}/delete", [], $this->auth)->assertStatus(200);
+        $this->deleteJson('/api/ciphers', ['ids' => [$third, $first]], $this->auth)->assertStatus(400)->assertJsonPath('message', "Cipher doesn't exist");
+        // The ones before the error are gone.
+        $this->assertSame(0, Cipher::query()->count());
+
+        $this->deleteJson('/api/ciphers', ['id' => [$first]], $this->auth)->assertStatus(422);
+        $this->put('/api/ciphers/not-a-uuid/delete', [], $this->auth)->assertStatus(422);
+    }
+
+    public function test_moving_ciphers(): void
+    {
+        $folder = Folder::new($this->user->uuid, '2.folder');
+        $folder->save();
+        $first = $this->create('2.first');
+        $second = $this->create('2.second');
+
+        $this->postJson('/api/ciphers/move', ['folderId' => $folder->uuid, 'ids' => [$first]], $this->auth)->assertStatus(200)->assertContent('');
+        $this->assertSame($folder->uuid, $this->folderOf($first));
+        $this->assertNull($this->folderOf($second));
+
+        $this->putJson('/api/ciphers/move', ['folderId' => Random::uuid(), 'ids' => [$first]], $this->auth)->assertStatus(400)->assertJsonPath('message', 'Invalid folder');
+        $this->putJson('/api/ciphers/move', ['folderId' => '', 'ids' => [$first, Random::uuid()]], $this->auth)
+            ->assertStatus(400)->assertJsonPath('message', 'Not all ciphers are moved! 1 of the selected 2 were moved.');
+        $this->assertNull($this->folderOf($first));
+
+        // No ids means no filter upstream: every cipher moves.
+        $this->postJson('/api/ciphers/move', ['folderId' => $folder->uuid, 'ids' => []], $this->auth)
+            ->assertStatus(400)->assertJsonPath('message', 'Not all ciphers are moved! 2 of the selected 0 were moved.');
+        $this->assertSame($folder->uuid, $this->folderOf($second));
+    }
+
+    public function test_archiving_ciphers(): void
+    {
+        $first = $this->create('2.first');
+        $second = $this->create('2.second');
+
+        $archived = $this->put("/api/ciphers/{$first}/archive", [], $this->auth)->assertStatus(200)->json('archivedDate');
+        $this->assertIsString($archived);
+        $this->putJson('/api/ciphers/archive', ['ids' => [$first, $second]], $this->auth)->assertJsonCount(2, 'data');
+        $this->assertNotNull(Archive::archivedAt($second, $this->user->uuid));
+
+        $this->put("/api/ciphers/{$first}/unarchive", [], $this->auth)->assertJsonPath('archivedDate', null);
+        $this->putJson('/api/ciphers/unarchive', ['ids' => [$second]], $this->auth)->assertJsonPath('data.0.archivedDate', null);
+        $this->put('/api/ciphers/'.Random::uuid().'/archive', [], $this->auth)->assertStatus(400)->assertJsonPath('message', "Cipher doesn't exist");
+    }
+
+    public function test_purging_the_personal_vault(): void
+    {
+        $this->user->setPassword('hash', null, false, null);
+        $this->user->save();
+        Folder::new($this->user->uuid, '2.folder')->save();
+        $this->create('2.first');
+
+        $this->postJson('/api/ciphers/purge', ['masterPasswordHash' => 'wrong'], $this->auth)->assertStatus(400)->assertJsonPath('message', 'Invalid password');
+        $this->call('POST', '/api/ciphers/purge', [], [], [], $this->transformHeadersToServerVars($this->auth), '{}')->assertStatus(400)->assertJsonPath('message', 'No validation provided');
+        $this->postJson('/api/ciphers/purge', ['masterPasswordHash' => 'hash', 'otp' => '123'], $this->auth)->assertStatus(400)->assertJsonPath('message', 'No validation provided');
+        $this->postJson('/api/ciphers/purge', ['otp' => '123'], $this->auth)
+            ->assertStatus(400)->assertJsonPath('message', 'Protected action token not found, try sending the code again or restart the process');
+        $this->assertSame(1, Cipher::query()->count());
+
+        $this->postJson('/api/ciphers/purge', ['MasterPasswordHash' => 'hash'], $this->auth)->assertStatus(200)->assertContent('');
+        $this->assertSame(0, Cipher::query()->count());
+        $this->assertSame(0, Folder::query()->count());
+
+        $this->postJson('/api/ciphers/purge?organizationId='.Random::uuid(), ['masterPasswordHash' => 'hash'], $this->auth)->assertStatus(401);
+    }
+
+    public function test_purging_with_a_mailed_code(): void
+    {
+        $action = new TwoFactor;
+        $action->uuid = Random::uuid();
+        $action->user_uuid = $this->user->uuid;
+        $action->atype = TwoFactor::TYPE_PROTECTED_ACTIONS;
+        $action->enabled = true;
+        $action->data = json_encode(['token' => '123456', 'token_sent' => time(), 'attempts' => 0], JSON_THROW_ON_ERROR);
+        $action->last_used = 0;
+        $action->save();
+
+        $this->postJson('/api/ciphers/purge', ['otp' => '000000'], $this->auth)->assertStatus(400)->assertJsonPath('message', 'Token is invalid');
+        $this->assertStringContainsString('"attempts":1', (string) TwoFactor::findByUserAndType($this->user->uuid, TwoFactor::TYPE_PROTECTED_ACTIONS)?->data);
+
+        $this->postJson('/api/ciphers/purge', ['otp' => '123456'], $this->auth)->assertStatus(200);
+        $this->assertNull(TwoFactor::findByUserAndType($this->user->uuid, TwoFactor::TYPE_PROTECTED_ACTIONS));
+    }
+
+    private function folderOf(string $cipherId): ?string
+    {
+        return Cipher::findByUuid($cipherId)?->folderUuid($this->user->uuid);
+    }
+
+    private function create(string $name): string
+    {
+        $id = $this->postJson('/api/ciphers', [...$this->cipher(2, $name), 'secureNote' => ['type' => 0]], $this->auth)->assertStatus(200)->json('id');
+        $this->assertIsString($id);
+
+        return $id;
     }
 
     /**

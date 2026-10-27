@@ -111,6 +111,28 @@ final readonly class Fields
     }
 
     /**
+     * A Vec<String> or HashSet<String>.
+     *
+     * @return list<string>
+     *
+     * @throws HttpStatus
+     */
+    public function stringList(string $name, string ...$aliases): array
+    {
+        $value = $this->get($name, array_values($aliases)) ?? throw new HttpStatus(422, "Missing field `{$name}`.");
+        if (! is_array($value) || ! array_is_list($value)) {
+            throw new HttpStatus(422, "Field `{$name}` must be a sequence.");
+        }
+
+        $strings = [];
+        foreach ($value as $item) {
+            $strings[] = is_string($item) ? $item : throw new HttpStatus(422, "Field `{$name}` must hold strings.");
+        }
+
+        return $strings;
+    }
+
+    /**
      * `deserialize_with = deser_opt_nonempty_str`: an empty string counts as none.
      *
      * @throws HttpStatus

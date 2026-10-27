@@ -7,7 +7,11 @@ use App\Config\Config;
 use App\Http\ApiError;
 use App\Http\Data\Body;
 use App\Http\Data\CipherData;
+use App\Http\Data\PasswordOrOtpData;
+use App\Http\EmptyResponse;
+use App\Http\HttpStatus;
 use App\Http\Json;
+use App\Http\Unauthorized;
 use App\Models\Archive;
 use App\Models\Attachment;
 use App\Models\Cipher;
@@ -121,6 +125,165 @@ final readonly class CiphersController
         $cipher->setFavorite($favorite, $headers->user->uuid);
 
         return Json::response($cipher->toApi($headers->host, $headers->user->uuid));
+    }
+
+    /**
+     * PUT /api/ciphers/{cipher_id}/delete, also /delete-admin: into the trash.
+     */
+    public function softDeleteCipher(Headers $headers, Request $request, string $cipherId): EmptyResponse
+    {
+        $this->deleteCipherByUuid(Uuid::parameter($request, $cipherId), $headers, soft: true, multi: false);
+
+        return new EmptyResponse;
+    }
+
+    /**
+     * DELETE /api/ciphers/{cipher_id}, also /admin, and POST .../delete and
+     * .../delete-admin: for good.
+     */
+    public function deleteCipher(Headers $headers, Request $request, string $cipherId): EmptyResponse
+    {
+        $this->deleteCipherByUuid(Uuid::parameter($request, $cipherId), $headers, soft: false, multi: false);
+
+        return new EmptyResponse;
+    }
+
+    /**
+     * PUT /api/ciphers/delete, also /delete-admin: several into the trash.
+     */
+    public function softDeleteCiphers(Headers $headers, Request $request): EmptyResponse
+    {
+        foreach (self::cipherIds($request) as $cipherId) {
+            $this->deleteCipherByUuid($cipherId, $headers, soft: true, multi: true);
+        }
+
+        return new EmptyResponse;
+    }
+
+    /**
+     * DELETE /api/ciphers, also /admin, and POST /api/ciphers/delete and
+     * /delete-admin: several for good.
+     */
+    public function deleteCiphers(Headers $headers, Request $request): EmptyResponse
+    {
+        foreach (self::cipherIds($request) as $cipherId) {
+            $this->deleteCipherByUuid($cipherId, $headers, soft: false, multi: true);
+        }
+
+        return new EmptyResponse;
+    }
+
+    /**
+     * PUT /api/ciphers/{cipher_id}/restore, also /restore-admin: out of the trash.
+     */
+    public function restoreCipher(Headers $headers, Request $request, string $cipherId): Response
+    {
+        return Json::response($this->restoreCipherByUuid(Uuid::parameter($request, $cipherId), $headers, multi: false));
+    }
+
+    /**
+     * PUT /api/ciphers/restore, also /restore-admin
+     */
+    public function restoreCiphers(Headers $headers, Request $request): Response
+    {
+        $ciphers = [];
+        foreach (self::cipherIds($request) as $cipherId) {
+            $ciphers[] = $this->restoreCipherByUuid($cipherId, $headers, multi: true);
+        }
+
+        return Json::response(Json::sorted(['data' => $ciphers, 'object' => 'list', 'continuationToken' => null]));
+    }
+
+    /**
+     * POST /api/ciphers/move, also PUT
+     */
+    public function moveCiphers(Headers $headers, Request $request): EmptyResponse
+    {
+        $body = Body::json($request);
+        $folderId = $body->optionalNonEmptyString('folderId');
+        $ids = $body->stringList('ids');
+        $userUuid = $headers->user->uuid;
+
+        if ($folderId !== null && Folder::findByUuidAndUser($folderId, $userUuid) === null) {
+            throw ApiError::message('Invalid folder', logMessage: 'Folder does not exist or belongs to another user');
+        }
+
+        // Ciphers the user cannot access are left out. Upstream's query takes
+        // no ids as no filter, so an empty list moves every cipher.
+        $accessible = Cipher::findByUserVisible($userUuid, $ids);
+        foreach ($accessible as $cipher) {
+            $cipher->moveToFolder($folderId, $userUuid);
+        }
+
+        if (count($ids) !== $accessible->count()) {
+            throw ApiError::message("Not all ciphers are moved! {$accessible->count()} of the selected ".count($ids).' were moved.');
+        }
+
+        return new EmptyResponse;
+    }
+
+    /**
+     * POST /api/ciphers/purge: empty the personal vault. With an
+     * organizationId it is the organization's vault (purge_org_vault).
+     */
+    public function purgeVault(Headers $headers, Request $request): EmptyResponse
+    {
+        $organizationId = $request->query('organizationId');
+        if (is_string($organizationId)) {
+            // OwnerHeaders: only members get further, and organizations are not ported yet.
+            if (! Uuid::isValid($organizationId)) {
+                throw new Unauthorized('Error getting the organization id');
+            }
+            if (! Membership::query()->where('user_uuid', $headers->user->uuid)->where('org_uuid', $organizationId)->exists()) {
+                throw new Unauthorized("The current user isn't member of the organization");
+            }
+
+            throw ApiError::message('Organizations are not implemented yet');
+        }
+
+        $data = PasswordOrOtpData::fromFields(Body::json($request));
+        $user = $headers->user;
+        $data->validate($user, true, $this->config);
+
+        foreach (Cipher::findOwnedByUser($user->uuid) as $cipher) {
+            $cipher->deleteCipher();
+        }
+        Folder::deleteAllByUser($user->uuid);
+        $user->updateRevision();
+
+        return new EmptyResponse;
+    }
+
+    /**
+     * PUT /api/ciphers/{cipher_id}/archive
+     */
+    public function archiveCipher(Headers $headers, Request $request, string $cipherId): Response
+    {
+        return Json::response($this->archiveCipherByUuid(Uuid::parameter($request, $cipherId), $headers, archive: true, multi: false));
+    }
+
+    /**
+     * PUT /api/ciphers/archive
+     */
+    public function archiveCiphers(Headers $headers, Request $request): Response
+    {
+        return $this->archiveMultiple($headers, $request, archive: true);
+    }
+
+    /**
+     * PUT /api/ciphers/{cipher_id}/unarchive
+     */
+    public function unarchiveCipher(Headers $headers, Request $request, string $cipherId): Response
+    {
+        return Json::response($this->archiveCipherByUuid(Uuid::parameter($request, $cipherId), $headers, archive: false, multi: false));
+    }
+
+    /**
+     * PUT /api/ciphers/unarchive
+     */
+    public function unarchiveCiphers(Headers $headers, Request $request): Response
+    {
+        return $this->archiveMultiple($headers, $request, archive: false);
     }
 
     /**
@@ -242,6 +405,103 @@ final readonly class CiphersController
                 Archive::store($headers->user->uuid, $cipher->uuid, $archivedAt);
             }
         }
+    }
+
+    /**
+     * ciphers::delete_cipher_by_uuid
+     *
+     * @throws ApiError
+     */
+    private function deleteCipherByUuid(string $cipherId, Headers $headers, bool $soft, bool $multi): void
+    {
+        $cipher = Cipher::findByUuid($cipherId) ?? throw ApiError::message("Cipher doesn't exist");
+        if (! $cipher->isWriteAccessibleToUser($headers->user->uuid)) {
+            throw ApiError::message("Cipher can't be deleted by user");
+        }
+
+        if ($soft) {
+            $cipher->deleted_at = Dates::now();
+            $cipher->save();
+        } else {
+            $cipher->deleteCipher();
+        }
+        if (! $multi) {
+            $cipher->updateUsersRevision();
+        }
+    }
+
+    /**
+     * ciphers::restore_cipher_by_uuid
+     *
+     * @return array<string, mixed>
+     *
+     * @throws ApiError
+     */
+    private function restoreCipherByUuid(string $cipherId, Headers $headers, bool $multi): array
+    {
+        $cipher = Cipher::findByUuid($cipherId) ?? throw ApiError::message("Cipher doesn't exist");
+        if (! $cipher->isWriteAccessibleToUser($headers->user->uuid)) {
+            throw ApiError::message("Cipher can't be restored by user");
+        }
+
+        $cipher->deleted_at = null;
+        $cipher->save();
+        if (! $multi) {
+            $cipher->updateUsersRevision();
+        }
+
+        return $cipher->toApi($headers->host, $headers->user->uuid);
+    }
+
+    /**
+     * ciphers::archive_cipher and unarchive_cipher: archiving is per user.
+     *
+     * @return array<string, mixed>
+     *
+     * @throws ApiError
+     */
+    private function archiveCipherByUuid(string $cipherId, Headers $headers, bool $archive, bool $multi): array
+    {
+        $cipher = Cipher::findByUuid($cipherId) ?? throw ApiError::message("Cipher doesn't exist");
+        if (! $cipher->isAccessibleToUser($headers->user->uuid)) {
+            throw ApiError::message('Cipher is not accessible for the current user');
+        }
+
+        if ($archive) {
+            Archive::store($headers->user->uuid, $cipher->uuid, Dates::now());
+        } else {
+            Archive::deleteByCipher($headers->user->uuid, $cipher->uuid);
+        }
+        if (! $multi) {
+            $cipher->updateUsersRevision();
+        }
+
+        return $cipher->toApi($headers->host, $headers->user->uuid);
+    }
+
+    /**
+     * @throws ApiError
+     */
+    private function archiveMultiple(Headers $headers, Request $request, bool $archive): Response
+    {
+        $ciphers = [];
+        foreach (self::cipherIds($request) as $cipherId) {
+            $ciphers[] = $this->archiveCipherByUuid($cipherId, $headers, $archive, multi: true);
+        }
+
+        return Json::response(Json::sorted(['data' => $ciphers, 'object' => 'list', 'continuationToken' => null]));
+    }
+
+    /**
+     * CipherIdsData: a HashSet, so each id once. Upstream's order is random.
+     *
+     * @return list<string>
+     *
+     * @throws HttpStatus
+     */
+    private static function cipherIds(Request $request): array
+    {
+        return array_values(array_unique(Body::json($request)->stringList('ids')));
     }
 
     /**

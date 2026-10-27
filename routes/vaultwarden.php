@@ -40,6 +40,21 @@ Route::prefix('/api')->group(function (): void {
     Route::get('/accounts/revision-date', [AccountsController::class, 'revisionDate'])->name('core::accounts::revision_date');
 
     // core::ciphers
+    // Rocket ranks static segments above dynamic ones; Laravel takes the first match, so these come first.
+    Route::delete('/ciphers', [CiphersController::class, 'deleteCiphers'])->name('core::ciphers::delete_cipher_selected');
+    Route::post('/ciphers/delete', [CiphersController::class, 'deleteCiphers'])->name('core::ciphers::delete_cipher_selected_post');
+    Route::put('/ciphers/delete', [CiphersController::class, 'softDeleteCiphers'])->name('core::ciphers::delete_cipher_selected_put');
+    Route::delete('/ciphers/admin', [CiphersController::class, 'deleteCiphers'])->name('core::ciphers::delete_cipher_selected_admin');
+    Route::post('/ciphers/delete-admin', [CiphersController::class, 'deleteCiphers'])->name('core::ciphers::delete_cipher_selected_post_admin');
+    Route::put('/ciphers/delete-admin', [CiphersController::class, 'softDeleteCiphers'])->name('core::ciphers::delete_cipher_selected_put_admin');
+    Route::put('/ciphers/restore', [CiphersController::class, 'restoreCiphers'])->name('core::ciphers::restore_cipher_selected');
+    Route::put('/ciphers/restore-admin', [CiphersController::class, 'restoreCiphers'])->name('core::ciphers::restore_cipher_selected_admin');
+    Route::post('/ciphers/move', [CiphersController::class, 'moveCiphers'])->name('core::ciphers::move_cipher_selected');
+    Route::put('/ciphers/move', [CiphersController::class, 'moveCiphers'])->name('core::ciphers::move_cipher_selected_put');
+    Route::post('/ciphers/purge', [CiphersController::class, 'purgeVault'])->name('core::ciphers::purge_personal_vault');
+    Route::put('/ciphers/archive', [CiphersController::class, 'archiveCiphers'])->name('core::ciphers::archive_cipher_selected');
+    Route::put('/ciphers/unarchive', [CiphersController::class, 'unarchiveCiphers'])->name('core::ciphers::unarchive_cipher_selected');
+
     Route::get('/ciphers', [CiphersController::class, 'getCiphers'])->name('core::ciphers::get_ciphers');
     Route::get('/ciphers/{cipherId}', [CiphersController::class, 'getCipher'])->name('core::ciphers::get_cipher');
     Route::get('/ciphers/{cipherId}/admin', [CiphersController::class, 'getCipher'])->name('core::ciphers::get_cipher_admin');
@@ -51,6 +66,16 @@ Route::prefix('/api')->group(function (): void {
     Route::post('/ciphers/{cipherId}/admin', [CiphersController::class, 'putCipher'])->name('core::ciphers::post_cipher_admin');
     Route::put('/ciphers/{cipherId}/partial', [CiphersController::class, 'putCipherPartial'])->name('core::ciphers::put_cipher_partial');
     Route::post('/ciphers/{cipherId}/partial', [CiphersController::class, 'putCipherPartial'])->name('core::ciphers::post_cipher_partial');
+    Route::post('/ciphers/{cipherId}/delete', [CiphersController::class, 'deleteCipher'])->name('core::ciphers::delete_cipher_post');
+    Route::post('/ciphers/{cipherId}/delete-admin', [CiphersController::class, 'deleteCipher'])->name('core::ciphers::delete_cipher_post_admin');
+    Route::put('/ciphers/{cipherId}/delete', [CiphersController::class, 'softDeleteCipher'])->name('core::ciphers::delete_cipher_put');
+    Route::put('/ciphers/{cipherId}/delete-admin', [CiphersController::class, 'softDeleteCipher'])->name('core::ciphers::delete_cipher_put_admin');
+    Route::delete('/ciphers/{cipherId}', [CiphersController::class, 'deleteCipher'])->name('core::ciphers::delete_cipher');
+    Route::delete('/ciphers/{cipherId}/admin', [CiphersController::class, 'deleteCipher'])->name('core::ciphers::delete_cipher_admin');
+    Route::put('/ciphers/{cipherId}/restore', [CiphersController::class, 'restoreCipher'])->name('core::ciphers::restore_cipher_put');
+    Route::put('/ciphers/{cipherId}/restore-admin', [CiphersController::class, 'restoreCipher'])->name('core::ciphers::restore_cipher_put_admin');
+    Route::put('/ciphers/{cipherId}/archive', [CiphersController::class, 'archiveCipher'])->name('core::ciphers::archive_cipher_put');
+    Route::put('/ciphers/{cipherId}/unarchive', [CiphersController::class, 'unarchiveCipher'])->name('core::ciphers::unarchive_cipher_put');
 
     // core::folders
     Route::get('/folders', [FoldersController::class, 'getFolders'])->name('core::folders::get_folders');

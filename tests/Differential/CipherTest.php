@@ -94,6 +94,9 @@ class CipherTest extends DifferentialTestCase
                 'login list' => $server->json('POST', '/api/ciphers', [...self::cipher($userId, 1, '2.x'), 'login' => []], $auth),
                 'card list' => $server->json('POST', '/api/ciphers', [...self::cipher($userId, 3, '2.x'), 'card' => ['2.a']], $auth),
                 'scalar note' => $server->json('POST', '/api/ciphers', [...self::cipher($userId, 2, '2.x'), 'secureNote' => 5], $auth),
+                'fields with a list' => $server->json('POST', '/api/ciphers', [...self::cipher($userId, 1, '2.x'), ...$login, 'fields' => [['name' => '2.a'], []]], $auth),
+                'empty field' => $server->json('POST', '/api/ciphers', [...self::cipher($userId, 1, '2.x'), ...$login, 'fields' => [(object) [], ['type' => true]]], $auth),
+                'history with a list' => $server->json('POST', '/api/ciphers', [...self::cipher($userId, 1, '2.x'), ...$login, 'passwordHistory' => [['password' => '2.p'], [1]]], $auth),
             ];
         });
     }
@@ -132,6 +135,149 @@ class CipherTest extends DifferentialTestCase
 
             return $steps;
         });
+    }
+
+    #[Parity('route:PUT /api/ciphers/{cipher_id}/delete')]
+    #[Parity('route:PUT /api/ciphers/{cipher_id}/delete-admin')]
+    #[Parity('route:POST /api/ciphers/{cipher_id}/delete')]
+    #[Parity('route:POST /api/ciphers/{cipher_id}/delete-admin')]
+    #[Parity('route:DELETE /api/ciphers/{cipher_id}')]
+    #[Parity('route:DELETE /api/ciphers/{cipher_id}/admin')]
+    #[Parity('route:PUT /api/ciphers/delete')]
+    #[Parity('route:PUT /api/ciphers/delete-admin')]
+    #[Parity('route:POST /api/ciphers/delete')]
+    #[Parity('route:POST /api/ciphers/delete-admin')]
+    #[Parity('route:DELETE /api/ciphers')]
+    #[Parity('route:DELETE /api/ciphers/admin')]
+    #[Parity('route:PUT /api/ciphers/{cipher_id}/restore')]
+    #[Parity('route:PUT /api/ciphers/{cipher_id}/restore-admin')]
+    #[Parity('route:PUT /api/ciphers/restore')]
+    #[Parity('route:PUT /api/ciphers/restore-admin')]
+    public function test_trash_and_deletion(): void
+    {
+        $this->assertSameFlows(function (Server $server): array {
+            [$auth, $userId] = self::session($server, 'trash@example.com');
+            $ids = [];
+            foreach (['2.a', '2.b', '2.c', '2.d', '2.e', '2.f', '2.g'] as $name) {
+                $ids[$name] = self::note($server, $auth, $userId, $name);
+            }
+            $unknown = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+            $steps = [];
+
+            $steps['soft delete'] = $server->send('PUT', "/api/ciphers/{$ids['2.a']}/delete", $auth);
+            $steps['soft delete admin'] = $server->send('PUT', "/api/ciphers/{$ids['2.b']}/delete-admin", $auth);
+            $steps['in the trash'] = $server->send('GET', "/api/ciphers/{$ids['2.a']}", $auth);
+            $steps['restore'] = $server->send('PUT', "/api/ciphers/{$ids['2.a']}/restore", $auth);
+            $steps['restore admin'] = $server->send('PUT', "/api/ciphers/{$ids['2.b']}/restore-admin", $auth);
+            $steps['bulk soft delete'] = $server->json('PUT', '/api/ciphers/delete', ['ids' => [$ids['2.a'], $ids['2.b']]], $auth);
+            $steps['bulk soft delete admin'] = $server->json('PUT', '/api/ciphers/delete-admin', ['ids' => [$ids['2.c']]], $auth);
+            $steps['bulk restore twice the same'] = $server->json('PUT', '/api/ciphers/restore', ['ids' => [$ids['2.a'], $ids['2.a']]], $auth);
+            $restored = $server->json('PUT', '/api/ciphers/restore-admin', ['ids' => [$ids['2.b'], $ids['2.c']]], $auth);
+            $steps['bulk restore admin'] = $restored->withBody(self::sortedByName($restored->body));
+            $steps['bulk restore unknown'] = $server->json('PUT', '/api/ciphers/restore', ['ids' => [$unknown]], $auth);
+
+            $steps['delete'] = $server->send('DELETE', "/api/ciphers/{$ids['2.a']}", $auth);
+            $steps['delete admin'] = $server->send('DELETE', "/api/ciphers/{$ids['2.b']}/admin", $auth);
+            $steps['post delete'] = $server->send('POST', "/api/ciphers/{$ids['2.c']}/delete", $auth);
+            $steps['post delete admin'] = $server->send('POST', "/api/ciphers/{$ids['2.d']}/delete-admin", $auth);
+            $steps['deleted'] = $server->send('GET', "/api/ciphers/{$ids['2.a']}", $auth);
+            $steps['delete unknown'] = $server->send('DELETE', "/api/ciphers/{$unknown}", $auth);
+            $steps['bulk delete'] = $server->json('DELETE', '/api/ciphers', ['ids' => [$ids['2.e']]], $auth);
+            $steps['bulk delete admin'] = $server->json('DELETE', '/api/ciphers/admin', ['ids' => [$ids['2.f']]], $auth);
+            $steps['post bulk delete'] = $server->json('POST', '/api/ciphers/delete', ['ids' => [$ids['2.g']]], $auth);
+            $steps['post bulk delete admin'] = $server->json('POST', '/api/ciphers/delete-admin', ['ids' => [$unknown]], $auth);
+            $steps['bulk delete without ids'] = $server->json('DELETE', '/api/ciphers', ['id' => [$unknown]], $auth);
+            $steps['bulk delete with numbers'] = $server->json('DELETE', '/api/ciphers', ['ids' => [1]], $auth);
+            $steps['bulk delete broken json'] = $server->send('DELETE', '/api/ciphers', [...$auth, 'Content-Type' => 'application/json'], '{"ids":');
+            $steps['soft delete invalid id'] = $server->send('PUT', '/api/ciphers/not-a-uuid/delete', $auth);
+            $steps['empty'] = $server->send('GET', '/api/ciphers', $auth);
+
+            return $steps;
+        });
+    }
+
+    #[Parity('route:POST /api/ciphers/move')]
+    #[Parity('route:PUT /api/ciphers/move')]
+    public function test_moving_ciphers(): void
+    {
+        $this->assertSameFlows(function (Server $server): array {
+            [$auth, $userId] = self::session($server, 'move@example.com');
+            $folder = $server->json('POST', '/api/folders', ['name' => '2.folder'], $auth)->jsonString('id');
+            $first = self::note($server, $auth, $userId, '2.first');
+            self::note($server, $auth, $userId, '2.second');
+            $steps = [];
+
+            $steps['move'] = $server->json('POST', '/api/ciphers/move', ['folderId' => $folder, 'ids' => [$first]], $auth);
+            $steps['moved'] = $server->send('GET', "/api/ciphers/{$first}", $auth);
+            $steps['unknown folder'] = $server->json('PUT', '/api/ciphers/move', ['folderId' => 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', 'ids' => [$first]], $auth);
+            $steps['partly unknown'] = $server->json('PUT', '/api/ciphers/move', ['folderId' => '', 'ids' => [$first, 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee']], $auth);
+            $steps['twice the same'] = $server->json('PUT', '/api/ciphers/move', ['folderId' => $folder, 'ids' => [$first, $first]], $auth);
+            $steps['no ids'] = $server->json('POST', '/api/ciphers/move', ['ids' => []], $auth);
+            $steps['without ids'] = $server->json('POST', '/api/ciphers/move', ['folderId' => $folder], $auth);
+            $list = $server->send('GET', '/api/ciphers', $auth);
+            $steps['list'] = $list->withBody(self::sortedByName($list->body));
+
+            return $steps;
+        });
+    }
+
+    #[Parity('route:PUT /api/ciphers/{cipher_id}/archive')]
+    #[Parity('route:PUT /api/ciphers/archive')]
+    #[Parity('route:PUT /api/ciphers/{cipher_id}/unarchive')]
+    #[Parity('route:PUT /api/ciphers/unarchive')]
+    public function test_archiving_ciphers(): void
+    {
+        $this->assertSameFlows(function (Server $server): array {
+            [$auth, $userId] = self::session($server, 'archive@example.com');
+            $first = self::note($server, $auth, $userId, '2.first');
+            $second = self::note($server, $auth, $userId, '2.second');
+            $steps = [];
+
+            $steps['archive'] = $server->send('PUT', "/api/ciphers/{$first}/archive", $auth);
+            $steps['bulk archive'] = $server->json('PUT', '/api/ciphers/archive', ['ids' => [$second, $second]], $auth);
+            $steps['unarchive'] = $server->send('PUT', "/api/ciphers/{$first}/unarchive", $auth);
+            $steps['bulk unarchive'] = $server->json('PUT', '/api/ciphers/unarchive', ['ids' => [$second]], $auth);
+            $steps['unarchive again'] = $server->send('PUT', "/api/ciphers/{$first}/unarchive", $auth);
+            $steps['archive unknown'] = $server->send('PUT', '/api/ciphers/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee/archive', $auth);
+            $steps['bulk archive unknown'] = $server->json('PUT', '/api/ciphers/archive', ['ids' => ['aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee']], $auth);
+
+            return $steps;
+        });
+    }
+
+    #[Parity('route:POST /api/ciphers/purge')]
+    public function test_purging_the_personal_vault(): void
+    {
+        $this->assertSameFlows(function (Server $server): array {
+            [$auth, $userId] = self::session($server, 'purge@example.com');
+            $server->json('POST', '/api/folders', ['name' => '2.folder'], $auth);
+            self::note($server, $auth, $userId, '2.first');
+            $steps = [];
+
+            $steps['wrong password'] = $server->json('POST', '/api/ciphers/purge', ['masterPasswordHash' => 'wrong'], $auth);
+            $steps['nothing'] = $server->send('POST', '/api/ciphers/purge', [...$auth, 'Content-Type' => 'application/json'], '{}');
+            $steps['both'] = $server->json('POST', '/api/ciphers/purge', ['masterPasswordHash' => 'client-hash', 'otp' => '1'], $auth);
+            $steps['no code sent'] = $server->json('POST', '/api/ciphers/purge', ['otp' => '123456'], $auth);
+            $steps['an array'] = $server->json('POST', '/api/ciphers/purge', [], $auth);
+            $steps['organization of others'] = $server->json('POST', '/api/ciphers/purge?organizationId=aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', ['masterPasswordHash' => 'client-hash'], $auth);
+            $steps['invalid organization'] = $server->json('POST', '/api/ciphers/purge?organizationId=nope', ['masterPasswordHash' => 'client-hash'], $auth);
+            $steps['still there'] = $server->send('GET', '/api/ciphers', $auth);
+            $steps['purge'] = $server->json('POST', '/api/ciphers/purge', ['MasterPasswordHash' => 'client-hash'], $auth);
+            $steps['ciphers'] = $server->send('GET', '/api/ciphers', $auth);
+            $steps['folders'] = $server->send('GET', '/api/folders', $auth);
+
+            return $steps;
+        });
+    }
+
+    /**
+     * A secure note, the cipher with the least data.
+     *
+     * @param  array<string, string>  $auth
+     */
+    public static function note(Server $server, array $auth, string $userId, string $name): string
+    {
+        return $server->json('POST', '/api/ciphers', [...self::cipher($userId, 2, $name), 'secureNote' => ['type' => 0]], $auth)->jsonString('id');
     }
 
     /**
