@@ -8,7 +8,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 
 | Area | Total | ✅ | 🟨 | ⬜ | ➖ | With tests |
 |---|--:|--:|--:|--:|--:|--:|
-| Routes | 294 | 11 | 7 | 275 | 1 | 18 |
+| Routes | 294 | 22 | 42 | 229 | 1 | 63 |
 | Settings | 153 | 18 | 135 | 0 | 0 | 153 |
 | Scheduled jobs | 8 | 0 | 0 | 8 | 0 | 0 |
 | Database tables | 28 | 28 | 0 | 0 | 0 | 28 |
@@ -31,9 +31,9 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ⬜ | GET `/{p..}` | src/api/web.rs:227 | 0 |  |
 | ⬜ | GET `/css/vaultwarden.css` | src/api/web.rs:82 | 0 |  |
 | ➖ | GET `/vw_static/{filename}` | src/api/web.rs:262 | 0 | Only in debug builds of Vaultwarden (cfg(debug_assertions)); release builds serve static_files. |
-| ⬜ | GET `/api/settings/domains` | src/api/core/mod.rs:75 | 0 |  |
-| ⬜ | POST `/api/settings/domains` | src/api/core/mod.rs:112 | 0 |  |
-| ⬜ | PUT `/api/settings/domains` | src/api/core/mod.rs:138 | 0 |  |
+| ✅ | GET `/api/settings/domains` | src/api/core/mod.rs:75 | 1 | Compared with Vaultwarden in tests/Differential/SyncTest. |
+| ✅ | POST `/api/settings/domains` | src/api/core/mod.rs:112 | 1 | Compared with Vaultwarden in tests/Differential/SyncTest. |
+| ✅ | PUT `/api/settings/domains` | src/api/core/mod.rs:138 | 1 | Compared with Vaultwarden in tests/Differential/SyncTest. |
 | ⬜ | GET `/api/hibp/breach` | src/api/core/mod.rs:148 | 0 |  |
 | ✅ | GET `/api/alive` | src/api/core/mod.rs:183 | 2 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
 | ✅ | GET `/api/now` | src/api/core/mod.rs:188 | 2 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
@@ -80,13 +80,13 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ⬜ | GET `/api/auth-requests/{auth_request_id}/response` | src/api/core/accounts.rs:1826 | 0 |  |
 | ⬜ | GET `/api/auth-requests` | src/api/core/accounts.rs:1865 | 0 |  |
 | ⬜ | GET `/api/auth-requests/pending` | src/api/core/accounts.rs:1870 | 0 |  |
-| ⬜ | GET `/api/sync` | src/api/core/ciphers.rs:122 | 0 |  |
-| ⬜ | GET `/api/ciphers` | src/api/core/ciphers.rs:215 | 0 |  |
-| ⬜ | GET `/api/ciphers/{cipher_id}` | src/api/core/ciphers.rs:234 | 0 |  |
-| ⬜ | GET `/api/ciphers/{cipher_id}/admin` | src/api/core/ciphers.rs:247 | 0 |  |
-| ⬜ | GET `/api/ciphers/{cipher_id}/details` | src/api/core/ciphers.rs:253 | 0 |  |
-| ⬜ | POST `/api/ciphers` | src/api/core/ciphers.rs:384 | 0 |  |
-| ⬜ | PUT `/api/ciphers/{cipher_id}/admin` | src/api/core/ciphers.rs:682 | 0 |  |
+| 🟨 | GET `/api/sync` | src/api/core/ciphers.rs:122 | 1 | Compared with Vaultwarden in tests/Differential/SyncTest for users without organizations; collections and policies stay empty until organizations are ported. |
+| 🟨 | GET `/api/ciphers` | src/api/core/ciphers.rs:215 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | GET `/api/ciphers/{cipher_id}` | src/api/core/ciphers.rs:234 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | GET `/api/ciphers/{cipher_id}/admin` | src/api/core/ciphers.rs:247 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | GET `/api/ciphers/{cipher_id}/details` | src/api/core/ciphers.rs:253 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | POST `/api/ciphers` | src/api/core/ciphers.rs:384 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | PUT `/api/ciphers/{cipher_id}/admin` | src/api/core/ciphers.rs:682 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
 | ⬜ | POST `/api/ciphers/admin` | src/api/core/ciphers.rs:338 | 0 |  |
 | ⬜ | POST `/api/ciphers/create` | src/api/core/ciphers.rs:346 | 0 |  |
 | ⬜ | POST `/api/ciphers/import` | src/api/core/ciphers.rs:630 | 0 |  |
@@ -100,44 +100,44 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ⬜ | POST `/api/ciphers/{cipher_id}/attachment/{attachment_id}/delete-admin` | src/api/core/ciphers.rs:1509 | 0 |  |
 | ⬜ | DELETE `/api/ciphers/{cipher_id}/attachment/{attachment_id}` | src/api/core/ciphers.rs:1531 | 0 |  |
 | ⬜ | DELETE `/api/ciphers/{cipher_id}/attachment/{attachment_id}/admin` | src/api/core/ciphers.rs:1542 | 0 |  |
-| ⬜ | POST `/api/ciphers/{cipher_id}/admin` | src/api/core/ciphers.rs:693 | 0 |  |
+| 🟨 | POST `/api/ciphers/{cipher_id}/admin` | src/api/core/ciphers.rs:693 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
 | ⬜ | POST `/api/ciphers/{cipher_id}/share` | src/api/core/ciphers.rs:988 | 0 |  |
 | ⬜ | PUT `/api/ciphers/{cipher_id}/share` | src/api/core/ciphers.rs:1001 | 0 |  |
 | ⬜ | PUT `/api/ciphers/share` | src/api/core/ciphers.rs:1060 | 0 |  |
-| ⬜ | POST `/api/ciphers/{cipher_id}` | src/api/core/ciphers.rs:704 | 0 |  |
-| ⬜ | POST `/api/ciphers/{cipher_id}/partial` | src/api/core/ciphers.rs:743 | 0 |  |
-| ⬜ | PUT `/api/ciphers/{cipher_id}` | src/api/core/ciphers.rs:715 | 0 |  |
-| ⬜ | PUT `/api/ciphers/{cipher_id}/partial` | src/api/core/ciphers.rs:754 | 0 |  |
-| ⬜ | POST `/api/ciphers/{cipher_id}/delete` | src/api/core/ciphers.rs:1553 | 0 |  |
-| ⬜ | POST `/api/ciphers/{cipher_id}/delete-admin` | src/api/core/ciphers.rs:1559 | 0 |  |
-| ⬜ | PUT `/api/ciphers/{cipher_id}/delete` | src/api/core/ciphers.rs:1565 | 0 |  |
-| ⬜ | PUT `/api/ciphers/{cipher_id}/delete-admin` | src/api/core/ciphers.rs:1571 | 0 |  |
-| ⬜ | DELETE `/api/ciphers/{cipher_id}` | src/api/core/ciphers.rs:1577 | 0 |  |
-| ⬜ | DELETE `/api/ciphers/{cipher_id}/admin` | src/api/core/ciphers.rs:1583 | 0 |  |
-| ⬜ | DELETE `/api/ciphers` | src/api/core/ciphers.rs:1589 | 0 |  |
-| ⬜ | POST `/api/ciphers/delete` | src/api/core/ciphers.rs:1600 | 0 |  |
-| ⬜ | PUT `/api/ciphers/delete` | src/api/core/ciphers.rs:1611 | 0 |  |
-| ⬜ | DELETE `/api/ciphers/admin` | src/api/core/ciphers.rs:1622 | 0 |  |
-| ⬜ | POST `/api/ciphers/delete-admin` | src/api/core/ciphers.rs:1633 | 0 |  |
-| ⬜ | PUT `/api/ciphers/delete-admin` | src/api/core/ciphers.rs:1644 | 0 |  |
-| ⬜ | PUT `/api/ciphers/{cipher_id}/restore` | src/api/core/ciphers.rs:1655 | 0 |  |
-| ⬜ | PUT `/api/ciphers/{cipher_id}/restore-admin` | src/api/core/ciphers.rs:1660 | 0 |  |
-| ⬜ | PUT `/api/ciphers/restore` | src/api/core/ciphers.rs:1675 | 0 |  |
-| ⬜ | PUT `/api/ciphers/restore-admin` | src/api/core/ciphers.rs:1665 | 0 |  |
-| ⬜ | POST `/api/ciphers/purge` | src/api/core/ciphers.rs:1766 | 0 |  |
-| ⬜ | POST `/api/ciphers/purge` | src/api/core/ciphers.rs:1806 | 0 |  |
-| ⬜ | POST `/api/ciphers/move` | src/api/core/ciphers.rs:1693 | 0 |  |
-| ⬜ | PUT `/api/ciphers/move` | src/api/core/ciphers.rs:1747 | 0 |  |
+| 🟨 | POST `/api/ciphers/{cipher_id}` | src/api/core/ciphers.rs:704 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | POST `/api/ciphers/{cipher_id}/partial` | src/api/core/ciphers.rs:743 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | PUT `/api/ciphers/{cipher_id}` | src/api/core/ciphers.rs:715 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | PUT `/api/ciphers/{cipher_id}/partial` | src/api/core/ciphers.rs:754 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | POST `/api/ciphers/{cipher_id}/delete` | src/api/core/ciphers.rs:1553 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | POST `/api/ciphers/{cipher_id}/delete-admin` | src/api/core/ciphers.rs:1559 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | PUT `/api/ciphers/{cipher_id}/delete` | src/api/core/ciphers.rs:1565 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | PUT `/api/ciphers/{cipher_id}/delete-admin` | src/api/core/ciphers.rs:1571 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | DELETE `/api/ciphers/{cipher_id}` | src/api/core/ciphers.rs:1577 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | DELETE `/api/ciphers/{cipher_id}/admin` | src/api/core/ciphers.rs:1583 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | DELETE `/api/ciphers` | src/api/core/ciphers.rs:1589 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | POST `/api/ciphers/delete` | src/api/core/ciphers.rs:1600 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | PUT `/api/ciphers/delete` | src/api/core/ciphers.rs:1611 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | DELETE `/api/ciphers/admin` | src/api/core/ciphers.rs:1622 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | POST `/api/ciphers/delete-admin` | src/api/core/ciphers.rs:1633 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | PUT `/api/ciphers/delete-admin` | src/api/core/ciphers.rs:1644 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | PUT `/api/ciphers/{cipher_id}/restore` | src/api/core/ciphers.rs:1655 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | PUT `/api/ciphers/{cipher_id}/restore-admin` | src/api/core/ciphers.rs:1660 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | PUT `/api/ciphers/restore` | src/api/core/ciphers.rs:1675 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | PUT `/api/ciphers/restore-admin` | src/api/core/ciphers.rs:1665 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | POST `/api/ciphers/purge` | src/api/core/ciphers.rs:1766 | 0 | Non-members get 401 like upstream; members get "Organizations are not implemented yet". |
+| ✅ | POST `/api/ciphers/purge` | src/api/core/ciphers.rs:1806 | 1 | Compared with Vaultwarden in tests/Differential/CipherTest; the protected action code path is covered by tests/Feature/Api/CipherTest. |
+| 🟨 | POST `/api/ciphers/move` | src/api/core/ciphers.rs:1693 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | PUT `/api/ciphers/move` | src/api/core/ciphers.rs:1747 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
 | ⬜ | PUT `/api/ciphers/{cipher_id}/collections_v2` | src/api/core/ciphers.rs:792 | 0 |  |
 | ⬜ | POST `/api/ciphers/{cipher_id}/collections_v2` | src/api/core/ciphers.rs:803 | 0 |  |
 | ⬜ | PUT `/api/ciphers/{cipher_id}/collections` | src/api/core/ciphers.rs:819 | 0 |  |
 | ⬜ | POST `/api/ciphers/{cipher_id}/collections` | src/api/core/ciphers.rs:830 | 0 |  |
 | ⬜ | POST `/api/ciphers/{cipher_id}/collections-admin` | src/api/core/ciphers.rs:910 | 0 |  |
 | ⬜ | PUT `/api/ciphers/{cipher_id}/collections-admin` | src/api/core/ciphers.rs:899 | 0 |  |
-| ⬜ | PUT `/api/ciphers/{cipher_id}/archive` | src/api/core/ciphers.rs:1832 | 0 |  |
-| ⬜ | PUT `/api/ciphers/archive` | src/api/core/ciphers.rs:1837 | 0 |  |
-| ⬜ | PUT `/api/ciphers/{cipher_id}/unarchive` | src/api/core/ciphers.rs:1847 | 0 |  |
-| ⬜ | PUT `/api/ciphers/unarchive` | src/api/core/ciphers.rs:1852 | 0 |  |
+| 🟨 | PUT `/api/ciphers/{cipher_id}/archive` | src/api/core/ciphers.rs:1832 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | PUT `/api/ciphers/archive` | src/api/core/ciphers.rs:1837 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | PUT `/api/ciphers/{cipher_id}/unarchive` | src/api/core/ciphers.rs:1847 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | PUT `/api/ciphers/unarchive` | src/api/core/ciphers.rs:1852 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
 | ⬜ | GET `/api/emergency-access/trusted` | src/api/core/emergency_access.rs:51 | 0 |  |
 | ⬜ | GET `/api/emergency-access/granted` | src/api/core/emergency_access.rs:72 | 0 |  |
 | ⬜ | GET `/api/emergency-access/{emer_id}` | src/api/core/emergency_access.rs:91 | 0 |  |
@@ -159,13 +159,13 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ⬜ | GET `/api/organizations/{org_id}/events` | src/api/core/events.rs:42 | 0 |  |
 | ⬜ | GET `/api/ciphers/{cipher_id}/events` | src/api/core/events.rs:69 | 0 |  |
 | ⬜ | GET `/api/organizations/{org_id}/users/{member_id}/events` | src/api/core/events.rs:90 | 0 |  |
-| ⬜ | GET `/api/folders` | src/api/core/folders.rs:18 | 0 |  |
-| ⬜ | GET `/api/folders/{folder_id}` | src/api/core/folders.rs:30 | 0 |  |
-| ⬜ | POST `/api/folders` | src/api/core/folders.rs:47 | 0 |  |
-| ⬜ | POST `/api/folders/{folder_id}` | src/api/core/folders.rs:59 | 0 |  |
-| ⬜ | PUT `/api/folders/{folder_id}` | src/api/core/folders.rs:70 | 0 |  |
-| ⬜ | POST `/api/folders/{folder_id}/delete` | src/api/core/folders.rs:92 | 0 |  |
-| ⬜ | DELETE `/api/folders/{folder_id}` | src/api/core/folders.rs:97 | 0 |  |
+| ✅ | GET `/api/folders` | src/api/core/folders.rs:18 | 1 | Compared with Vaultwarden in tests/Differential/FolderTest. |
+| ✅ | GET `/api/folders/{folder_id}` | src/api/core/folders.rs:30 | 1 | Compared with Vaultwarden in tests/Differential/FolderTest. |
+| ✅ | POST `/api/folders` | src/api/core/folders.rs:47 | 1 | Compared with Vaultwarden in tests/Differential/FolderTest. |
+| ✅ | POST `/api/folders/{folder_id}` | src/api/core/folders.rs:59 | 1 | Compared with Vaultwarden in tests/Differential/FolderTest. |
+| ✅ | PUT `/api/folders/{folder_id}` | src/api/core/folders.rs:70 | 1 | Compared with Vaultwarden in tests/Differential/FolderTest. |
+| ✅ | POST `/api/folders/{folder_id}/delete` | src/api/core/folders.rs:92 | 1 | Compared with Vaultwarden in tests/Differential/FolderTest. |
+| ✅ | DELETE `/api/folders/{folder_id}` | src/api/core/folders.rs:97 | 1 | Compared with Vaultwarden in tests/Differential/FolderTest. |
 | ⬜ | GET `/api/organizations/{org_id}` | src/api/core/organizations.rs:265 | 0 |  |
 | ⬜ | POST `/api/organizations` | src/api/core/organizations.rs:184 | 0 |  |
 | ⬜ | DELETE `/api/organizations/{org_id}` | src/api/core/organizations.rs:218 | 0 |  |
