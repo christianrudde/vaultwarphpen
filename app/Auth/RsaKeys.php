@@ -62,7 +62,7 @@ final class RsaKeys
         }
 
         $path = $this->path();
-        $pem = @file_get_contents($path);
+        $pem = is_file($path) ? file_get_contents($path) : false;
         if ($pem === false) {
             $pem = self::generate();
             // Exclusive creation, so concurrent first requests agree on one key.

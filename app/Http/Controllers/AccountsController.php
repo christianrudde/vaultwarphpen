@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Auth\Headers;
 use App\Auth\Jwt;
 use App\Auth\JwtIssuer;
 use App\Auth\RsaKeys;
 use App\Config\Config;
 use App\Http\ApiError;
+use App\Http\Data\Body;
 use App\Http\Data\KdfData;
 use App\Http\Data\RegisterData;
 use App\Http\Json;
@@ -17,6 +19,7 @@ use App\Models\Membership;
 use App\Models\User;
 use App\Support\Dates;
 use App\Support\RateLimiter;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Throwable;
 
@@ -216,6 +219,130 @@ final readonly class AccountsController
         }
 
         return Json::response(['object' => 'registerFinish']);
+    }
+
+    /**
+     * GET /api/accounts/profile
+     */
+    public function profile(Headers $headers): Response
+    {
+        return Json::response($headers->user->toApi());
+    }
+
+    /**
+     * PUT /api/accounts/profile
+     */
+    public function putProfile(Headers $headers, Request $request): Response
+    {
+        return $this->postProfile($headers, $request);
+    }
+
+    /**
+     * POST /api/accounts/profile: only the name can change; the culture is always en-US.
+     */
+    public function postProfile(Headers $headers, Request $request): Response
+    {
+        $name = Body::json($request)->string('name');
+
+        // Like upstream Bitwarden; long names also make the tokens too large.
+        if (strlen($name) > 50) {
+            throw ApiError::message('The field Name must be a string with a maximum length of 50.');
+        }
+
+        $user = $headers->user;
+        $user->name = $name;
+        $user->save();
+
+        return Json::response($user->toApi());
+    }
+
+    /**
+     * PUT /api/accounts/avatar: a color like #a1b2c3, or none.
+     */
+    public function putAvatar(Headers $headers, Request $request): Response
+    {
+        $color = Body::json($request)->optionalString('avatarColor');
+        if ($color !== null && strlen($color) !== 7) {
+            throw ApiError::message('The field AvatarColor must be a HTML/Hex color code with a length of 7 characters');
+        }
+
+        $user = $headers->user;
+        $user->avatar_color = $color;
+        $user->save();
+
+        return Json::response($user->toApi());
+    }
+
+    /**
+     * GET /api/users/{user_id}/public-key
+     */
+    public function getPublicKeys(string $userId, Headers $headers): Response
+    {
+        $user = User::findByUuid($userId);
+        if ($user === null) {
+            throw ApiError::message("User doesn't exist", 404);
+        }
+        if ($user->public_key === null) {
+            throw ApiError::message('User has no public_key', 404);
+        }
+
+        return Json::response(Json::sorted([
+            'userId' => $user->uuid,
+            'publicKey' => $user->public_key,
+            'object' => 'userKey',
+        ]));
+    }
+
+    /**
+     * GET /api/accounts/keys: the SDK reads a 404 as "no key pair yet".
+     */
+    public function getKeys(Headers $headers): Response
+    {
+        $user = $headers->user;
+        if ($user->private_key === null || $user->public_key === null) {
+            throw ApiError::message('User has no key pair', 404);
+        }
+
+        return Json::response(Json::sorted([
+            'key' => $user->akey === '' ? null : $user->akey,
+            'publicKey' => $user->public_key,
+            'privateKey' => $user->private_key,
+            'accountKeys' => $user->accountKeysJson(),
+            'object' => 'keys',
+        ]));
+    }
+
+    /**
+     * POST /api/accounts/keys: the key pair can only be set once.
+     */
+    public function postKeys(Headers $headers, Request $request): Response
+    {
+        $body = Body::json($request);
+        $encryptedPrivateKey = $body->string('encryptedPrivateKey');
+        $publicKey = $body->string('publicKey');
+
+        $user = $headers->user;
+        if ($user->private_key !== null || $user->public_key !== null) {
+            throw ApiError::message('User has existing keypair');
+        }
+
+        $user->private_key = $encryptedPrivateKey;
+        $user->public_key = $publicKey;
+        $user->save();
+
+        return Json::response(Json::sorted([
+            'privateKey' => $user->private_key,
+            'publicKey' => $user->public_key,
+            'object' => 'keys',
+        ]));
+    }
+
+    /**
+     * GET /api/accounts/revision-date: milliseconds since the epoch.
+     */
+    public function revisionDate(Headers $headers): Response
+    {
+        return Json::response((int) $headers->user->updated_at->format('Uv'));
     }
 
     /**

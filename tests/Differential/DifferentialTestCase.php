@@ -140,11 +140,13 @@ abstract class DifferentialTestCase extends TestCase
         return self::normalizeString($exchange->body);
     }
 
-    private static function normalize(mixed $value): mixed
+    private static function normalize(mixed $value, int|string|null $key = null): mixed
     {
         return match (true) {
-            is_array($value) => array_map(self::normalize(...), $value),
+            is_array($value) => array_combine(array_keys($value), array_map(self::normalize(...), $value, array_keys($value))),
             is_string($value) => self::normalizeString($value),
+            // Computed after the token was made, so a second boundary may lie in between.
+            $key === 'expires_in' && is_int($value) => '<seconds>',
             default => $value,
         };
     }

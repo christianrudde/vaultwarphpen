@@ -242,6 +242,48 @@ final class User extends Model
         ]);
     }
 
+    /**
+     * User::to_json: the profile as the API shows it.
+     *
+     * @return array<string, mixed>
+     *
+     * @throws ApiError While organizations are not ported, for members of one
+     */
+    public function toApi(): array
+    {
+        $memberships = Membership::query()->where('user_uuid', $this->uuid)
+            ->whereIn('status', [Membership::STATUS_ACCEPTED, Membership::STATUS_CONFIRMED])->exists();
+        if ($memberships) {
+            throw ApiError::message('Organizations are not implemented yet');
+        }
+
+        /** @var array<string, mixed> */
+        return Json::sorted([
+            '_status' => $this->status(),
+            'accountKeys' => $this->accountKeysJson(),
+            'id' => $this->uuid,
+            'name' => $this->name,
+            'email' => $this->email,
+            'emailVerified' => $this->verified(),
+            'premium' => true,
+            'premiumFromOrganization' => false,
+            'culture' => 'en-US',
+            'twoFactorEnabled' => TwoFactor::findByUser($this->uuid)->isNotEmpty(),
+            'key' => $this->akey,
+            'privateKey' => $this->private_key,
+            'securityStamp' => $this->security_stamp,
+            'organizations' => [],
+            'organizationsNew' => [],
+            'providers' => [],
+            'providerOrganizations' => [],
+            'forcePasswordReset' => false,
+            'avatarColor' => $this->avatar_color,
+            'usesKeyConnector' => false,
+            'creationDate' => Dates::format($this->created_at),
+            'object' => 'profile',
+        ]);
+    }
+
     public function status(): int
     {
         return $this->password_hash === '' ? self::STATUS_INVITED : self::STATUS_ENABLED;

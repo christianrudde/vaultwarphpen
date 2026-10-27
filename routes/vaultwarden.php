@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\AccountsController;
 use App\Http\Controllers\CoreController;
 use App\Http\Controllers\IdentityController;
 use App\Http\Controllers\WebController;
+use App\Http\Middleware\UuidParameters;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -25,6 +27,17 @@ Route::prefix('/api')->group(function (): void {
     Route::get('/alive', [CoreController::class, 'alive'])->name('core::alive');
     Route::get('/now', [CoreController::class, 'now'])->name('core::now');
     Route::get('/version', [CoreController::class, 'version'])->name('core::version');
+
+    // core::accounts
+    Route::get('/accounts/profile', [AccountsController::class, 'profile'])->name('core::accounts::profile');
+    Route::put('/accounts/profile', [AccountsController::class, 'putProfile'])->name('core::accounts::put_profile');
+    Route::post('/accounts/profile', [AccountsController::class, 'postProfile'])->name('core::accounts::post_profile');
+    Route::put('/accounts/avatar', [AccountsController::class, 'putAvatar'])->name('core::accounts::put_avatar');
+    Route::get('/users/{userId}/public-key', [AccountsController::class, 'getPublicKeys'])->name('core::accounts::get_public_keys')
+        ->middleware(UuidParameters::class.':userId');
+    Route::get('/accounts/keys', [AccountsController::class, 'getKeys'])->name('core::accounts::get_keys');
+    Route::post('/accounts/keys', [AccountsController::class, 'postKeys'])->name('core::accounts::post_keys');
+    Route::get('/accounts/revision-date', [AccountsController::class, 'revisionDate'])->name('core::accounts::revision_date');
 });
 
 // api::identity_routes()

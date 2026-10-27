@@ -49,10 +49,12 @@ class LoginTest extends TestCase
         ], array_keys((array) $response->json()));
         $response->assertJsonPath('token_type', 'Bearer')
             ->assertJsonPath('scope', 'api offline_access')
-            ->assertJsonPath('expires_in', 7200)
             ->assertJsonPath('Key', 'user-key')
             ->assertJsonPath('MasterPasswordPolicy', ['Object' => 'masterPasswordPolicy'])
             ->assertJsonPath('UserDecryptionOptions.MasterPasswordUnlock.Salt', 'judy@example.com');
+
+        // Computed after the token, so a second may have passed.
+        $this->assertContains($response->json('expires_in'), [7199, 7200]);
 
         $jwt = $this->app->make(Jwt::class);
         $access = $jwt->decode($this->string($response->json('access_token')), JwtIssuer::Login);

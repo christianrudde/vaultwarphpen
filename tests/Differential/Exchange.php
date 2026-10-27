@@ -41,6 +41,14 @@ final readonly class Exchange
         return is_string($value) ? $value : '';
     }
 
+    /**
+     * The same answer with another body, to blank out values that differ by nature.
+     */
+    public function withBody(string $body): self
+    {
+        return new self($this->status, $this->headers, $body);
+    }
+
     public function isJson(): bool
     {
         return str_starts_with((string) $this->header('Content-Type'), 'application/json');
