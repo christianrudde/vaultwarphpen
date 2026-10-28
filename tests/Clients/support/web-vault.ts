@@ -8,10 +8,19 @@ export interface Account {
 }
 
 /**
- * Gets new accounts past what the web vault offers them once per browser: the
- * browser extension and a tour of the vault, whenever they get in the way.
+ * Clears what the web vault puts in the way, whenever it does: what it offers
+ * new accounts once per browser (the browser extension and a tour of the
+ * vault), and toasts, which cover the buttons at the top for a few seconds.
+ * Toasts stay visible, but clicks go through them.
  */
-export async function skipOnboarding(page: Page): Promise<void> {
+export async function clearTheWay(page: Page): Promise<void> {
+    await page.addInitScript(() => {
+        document.addEventListener('DOMContentLoaded', () => {
+            const style = document.createElement('style');
+            style.textContent = 'bit-toast-container, bit-toast-container * { pointer-events: none !important; }';
+            document.head.append(style);
+        });
+    });
     await page.addLocatorHandler(page.getByRole('button', { name: 'Add it later' }), async () => {
         await page.getByRole('button', { name: 'Add it later' }).click();
         await page.getByRole('link', { name: 'Skip to web app' }).click();

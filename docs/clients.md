@@ -27,18 +27,22 @@ One account goes through all of it, in this order:
 3. Creates a text Send and opens it in another browser, without an account.
 4. Logs in on another browser with a login request (login with a device), which the first one approves
    from its device list.
-5. Turns on two-step login with an authenticator app, taking the secret from the page and computing
+5. Switches the key derivation from PBKDF2 to Argon2id, then changes the master password and rotates the
+   account key, which encrypts the items, folders, attachments and Sends again; logs in after each and
+   checks that everything still decrypts.
+6. Turns on two-step login with an authenticator app, taking the secret from the page and computing
    the codes in the test (RFC 6238), logs out and logs in again with a code.
-6. **CLI:** `bw config server`, `bw login` with the master password and a code, `bw sync`; lists the
+7. **CLI:** `bw config server`, `bw login` with the master password and a code, `bw sync`; lists the
    folders, items, trash, organizations and collections and compares the decrypted items with what the
-   web vault entered (password history included); downloads the attachment.
-7. Creates an item with `bw create item`. The open web vault shows it at once, through the
+   web vault entered (password history included); downloads the attachment. The CLI derives its keys
+   with Argon2id here.
+8. Creates an item with `bw create item`. The open web vault shows it at once, through the
    notifications hub, and again after a reload and unlock.
-8. Lists the Send of the web vault and opens it with `bw receive`; sends a file and a text behind a
+9. Lists the Send of the web vault and opens it with `bw receive`; sends a file and a text behind a
    password with `bw send`, which another browser opens and downloads.
 
 Not covered yet: SSO, other two-step methods than the authenticator, organization members and groups,
-emergency access, import and export, key rotation and changing the master password or the KDF.
+emergency access, and import and export.
 
 ## How it runs
 

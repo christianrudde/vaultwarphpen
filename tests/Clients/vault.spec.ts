@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { Authenticator } from './support/authenticator';
 import { Cli } from './support/cli';
 import {
-    choose, createAccount, expectToast, expectVault, logIn, logOut, newItem, openItem, skipOnboarding, unlock, type Account,
+    choose, clearTheWay, createAccount, expectToast, expectVault, logIn, logOut, newItem, openItem, unlock, type Account,
 } from './support/web-vault';
 
 // One account goes through the web vault and then through the CLI: each test builds on the ones
@@ -70,7 +70,7 @@ test.beforeAll(async ({ browser }) => {
     context = await newContext(browser);
     await context.tracing.start({ screenshots: true, snapshots: true });
     page = await context.newPage();
-    await skipOnboarding(page);
+    await clearTheWay(page);
 });
 
 test.afterAll(async () => {
@@ -218,7 +218,7 @@ test('creates a Send that others can open', async ({ browser }) => {
 test('logs in on another browser with a request this one approves', async ({ browser }) => {
     const other = await newContext(browser);
     const device = await other.newPage();
-    await skipOnboarding(device);
+    await clearTheWay(device);
     // Only devices that have logged in before may ask.
     await logIn(device, account);
     await logOut(device, account);
@@ -238,6 +238,50 @@ test('logs in on another browser with a request this one approves', async ({ bro
     await expect(device.getByRole('main').getByRole('button', { name: 'Example login', exact: true })).toBeVisible();
     await other.close();
 
+    await page.goto('/#/vault');
+    await expectVault(page);
+});
+
+test('switches the key derivation to Argon2id', async () => {
+    await page.goto('/#/settings/security/security-keys');
+    await choose(page, page.getByRole('combobox', { name: /Algorithm/ }), 'Argon2id');
+    await page.getByRole('spinbutton', { name: /KDF memory/ }).fill('32');
+    await page.getByRole('spinbutton', { name: /KDF iterations/ }).fill('3');
+    await page.getByRole('spinbutton', { name: /KDF parallelism/ }).fill('2');
+    await page.getByRole('button', { name: 'Update encryption settings' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Update your encryption settings' });
+    await dialog.getByRole('textbox', { name: /Master password/ }).fill(account.password);
+    await dialog.getByRole('button', { name: 'Update settings' }).click();
+
+    // Every session ends.
+    await expect(page.getByRole('heading', { name: 'Log in' })).toBeVisible();
+    await logIn(page, account);
+    await expect(page.getByRole('main').getByRole('button', { name: 'Example login', exact: true })).toBeVisible();
+});
+
+test('changes the master password and rotates the account key', async () => {
+    const password = 'Changed clients test master password 2b9d';
+    await page.goto('/#/settings/security/password');
+    await page.getByRole('textbox', { name: /Current master password/ }).fill(account.password);
+    await page.getByRole('textbox', { name: /^New master password/ }).fill(password);
+    await page.getByRole('textbox', { name: /Confirm new master password/ }).fill(password);
+    await page.getByRole('checkbox', { name: 'Check known data breaches for this password' }).uncheck();
+    // Everything encrypted with the account key is encrypted again: items, folders, attachments, Sends.
+    await page.getByRole('checkbox', { name: /Also rotate my account's encryption key/ }).check();
+    await page.getByRole('dialog', { name: 'Rotate encryption key' }).getByRole('button', { name: 'Yes' }).click();
+    await page.getByRole('button', { name: 'Change master password' }).click();
+    await expect(page.getByRole('heading', { name: 'Log in' })).toBeVisible();
+    account.password = password;
+
+    await logIn(page, account);
+    const dialog = await openItem(page, 'Example login');
+    const download = page.waitForEvent('download');
+    await dialog.getByRole('button', { name: `Download ${attachment.name}` }).click();
+    expect(readFileSync(await (await download).path(), 'utf8')).toBe(attachment.contents);
+    await dialog.getByRole('button', { name: 'Close' }).first().click();
+    await expect(page.getByRole('row', { name: /Shared login/ }).getByRole('button', { name: /Owner, Example Org/ })).toBeVisible();
+    await page.getByRole('link', { name: 'Send', exact: true }).click();
+    await expect(page.getByRole('main').getByRole('button', { name: 'Example send', exact: true })).toBeVisible();
     await page.goto('/#/vault');
     await expectVault(page);
 });
