@@ -68,8 +68,8 @@ final class DatabaseUrl
                 'driver' => 'sqlite',
                 'database' => self::sqlitePath($url, $config),
                 'prefix' => '',
-                // Vaultwarden never enables foreign key enforcement on SQLite.
-                'foreign_key_constraints' => false,
+                // Diesel enforces foreign keys on SQLite; only the migrations run without.
+                'foreign_key_constraints' => true,
                 // The default DATABASE_CONN_INIT; a custom one replaces it.
                 'busy_timeout' => $customInit ? null : 5000,
                 'synchronous' => $customInit ? null : 'normal',

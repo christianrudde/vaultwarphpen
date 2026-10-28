@@ -30,6 +30,7 @@ use App\Models\CollectionCipher;
 use App\Models\CollectionGroup;
 use App\Models\CollectionUser;
 use App\Models\Device;
+use App\Models\Event;
 use App\Models\Group;
 use App\Models\GroupUser;
 use App\Models\Invitation;
@@ -40,8 +41,10 @@ use App\Models\OrgCollection;
 use App\Models\OrgPolicy;
 use App\Models\TwoFactor;
 use App\Models\User;
+use App\Support\CheckedInt;
 use App\Support\Dates;
 use App\Support\JsonValue;
+use App\Support\UpdateType;
 use App\Support\Uuid;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -137,6 +140,7 @@ final readonly class OrganizationsController
             throw ApiError::message("The last owner can't leave");
         }
 
+        self::logEvent(Event::ORGANIZATION_USER_LEFT, $membership->uuid, $orgId, $headers);
         $membership->deleteMembership();
 
         return new EmptyResponse;
@@ -167,6 +171,7 @@ final readonly class OrganizationsController
         $org->name = $name;
         $org->billing_email = mb_strtolower($billingEmail);
         $org->save();
+        self::logEvent(Event::ORGANIZATION_UPDATED, $orgId, $orgId, $headers);
 
         return Json::response($org->toApi());
     }
@@ -291,6 +296,7 @@ final readonly class OrganizationsController
 
         $collection = OrgCollection::new($orgId, $name, $externalId);
         $collection->save();
+        self::logEvent(Event::COLLECTION_CREATED, $collection->uuid, $orgId, $headers);
         self::saveCollectionAccess($orgId, $collection->uuid, $groups, $users);
 
         return Json::response($collection->toApiDetails($headers->membership->user_uuid));
@@ -318,6 +324,7 @@ final readonly class OrganizationsController
             }
             // Bumps the revision of everyone with access.
             $collection->save();
+            self::logEvent(Event::COLLECTION_UPDATED, $collection->uuid, $orgId, $headers);
 
             self::replaceCollectionAccess($orgId, $collectionId, $groups, $users);
         }
@@ -341,6 +348,7 @@ final readonly class OrganizationsController
         $collection->name = $name;
         $collection->external_id = $externalId === null || trim($externalId) === '' ? null : $externalId;
         $collection->save();
+        self::logEvent(Event::COLLECTION_UPDATED, $collection->uuid, $orgId, $headers);
 
         self::replaceCollectionAccess($orgId, $colId, $groups, $users);
 
@@ -353,7 +361,7 @@ final readonly class OrganizationsController
     public function deleteOrganizationCollection(ManagerHeaders $headers, Request $request, string $orgId, string $colId): EmptyResponse
     {
         $orgId = $this->orgId($request, $orgId, $headers);
-        $this->deleteCollection($orgId, Uuid::parameter($request, $colId));
+        $this->deleteCollection($orgId, Uuid::parameter($request, $colId), $headers);
 
         return new EmptyResponse;
     }
@@ -378,7 +386,7 @@ final readonly class OrganizationsController
         }
 
         foreach ($collectionIds as $collectionId) {
-            $this->deleteCollection($orgId, $collectionId);
+            $this->deleteCollection($orgId, $collectionId, $headers);
         }
 
         return new EmptyResponse;
@@ -549,6 +557,8 @@ final readonly class OrganizationsController
                 throw ApiError::message('Sending mail is not implemented yet');
             }
 
+            self::logEvent(Event::ORGANIZATION_USER_INVITED, $member->uuid, $orgId, $headers);
+
             if (! $accessAll) {
                 foreach ($collections as $collection) {
                     OrgCollection::findByUuidAndOrg($collection['id'], $orgId) ?? throw ApiError::message('Collection not found in Organization');
@@ -675,6 +685,7 @@ final readonly class OrganizationsController
             self::addToGroup($orgId, $group, $member->uuid);
         }
 
+        self::logEvent(Event::ORGANIZATION_USER_UPDATED, $member->uuid, $orgId, $headers);
         $member->save();
 
         return new EmptyResponse;
@@ -901,9 +912,16 @@ final readonly class OrganizationsController
             TwoFactor::deleteAllByUser($user->uuid);
             Device::clearTwofactorRememberByUser($user->uuid);
             // Email two-factor login is not ported, so the fallback cannot be activated.
-            OrgPolicy::enforceTwoFactorForUser($user);
+            OrgPolicy::enforceTwoFactorForUser($user, $headers->user->uuid, $headers->device->atype, $headers->ip);
         }
         $user->save();
+
+        if ($resetMasterPassword) {
+            self::logEvent(Event::ORGANIZATION_USER_ADMIN_RESET_PASSWORD, $memberId, $orgId, $headers);
+        }
+        if ($resetTwoFactor) {
+            self::logEvent(Event::ORGANIZATION_USER_ADMIN_RESET_TWO_FACTOR, $memberId, $orgId, $headers);
+        }
 
         return new EmptyResponse;
     }
@@ -964,6 +982,8 @@ final readonly class OrganizationsController
 
         $membership->reset_password_key = $resetPasswordKey;
         $membership->save();
+        self::logEvent($resetPasswordKey !== null ? Event::ORGANIZATION_USER_RESET_PASSWORD_ENROLL : Event::ORGANIZATION_USER_RESET_PASSWORD_WITHDRAW,
+            $membership->uuid, $orgId, $headers);
 
         return new EmptyResponse;
     }
@@ -1029,7 +1049,7 @@ final readonly class OrganizationsController
             $data->organizationId = $orgId;
             $cipher = Cipher::new($data->type, $data->name);
             try {
-                $ciphersController->updateCipherFromData($cipher, $data, $userHeaders, false, $collectionIds);
+                $ciphersController->updateCipherFromData($cipher, $data, $userHeaders, UpdateType::None, $collectionIds);
             } catch (ApiError) {
                 // Upstream ignores the cipher's errors, but still relates its id below.
             }
@@ -1113,8 +1133,9 @@ final readonly class OrganizationsController
         self::validateGroupRequest($orgId, $data);
 
         $group = Group::new($orgId, $data['name'], $data['accessAll'], $data['externalId']);
+        self::logEvent(Event::GROUP_CREATED, $group->uuid, $orgId, $headers);
 
-        return Json::response(self::addUpdateGroup($group, $data, $orgId));
+        return Json::response(self::addUpdateGroup($group, $data, $orgId, $headers));
     }
 
     /**
@@ -1135,8 +1156,9 @@ final readonly class OrganizationsController
 
         CollectionGroup::deleteAllByGroup($groupId, $orgId);
         GroupUser::deleteAllByGroup($groupId, $orgId);
+        self::logEvent(Event::GROUP_UPDATED, $group->uuid, $orgId, $headers);
 
-        return Json::response(self::addUpdateGroup($group, $data, $orgId));
+        return Json::response(self::addUpdateGroup($group, $data, $orgId, $headers));
     }
 
     /**
@@ -1226,13 +1248,7 @@ final readonly class OrganizationsController
         // Without the token the route does not match; the next one cannot parse "token" as a type.
         $token = Query::first($request, 'token') ?? throw new HttpStatus(404, 'No token.');
 
-        $claims = $this->jwt->decode($token, JwtIssuer::Invite);
-        // InviteJwtClaims: deserializing fails on missing fields.
-        foreach (['sub', 'email', 'org_id', 'member_id'] as $claim) {
-            if (! is_string($claims[$claim] ?? null)) {
-                throw ApiError::message('Error decoding JWT: Error(Json)');
-            }
-        }
+        $claims = $this->jwt->decode($token, JwtIssuer::Invite, fields: Jwt::INVITE_CLAIMS);
         if ($claims['org_id'] !== $orgId) {
             throw ApiError::message("Token doesn't match request organization");
         }
@@ -1315,7 +1331,7 @@ final readonly class OrganizationsController
         }
 
         if ($type === OrgPolicy::TYPE_TWO_FACTOR_AUTHENTICATION && $enabled) {
-            OrgPolicy::enforceTwoFactorForOrg($orgId);
+            OrgPolicy::enforceTwoFactorForOrg($orgId, $headers->user->uuid, $headers->device->atype, $headers->ip);
         }
 
         if ($type === OrgPolicy::TYPE_SINGLE_ORG && $enabled) {
@@ -1328,6 +1344,7 @@ final readonly class OrganizationsController
                         $user = User::findByUuid($member->user_uuid) ?? throw new \LogicException("User {$member->user_uuid} is missing");
                         Mail::send('send_single_org_removed_from_org', $user->email, ['org_name' => $org->name]);
                     }
+                    self::logEvent(Event::ORGANIZATION_USER_REMOVED, $member->uuid, $orgId, $headers);
                     $member->revoke();
                     $member->save();
                 }
@@ -1339,6 +1356,7 @@ final readonly class OrganizationsController
         // serde_json::to_string of an Option<Value>: keys sorted, none as null.
         $policy->data = Json::encode(Json::sorted($data));
         $policy->save();
+        self::logEvent(Event::POLICY_UPDATED, $policy->uuid, $orgId, $headers);
 
         return Json::response($policy->toApi());
     }
@@ -1478,13 +1496,8 @@ final readonly class OrganizationsController
      */
     private static function i32Parameter(Request $request, string $value): int
     {
-        $digits = preg_match('/^([+-]?)(\d+)$/D', $value, $matches) ? ltrim($matches[2], '0') : null;
-        $number = $digits !== null && strlen($digits) <= 10 ? (int) ($matches[1] === '-' ? "-{$digits}" : $digits) : null;
-        if ($number === null || $number < -2_147_483_648 || $number > 2_147_483_647) {
-            throw new HttpStatus(in_array($request->getMethod(), ['GET', 'HEAD'], true) ? 404 : 422, 'Path parameter is not an i32.');
-        }
-
-        return $number;
+        return CheckedInt::parseI32($value)
+            ?? throw new HttpStatus(in_array($request->getMethod(), ['GET', 'HEAD'], true) ? 404 : 422, 'Path parameter is not an i32.');
     }
 
     /**
@@ -1508,7 +1521,9 @@ final readonly class OrganizationsController
     private function deleteGroupImpl(string $orgId, string $groupId, AdminHeaders $headers): void
     {
         $this->checkGroups($orgId, $headers);
-        self::findGroup($groupId, $orgId)->deleteGroup($orgId);
+        $group = self::findGroup($groupId, $orgId);
+        self::logEvent(Event::GROUP_DELETED, $group->uuid, $orgId, $headers);
+        $group->deleteGroup($orgId);
     }
 
     /**
@@ -1570,7 +1585,7 @@ final readonly class OrganizationsController
      *
      * @throws ApiError
      */
-    private static function addUpdateGroup(Group $group, array $data, string $orgId): array
+    private static function addUpdateGroup(Group $group, array $data, string $orgId, AdminHeaders $headers): array
     {
         $group->save();
 
@@ -1579,9 +1594,18 @@ final readonly class OrganizationsController
         }
         foreach ($data['users'] as $memberId) {
             (new GroupUser($group->uuid, $memberId))->save();
+            self::logEvent(Event::ORGANIZATION_USER_UPDATED_GROUPS, $memberId, $orgId, $headers);
         }
 
         return $group->toApi();
+    }
+
+    /**
+     * api::core::events::log_event by the member of the request.
+     */
+    private static function logEvent(int $type, string $sourceUuid, string $orgId, OrgHeaders $headers): void
+    {
+        Event::log($type, $sourceUuid, $orgId, $headers->user->uuid, $headers->device->atype, $headers->ip);
     }
 
     /**
@@ -1602,10 +1626,11 @@ final readonly class OrganizationsController
     /**
      * @throws ApiError
      */
-    private function deleteCollection(string $orgId, string $collectionId): void
+    private function deleteCollection(string $orgId, string $collectionId, OrgHeaders $headers): void
     {
         $collection = OrgCollection::findByUuidAndOrg($collectionId, $orgId)
             ?? throw ApiError::message('Collection not found', logMessage: 'Collection does not exist or does not belong to this organization');
+        self::logEvent(Event::COLLECTION_DELETED, $collection->uuid, $orgId, $headers);
         $collection->deleteCollection();
     }
 
@@ -1663,6 +1688,7 @@ final readonly class OrganizationsController
         $member->status = Membership::STATUS_CONFIRMED;
         $member->akey = $key;
         OrgPolicy::checkUserAllowed($member, 'confirm');
+        self::logEvent(Event::ORGANIZATION_USER_CONFIRMED, $member->uuid, $orgId, $headers);
 
         if ($this->config->mailEnabled()) {
             throw ApiError::message('Sending mail is not implemented yet');
@@ -1690,6 +1716,7 @@ final readonly class OrganizationsController
             throw ApiError::message("Can't delete the last owner");
         }
 
+        self::logEvent(Event::ORGANIZATION_USER_REMOVED, $member->uuid, $orgId, $headers);
         $user = User::findByUuid($member->user_uuid);
         // Without mail the invitation goes with the last pending membership.
         if ($user !== null && ! $this->config->mailEnabled()
@@ -1726,6 +1753,7 @@ final readonly class OrganizationsController
 
         $member->revoke();
         $member->save();
+        self::logEvent(Event::ORGANIZATION_USER_REVOKED, $member->uuid, $orgId, $headers);
     }
 
     /**
@@ -1753,6 +1781,7 @@ final readonly class OrganizationsController
         // With the restored status.
         OrgPolicy::checkUserAllowed($member, 'restore');
         $member->save();
+        self::logEvent(Event::ORGANIZATION_USER_RESTORED, $member->uuid, $orgId, $headers);
     }
 
     /**

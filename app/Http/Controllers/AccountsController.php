@@ -128,7 +128,7 @@ final readonly class AccountsController
             $emailVerified = true;
         } elseif ($tokens === [false, false, false, true, true]) {
             // Organization invitation
-            $claims = $this->jwt->decode((string) $data->orgInviteToken, JwtIssuer::Invite);
+            $claims = $this->jwt->decode((string) $data->orgInviteToken, JwtIssuer::Invite, fields: Jwt::INVITE_CLAIMS);
             if (($claims['email'] ?? null) !== $data->email) {
                 throw ApiError::message('Claim email does not match email');
             }
@@ -156,7 +156,7 @@ final readonly class AccountsController
             }
 
             if ($data->orgInviteToken !== null) {
-                $claims = $this->jwt->decode($data->orgInviteToken, JwtIssuer::Invite);
+                $claims = $this->jwt->decode($data->orgInviteToken, JwtIssuer::Invite, fields: Jwt::INVITE_CLAIMS);
                 if (($claims['email'] ?? null) !== $email) {
                     throw ApiError::message('Registration email does not match invite email');
                 }

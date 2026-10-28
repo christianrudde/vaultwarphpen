@@ -94,8 +94,8 @@ abstract class DifferentialTestCase extends TestCase
     }
 
     /**
-     * assertSameFlows on another pair of servers, such as one with groups
-     * enabled (VW_GROUPS_REFERENCE_URL and VW_GROUPS_SUBJECT_URL).
+     * assertSameFlows on another pair of servers, such as the one with groups
+     * and events enabled (VW_FEATURES_REFERENCE_URL and VW_FEATURES_SUBJECT_URL).
      *
      * @param  callable(Server): array<string, Exchange>  $flow  The exchanges by step name
      * @return array{array<string, Exchange>, array<string, Exchange>} Reference and subject

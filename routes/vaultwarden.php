@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccountsController;
 use App\Http\Controllers\CiphersController;
 use App\Http\Controllers\CoreController;
+use App\Http\Controllers\EventsController;
 use App\Http\Controllers\FoldersController;
 use App\Http\Controllers\IdentityController;
 use App\Http\Controllers\OrganizationsController;
@@ -197,6 +198,11 @@ Route::prefix('/api')->group(function (): void {
     Route::post('/folders/{folderId}/delete', [FoldersController::class, 'deleteFolderPost'])->name('core::folders::delete_folder_post');
     Route::delete('/folders/{folderId}', [FoldersController::class, 'deleteFolder'])->name('core::folders::delete_folder');
 
+    // core::events
+    Route::get('/organizations/{orgId}/events', [EventsController::class, 'getOrgEvents'])->name('core::events::get_org_events');
+    Route::get('/ciphers/{cipherId}/events', [EventsController::class, 'getCipherEvents'])->name('core::events::get_cipher_events');
+    Route::get('/organizations/{orgId}/users/{memberId}/events', [EventsController::class, 'getUserEvents'])->name('core::events::get_user_events');
+
     // core::public
     Route::post('/public/organization/import', [PublicController::class, 'ldapImport'])->name('core::public::ldap_import');
 });
@@ -209,4 +215,9 @@ Route::prefix('/identity')->group(function (): void {
     Route::post('/accounts/register/send-verification-email', [IdentityController::class, 'registerVerificationEmail'])
         ->name('identity::register_verification_email');
     Route::post('/accounts/register/finish', [IdentityController::class, 'registerFinish'])->name('identity::register_finish');
+});
+
+// api::core_events_routes()
+Route::prefix('/events')->group(function (): void {
+    Route::post('/collect', [EventsController::class, 'postEventsCollect'])->name('core::events::post_events_collect');
 });

@@ -23,6 +23,7 @@ use App\Models\Cipher;
 use App\Models\CollectionCipher;
 use App\Models\CollectionGroup;
 use App\Models\CollectionUser;
+use App\Models\Event;
 use App\Models\Favorite;
 use App\Models\Folder;
 use App\Models\FolderCipher;
@@ -33,6 +34,7 @@ use App\Models\OrgPolicy;
 use App\Models\Send;
 use App\Support\CheckedInt;
 use App\Support\Dates;
+use App\Support\UpdateType;
 use App\Support\Uuid;
 use DateTimeImmutable;
 use Illuminate\Database\QueryException;
@@ -154,7 +156,7 @@ final readonly class CiphersController
         $data->lastKnownRevisionDate = null;
 
         $cipher = Cipher::new($data->type, $data->name);
-        $this->updateCipherFromData($cipher, $data, $headers, checkRevision: true);
+        $this->updateCipherFromData($cipher, $data, $headers, UpdateType::SyncCipherCreate);
 
         return Json::response($cipher->toApi($headers->host, $headers->user->uuid));
     }
@@ -233,7 +235,7 @@ final readonly class CiphersController
         foreach ($ciphers as $index => $data) {
             $data->folderId = isset($folderOfCipher[$index]) ? ($folderIds[$folderOfCipher[$index]] ?? null) : null;
             $cipher = Cipher::new($data->type, $data->name);
-            $this->updateCipherFromData($cipher, $data, $headers, checkRevision: false);
+            $this->updateCipherFromData($cipher, $data, $headers, UpdateType::None);
         }
 
         $headers->user->updateRevision();
@@ -278,7 +280,7 @@ final readonly class CiphersController
         $responses = [];
         foreach ($ciphers as $data) {
             $id = $data->id ?? throw ApiError::message('Request missing ids field');
-            $response = $this->shareCipherByUuid($id, $data, $collectionIds, $headers, checkRevision: false);
+            $response = $this->shareCipherByUuid($id, $data, $collectionIds, $headers, UpdateType::None);
             // Like upstream's VisibleToClient: not if sharing took the user's access away.
             if (Cipher::findByUuid($id)?->isAccessibleToUser($headers->user->uuid) === true) {
                 $responses[] = self::cipherMini($response);
@@ -334,7 +336,7 @@ final readonly class CiphersController
             throw ApiError::message('Cipher is not write accessible');
         }
 
-        $this->updateCipherFromData($cipher, $data, $headers, checkRevision: true);
+        $this->updateCipherFromData($cipher, $data, $headers, UpdateType::SyncCipherUpdate);
 
         return Json::response($cipher->toApi($headers->host, $headers->user->uuid));
     }
@@ -612,6 +614,7 @@ final readonly class CiphersController
             foreach (Cipher::findByOrg($organizationId) as $cipher) {
                 $cipher->deleteCipher();
             }
+            Event::log(Event::ORGANIZATION_PURGED_VAULT, $organizationId, $organizationId, $owner->user->uuid, $owner->device->atype, $owner->ip);
 
             return new EmptyResponse;
         }
@@ -721,17 +724,17 @@ final readonly class CiphersController
     /**
      * ciphers::update_cipher_from_data
      *
-     * @param  bool  $checkRevision  Whether this is an update from a client, not an import
+     * @param  UpdateType  $updateType  None for imports: no revision check, no event
      * @param  list<string>  $sharedToCollections  The collections a share put the cipher in
      *
      * @throws ApiError
      */
-    public function updateCipherFromData(Cipher $cipher, CipherData $data, Headers $headers, bool $checkRevision, array $sharedToCollections = []): void
+    public function updateCipherFromData(Cipher $cipher, CipherData $data, Headers $headers, UpdateType $updateType, array $sharedToCollections = []): void
     {
         $this->enforcePersonalOwnershipPolicy($data, $headers);
 
         // A client must not overwrite a newer version with its stale copy.
-        if ($checkRevision && $data->lastKnownRevisionDate !== null) {
+        if ($updateType !== UpdateType::None && $data->lastKnownRevisionDate !== null) {
             $known = Dates::parseNaive($data->lastKnownRevisionDate);
             if ($known === null) {
                 logger()->warning("Error parsing LastKnownRevisionDate '{$data->lastKnownRevisionDate}'");
@@ -828,6 +831,24 @@ final readonly class CiphersController
                 Archive::store($headers->user->uuid, $cipher->uuid, $archivedAt);
             }
         }
+
+        // Only ciphers of organizations have events.
+        if ($updateType !== UpdateType::None && $cipher->organization_uuid !== null) {
+            $type = match (true) {
+                $updateType === UpdateType::SyncCipherCreate && $transfer => Event::CIPHER_CREATED,
+                $updateType === UpdateType::SyncCipherUpdate && $transfer => Event::CIPHER_SHARED,
+                default => Event::CIPHER_UPDATED,
+            };
+            self::logEvent($type, $cipher->uuid, $cipher->organization_uuid, $headers);
+        }
+    }
+
+    /**
+     * api::core::events::log_event by the user of the request.
+     */
+    public static function logEvent(int $type, string $sourceUuid, string $orgUuid, Headers $headers): void
+    {
+        Event::log($type, $sourceUuid, $orgUuid, $headers->user->uuid, $headers->device->atype, $headers->ip);
     }
 
     /**
@@ -860,6 +881,7 @@ final readonly class CiphersController
             }
         }
         $cipher->updateUsersRevision();
+        self::logEvent(Event::CIPHER_UPDATED_COLLECTIONS, $cipher->uuid, $orgUuid, $headers);
 
         return $cipher;
     }
@@ -888,7 +910,7 @@ final readonly class CiphersController
      *
      * @throws ApiError
      */
-    private function shareCipherByUuid(string $cipherId, CipherData $data, array $collectionIds, Headers $headers, bool $checkRevision = true): array
+    private function shareCipherByUuid(string $cipherId, CipherData $data, array $collectionIds, Headers $headers, ?UpdateType $override = null): array
     {
         $cipher = Cipher::findByUuid($cipherId) ?? throw ApiError::message("Cipher doesn't exist");
         if (! $cipher->isWriteAccessibleToUser($headers->user->uuid)) {
@@ -912,7 +934,9 @@ final readonly class CiphersController
             }
         }
 
-        $this->updateCipherFromData($cipher, $data, $headers, $checkRevision, $shared);
+        // Without a known revision date it is a new cipher.
+        $updateType = $override ?? ($data->lastKnownRevisionDate !== null ? UpdateType::SyncCipherUpdate : UpdateType::SyncCipherCreate);
+        $this->updateCipherFromData($cipher, $data, $headers, $updateType, $shared);
 
         return $cipher->toApi($headers->host, $headers->user->uuid);
     }
@@ -1009,6 +1033,9 @@ final readonly class CiphersController
 
         $data->store(Attachment::path($cipherId, $fileId));
         $cipher->updateUsersRevision();
+        if ($cipher->organization_uuid !== null) {
+            self::logEvent(Event::CIPHER_ATTACHMENT_CREATED, $cipher->uuid, $cipher->organization_uuid, $headers);
+        }
 
         return $cipher;
     }
@@ -1059,6 +1086,9 @@ final readonly class CiphersController
 
         $attachment->deleteAttachment();
         $cipher->updateUsersRevision();
+        if ($cipher->organization_uuid !== null) {
+            self::logEvent(Event::CIPHER_ATTACHMENT_DELETED, $cipher->uuid, $cipher->organization_uuid, $headers);
+        }
 
         return Json::sorted(['cipher' => $cipher->toApi($headers->host, $headers->user->uuid)]);
     }
@@ -1084,6 +1114,9 @@ final readonly class CiphersController
         if (! $multi) {
             $cipher->updateUsersRevision();
         }
+        if ($cipher->organization_uuid !== null) {
+            self::logEvent($soft ? Event::CIPHER_SOFT_DELETED : Event::CIPHER_DELETED, $cipher->uuid, $cipher->organization_uuid, $headers);
+        }
     }
 
     /**
@@ -1104,6 +1137,9 @@ final readonly class CiphersController
         $cipher->save();
         if (! $multi) {
             $cipher->updateUsersRevision();
+        }
+        if ($cipher->organization_uuid !== null) {
+            self::logEvent(Event::CIPHER_RESTORED, $cipher->uuid, $cipher->organization_uuid, $headers);
         }
 
         return $cipher->toApi($headers->host, $headers->user->uuid);

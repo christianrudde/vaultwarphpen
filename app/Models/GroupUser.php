@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Database\Rows;
 use App\Http\ApiError;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Query\JoinClause;
@@ -29,7 +30,7 @@ final readonly class GroupUser
         $this->updateUserRevision();
 
         try {
-            DB::table(self::TABLE)->insertOrIgnore(['users_organizations_uuid' => $this->membershipUuid, 'groups_uuid' => $this->groupUuid]);
+            Rows::insertUnlessDuplicate(self::TABLE, ['users_organizations_uuid' => $this->membershipUuid, 'groups_uuid' => $this->groupUuid], ['users_organizations_uuid', 'groups_uuid']);
         } catch (QueryException) {
             throw ApiError::message('Error adding user to group');
         }

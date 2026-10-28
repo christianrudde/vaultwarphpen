@@ -44,7 +44,7 @@ class ApiKeyTest extends DifferentialTestCase
 
     public function test_directory_import_with_groups(): void
     {
-        $this->assertSameFlowsOn((string) getenv('VW_GROUPS_REFERENCE_URL'), (string) getenv('VW_GROUPS_SUBJECT_URL'),
+        $this->assertSameFlowsOn((string) getenv('VW_FEATURES_REFERENCE_URL'), (string) getenv('VW_FEATURES_SUBJECT_URL'),
             fn (Server $server): array => $this->directoryFlow($server, 'groups-directory'));
     }
 

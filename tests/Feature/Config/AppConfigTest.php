@@ -46,7 +46,7 @@ class AppConfigTest extends TestCase
         $this->assertSame("{$this->base}/data/vault.db", $connection->getConfig('database'));
         $this->assertEquals((object) ['user_version' => 7], $connection->selectOne('PRAGMA user_version'));
         $this->assertEquals((object) ['cache_size' => 123], $connection->selectOne('PRAGMA cache_size'));
-        $this->assertEquals((object) ['foreign_keys' => 0], $connection->selectOne('PRAGMA foreign_keys'));
+        $this->assertEquals((object) ['foreign_keys' => 1], $connection->selectOne('PRAGMA foreign_keys'));
     }
 
     #[Parity('config:TEMPLATES_FOLDER')]

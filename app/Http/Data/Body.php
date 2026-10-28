@@ -26,6 +26,26 @@ final class Body
     }
 
     /**
+     * Json<Vec<T>>: a list of objects; anything else is a 422.
+     *
+     * @return list<Fields>
+     *
+     * @throws HttpStatus
+     */
+    public static function jsonList(Request $request): array
+    {
+        $decoded = json_decode($request->getContent(), false, 512, JSON_BIGINT_AS_STRING);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new HttpStatus(400, 'Invalid JSON: '.json_last_error_msg());
+        }
+        if (! is_array($decoded) || ! array_is_list($decoded)) {
+            throw new HttpStatus(422, 'Expected a JSON array.');
+        }
+
+        return array_map(Fields::of(...), $decoded);
+    }
+
+    /**
      * Form<T>: an urlencoded or multipart body, as the values of each name.
      *
      * @return array<string, list<string>> Lower-case names

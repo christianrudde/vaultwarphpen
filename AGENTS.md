@@ -67,7 +67,7 @@ Everything is measured against one pinned Vaultwarden commit.
   matrix) and validated by `App\Config\ConfigValidator`. Use `app(Config::class)->string('domain')` etc.
   Relative paths are relative to the base path, where Vaultwarden uses its working directory.
 - `DATABASE_URL` configures the default `vaultwarden` connection (`App\Database\DatabaseUrl`), with
-  Vaultwarden's session settings (UTC, no SQLite foreign key enforcement, `DATABASE_CONN_INIT`). The
+  Vaultwarden's session settings (UTC, SQLite foreign keys enforced like Diesel, `DATABASE_CONN_INIT`). The
   `sqlite`, `mysql` and `pgsql` connections are only for tests and tools that name them.
 - The project is licensed AGPL-3.0-only, like Vaultwarden, from which it is derived.
 

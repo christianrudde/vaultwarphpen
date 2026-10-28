@@ -19,12 +19,14 @@ use App\Http\HttpStatus;
 use App\Http\Json;
 use App\Mail\Mail;
 use App\Models\Device;
+use App\Models\Event;
 use App\Models\Invitation;
 use App\Models\OrganizationApiKey;
 use App\Models\OrgPolicy;
 use App\Models\Send;
 use App\Models\TwoFactor;
 use App\Models\User;
+use App\Support\CheckedInt;
 use App\Support\Dates;
 use App\Support\RateLimiter;
 use Illuminate\Http\Request;
@@ -54,10 +56,37 @@ final readonly class IdentityController
         $grantType = $field('grant_type') ?? throw new HttpStatus(422, 'Field `grant_type` is missing or repeated.');
 
         $ip = ClientIp::resolve($request, $this->config);
+        // ClientHeaders: an unknown browser without a valid Device-Type.
+        $deviceType = CheckedInt::parseI32((string) $request->headers->get('Device-Type')) ?? 14;
         $required = static function (string $name, string $message) use ($field): string {
             return $field($name) ?? throw ApiError::message($message);
         };
+        // Set once the user is known, for the event log.
+        $userId = null;
 
+        try {
+            $response = $this->dispatchLogin($grantType, $data, $field, $required, $ip, $userId);
+        } catch (ApiError $error) {
+            if ($userId !== null && $error->event !== null) {
+                Event::logUser($error->event, $userId, $deviceType, $ip);
+            }
+
+            throw $error;
+        }
+        if ($userId !== null) {
+            Event::logUser(Event::USER_LOGGED_IN, $userId, $deviceType, $ip);
+        }
+
+        return $response;
+    }
+
+    /**
+     * @param  array<string, list<string>>  $data
+     * @param  callable(string): ?string  $field
+     * @param  callable(string, string): string  $required
+     */
+    private function dispatchLogin(string $grantType, array $data, callable $field, callable $required, string $ip, ?string &$userId): Response
+    {
         return match (true) {
             $grantType === 'refresh_token' => $this->refreshLogin($required('refresh_token', 'refresh_token cannot be blank'), $field('client_id'), $ip),
             $grantType === 'password' && $this->config->bool('sso_enabled') && $this->config->bool('sso_only') => throw ApiError::message('SSO sign-in is required'),
@@ -73,6 +102,7 @@ final readonly class IdentityController
                 ],
                 authRequest: $field('authrequest'),
                 ip: $ip,
+                userId: $userId,
             ),
             $grantType === 'client_credentials' => $this->apiKeyLogin(
                 clientId: $required('client_id', 'client_id cannot be blank'),
@@ -80,6 +110,7 @@ final readonly class IdentityController
                 scope: $required('scope', 'scope cannot be blank'),
                 field: $field,
                 ip: $ip,
+                userId: $userId,
             ),
             $grantType === 'authorization_code' && $this->config->bool('sso_enabled') => throw ApiError::message('SSO sign-in is not implemented yet'),
             $grantType === 'authorization_code' => throw ApiError::message('SSO sign-in is not available'),
@@ -247,8 +278,11 @@ final readonly class IdentityController
 
     /**
      * @param  array{string, string, string}  $device  Identifier, name and type
+     * @param  ?string  $userId  Set once the user is known
+     *
+     * @param-out string $userId
      */
-    private function passwordLogin(string $clientId, string $password, string $scope, string $username, array $device, ?string $authRequest, string $ip): Response
+    private function passwordLogin(string $clientId, string $password, string $scope, string $username, array $device, ?string $authRequest, string $ip, ?string &$userId): Response
     {
         AuthMethod::Password->checkScope($scope);
         $this->limiter->check('login', $ip);
@@ -257,15 +291,16 @@ final readonly class IdentityController
         $logUsername = addcslashes($username, "\0..\37\"'\\");
         $user = User::findByMail($username)
             ?? throw ApiError::message('Username or password is incorrect. Try again', logMessage: "IP: {$ip}. Username: {$logUsername}.");
+        $userId = $user->uuid;
 
         if ($authRequest !== null) {
             throw ApiError::message('Login with a device is not implemented yet');
         }
         if (! $user->checkValidPassword($password)) {
-            throw ApiError::message('Username or password is incorrect. Try again', logMessage: "IP: {$ip}. Username: {$logUsername}.");
+            throw ApiError::message('Username or password is incorrect. Try again', logMessage: "IP: {$ip}. Username: {$logUsername}.", event: Event::USER_FAILED_LOG_IN);
         }
         if (! $user->enabled) {
-            throw ApiError::message('This user has been disabled', logMessage: "IP: {$ip}. Username: {$logUsername}.");
+            throw ApiError::message('This user has been disabled', logMessage: "IP: {$ip}. Username: {$logUsername}.", event: Event::USER_FAILED_LOG_IN);
         }
 
         $this->accounts->kdfUpgrade($user, $password);
@@ -274,7 +309,7 @@ final readonly class IdentityController
             $this->remindToVerify($user);
 
             // The login fails until the address is verified.
-            throw ApiError::message('Please verify your email before trying again.', logMessage: "IP: {$ip}. Username: {$logUsername}.");
+            throw ApiError::message('Please verify your email before trying again.', logMessage: "IP: {$ip}. Username: {$logUsername}.", event: Event::USER_FAILED_LOG_IN);
         }
 
         $loginDevice = $this->getDevice($user, ...$device);
@@ -286,7 +321,7 @@ final readonly class IdentityController
     /**
      * @param  callable(string): ?string  $field
      */
-    private function apiKeyLogin(string $clientId, string $clientSecret, string $scope, callable $field, string $ip): Response
+    private function apiKeyLogin(string $clientId, string $clientSecret, string $scope, callable $field, string $ip, ?string &$userId): Response
     {
         $this->limiter->check('login', $ip);
 
@@ -303,15 +338,16 @@ final readonly class IdentityController
             $device[] = $field($name) ?? throw ApiError::message("{$name} cannot be blank");
         }
 
-        $userId = str_starts_with($clientId, 'user.') ? substr($clientId, strlen('user.')) : throw ApiError::message('Malformed client_id', logMessage: "IP: {$ip}.");
-        $user = User::findByUuid($userId) ?? throw ApiError::message('Invalid client_id', logMessage: "IP: {$ip}.");
+        $clientUserId = str_starts_with($clientId, 'user.') ? substr($clientId, strlen('user.')) : throw ApiError::message('Malformed client_id', logMessage: "IP: {$ip}.");
+        $user = User::findByUuid($clientUserId) ?? throw ApiError::message('Invalid client_id', logMessage: "IP: {$ip}.");
+        $userId = $user->uuid;
 
         if (! $user->enabled) {
-            throw ApiError::message('This user has been disabled (API key login)', logMessage: "IP: {$ip}. Username: {$user->email}.");
+            throw ApiError::message('This user has been disabled (API key login)', logMessage: "IP: {$ip}. Username: {$user->email}.", event: Event::USER_FAILED_LOG_IN);
         }
         // API key logins bypass 2FA.
         if (! $user->checkValidApiKey($clientSecret)) {
-            throw ApiError::message('Incorrect client_secret', logMessage: "IP: {$ip}. Username: {$user->email}.");
+            throw ApiError::message('Incorrect client_secret', logMessage: "IP: {$ip}. Username: {$user->email}.", event: Event::USER_FAILED_LOG_IN);
         }
 
         $loginDevice = $this->getDevice($user, ...$device);
@@ -403,7 +439,7 @@ final readonly class IdentityController
     private function twofactorAuth(User $user, Device $device, string $ip): void
     {
         if (TwoFactor::findByUser($user->uuid)->isEmpty()) {
-            OrgPolicy::enforceTwoFactorForUser($user);
+            OrgPolicy::enforceTwoFactorForUser($user, $user->uuid, $device->atype, $ip);
 
             return;
         }
@@ -452,7 +488,7 @@ final readonly class IdentityController
         } catch (ApiError $error) {
             logger()->error("Error sending new device email: {$error->getMessage()}");
             if ($this->config->bool('require_device_email')) {
-                throw ApiError::message('Could not send login notification email. Please contact your administrator.');
+                throw ApiError::message('Could not send login notification email. Please contact your administrator.', event: Event::USER_FAILED_LOG_IN);
             }
         }
     }

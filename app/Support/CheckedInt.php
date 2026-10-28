@@ -30,4 +30,21 @@ final class CheckedInt
 
         return $overflows ? null : $a * $b;
     }
+
+    /**
+     * str::parse::<i32>: optional sign, decimal digits, in range.
+     */
+    public static function parseI32(string $value): ?int
+    {
+        if (! preg_match('/^([+-]?)(\d+)$/D', $value, $matches)) {
+            return null;
+        }
+        $digits = ltrim($matches[2], '0');
+        if (strlen($digits) > 10) {
+            return null;
+        }
+        $number = (int) ($matches[1] === '-' ? "-{$digits}" : $digits);
+
+        return $number < -2_147_483_648 || $number > 2_147_483_647 ? null : $number;
+    }
 }

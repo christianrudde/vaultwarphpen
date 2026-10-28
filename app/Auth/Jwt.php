@@ -46,11 +46,19 @@ final readonly class Jwt
     }
 
     /**
+     * The fields of InviteJwtClaims, which the invitation token must have.
+     */
+    public const array INVITE_CLAIMS = ['nbf' => 'int', 'exp' => 'int', 'iss' => 'string', 'sub' => 'string', 'email' => 'string',
+        'org_id' => 'string', 'member_id' => 'string', 'invited_by_email' => '?string'];
+
+    /**
+     * @param  array<string, 'int'|'string'|'?string'>  $fields  The claims struct, in field order: jsonwebtoken
+     *                                                           deserializes it before it validates the token
      * @return array<string, mixed> The claims
      *
      * @throws ApiError
      */
-    public function decode(string $token, JwtIssuer $issuer, ?int $now = null): array
+    public function decode(string $token, JwtIssuer $issuer, ?int $now = null, array $fields = []): array
     {
         $token = (string) preg_replace('/\s+/u', '', $token);
 
@@ -71,10 +79,46 @@ final readonly class Jwt
             throw self::error('InvalidSignature');
         }
 
-        $claims = self::decodePart(substr($token, $payloadStart + 1, $signatureStart - $payloadStart - 1));
+        $payload = substr($token, $payloadStart + 1, $signatureStart - $payloadStart - 1);
+        $claims = self::decodePart($payload);
+        self::deserialize($claims, $fields, self::base64UrlDecode($payload));
         $this->validate($claims, $this->issuer($issuer), $now ?? time());
 
         return $claims;
+    }
+
+    /**
+     * serde's deserialization of the claims struct: the first missing field
+     * is reported where the object ends. Wrong types are reported less exactly.
+     *
+     * @param  array<string, mixed>  $claims
+     * @param  array<string, 'int'|'string'|'?string'>  $fields
+     */
+    private static function deserialize(array $claims, array $fields, string $json): void
+    {
+        foreach ($fields as $name => $type) {
+            if (! array_key_exists($name, $claims)) {
+                if ($type === '?string') {
+                    continue;
+                }
+                $end = strrpos($json, '}');
+                $before = $end === false ? $json : substr($json, 0, $end + 1);
+                $newline = strrpos($before, "\n");
+                $line = substr_count($before, "\n") + 1;
+                $column = $newline === false ? strlen($before) : strlen($before) - $newline - 1;
+
+                throw self::error("Json(Error(\"missing field `{$name}`\", line: {$line}, column: {$column}))");
+            }
+            $value = $claims[$name];
+            $valid = match ($type) {
+                'int' => is_int($value),
+                'string' => is_string($value),
+                '?string' => $value === null || is_string($value),
+            };
+            if (! $valid) {
+                throw self::error('Json');
+            }
+        }
     }
 
     /**

@@ -289,7 +289,7 @@ final class OrgPolicy extends Model
      *
      * @throws ApiError
      */
-    public static function enforceTwoFactorForUser(User $user): void
+    public static function enforceTwoFactorForUser(User $user, string $actUserUuid, int $deviceType, string $ip): void
     {
         foreach (Membership::findByUserAndPolicy($user->uuid, self::TYPE_TWO_FACTOR_AUTHENTICATION) as $member) {
             if (! $member->typeBelow(Membership::TYPE_ADMIN)) {
@@ -301,6 +301,7 @@ final class OrgPolicy extends Model
             }
             $member->revoke();
             $member->save();
+            Event::log(Event::ORGANIZATION_USER_REVOKED, $member->uuid, $member->org_uuid, $actUserUuid, $deviceType, $ip);
         }
     }
 
@@ -310,7 +311,7 @@ final class OrgPolicy extends Model
      *
      * @throws ApiError
      */
-    public static function enforceTwoFactorForOrg(string $orgUuid): void
+    public static function enforceTwoFactorForOrg(string $orgUuid, string $actUserUuid, int $deviceType, string $ip): void
     {
         $org = Organization::findByUuid($orgUuid) ?? throw new \LogicException("Organization {$orgUuid} is missing");
         foreach (Membership::findConfirmedByOrg($orgUuid) as $member) {
@@ -323,6 +324,7 @@ final class OrgPolicy extends Model
             }
             $member->revoke();
             $member->save();
+            Event::log(Event::ORGANIZATION_USER_REVOKED, $member->uuid, $member->org_uuid, $actUserUuid, $deviceType, $ip);
         }
     }
 

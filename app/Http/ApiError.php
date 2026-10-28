@@ -22,6 +22,7 @@ final class ApiError extends RuntimeException
         public readonly string $kind,
         public readonly mixed $body = null,
         public readonly ?string $logMessage = null,
+        public readonly ?int $event = null,
     ) {
         parent::__construct($message);
     }
@@ -29,11 +30,12 @@ final class ApiError extends RuntimeException
     /**
      * err!(message), err!(message, log value), err_code!(message, status) and
      * errors converted with `?`, whose message is the name of their kind
-     * ("Db", "Serde", ...). The log value only goes to the log.
+     * ("Db", "Serde", ...). The log value only goes to the log; the event
+     * (ErrorEvent) goes to the event log of failed logins.
      */
-    public static function message(string $message, int $status = 400, ?string $logMessage = null): self
+    public static function message(string $message, int $status = 400, ?string $logMessage = null, ?int $event = null): self
     {
-        return new self($message, $status, 'simple', logMessage: $logMessage);
+        return new self($message, $status, 'simple', logMessage: $logMessage, event: $event);
     }
 
     /**

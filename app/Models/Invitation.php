@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Database\Rows;
 use App\Http\ApiError;
 use App\Support\EmailAddress;
 use Illuminate\Database\QueryException;
@@ -36,7 +37,7 @@ final class Invitation extends Model
         }
 
         try {
-            self::query()->insertOrIgnore(['email' => $this->email]);
+            Rows::insertUnlessDuplicate('invitations', ['email' => $this->email], ['email']);
         } catch (QueryException) {
             throw ApiError::message('Error saving invitation');
         }

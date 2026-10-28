@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Database\Rows;
 use App\Http\ApiError;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -23,7 +24,7 @@ final class CollectionCipher
     {
         self::updateUsersRevision($collectionUuid);
         try {
-            DB::table(self::TABLE)->insertOrIgnore(['cipher_uuid' => $cipherUuid, 'collection_uuid' => $collectionUuid]);
+            Rows::insertUnlessDuplicate(self::TABLE, ['cipher_uuid' => $cipherUuid, 'collection_uuid' => $collectionUuid], ['cipher_uuid', 'collection_uuid']);
         } catch (QueryException) {
             throw ApiError::message('Error adding cipher to collection');
         }

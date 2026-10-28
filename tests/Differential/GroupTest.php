@@ -6,7 +6,7 @@ use Tests\Attributes\Parity;
 
 /**
  * Groups: what clients see without them (the default), and with
- * ORG_GROUPS_ENABLED on the third pair of servers, including the access
+ * ORG_GROUPS_ENABLED on the third pair of servers (VW_FEATURES_*), including the access
  * members get through their groups.
  */
 class GroupTest extends DifferentialTestCase
@@ -49,7 +49,7 @@ class GroupTest extends DifferentialTestCase
     #[Parity('route:DELETE /api/organizations/{org_id}/groups')]
     public function test_groups(): void
     {
-        $this->assertSameFlowsOn((string) getenv('VW_GROUPS_REFERENCE_URL'), (string) getenv('VW_GROUPS_SUBJECT_URL'), function (Server $server): array {
+        $this->assertSameFlowsOn((string) getenv('VW_FEATURES_REFERENCE_URL'), (string) getenv('VW_FEATURES_SUBJECT_URL'), function (Server $server): array {
             [$owner, $ownerUserId] = CipherTest::session($server, 'groups-owner@example.com');
             [$member, $memberUserId] = CipherTest::session($server, 'groups-member@example.com');
             [$manager] = CipherTest::session($server, 'groups-manager@example.com');

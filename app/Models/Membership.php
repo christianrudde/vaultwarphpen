@@ -585,6 +585,21 @@ final class Membership extends Model
     }
 
     /**
+     * Whether the user is a confirmed owner or admin of the cipher's organization.
+     */
+    public static function userHasGeAdminAccessToCipher(string $userUuid, string $cipherUuid): bool
+    {
+        return self::query()
+            ->join('ciphers', function (JoinClause $join) use ($cipherUuid): void {
+                $join->where('ciphers.uuid', '=', $cipherUuid)->on('ciphers.organization_uuid', '=', 'users_organizations.org_uuid');
+            })
+            ->where('users_organizations.user_uuid', $userUuid)
+            ->where('users_organizations.status', self::STATUS_CONFIRMED)
+            ->whereIn('users_organizations.atype', [self::TYPE_OWNER, self::TYPE_ADMIN])
+            ->exists();
+    }
+
+    /**
      * @throws ApiError
      */
     public static function acceptUserInvitations(string $userUuid): void

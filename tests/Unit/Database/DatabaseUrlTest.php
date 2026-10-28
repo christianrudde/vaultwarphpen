@@ -33,7 +33,7 @@ class DatabaseUrlTest extends TestCase
             'driver' => 'sqlite',
             'database' => "{$this->base}/data/db.sqlite3",
             'prefix' => '',
-            'foreign_key_constraints' => false,
+            'foreign_key_constraints' => true,
             'busy_timeout' => 5000,
             'synchronous' => 'normal',
             'journal_mode' => 'wal',

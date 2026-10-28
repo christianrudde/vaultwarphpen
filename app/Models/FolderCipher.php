@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Database\Rows;
 use App\Http\ApiError;
 use Illuminate\Database\QueryException;
 
@@ -25,7 +26,7 @@ final class FolderCipher extends Model
     public static function add(string $folderUuid, string $cipherUuid): void
     {
         try {
-            self::query()->insertOrIgnore(['cipher_uuid' => $cipherUuid, 'folder_uuid' => $folderUuid]);
+            Rows::insertUnlessDuplicate('folders_ciphers', ['cipher_uuid' => $cipherUuid, 'folder_uuid' => $folderUuid], ['cipher_uuid', 'folder_uuid']);
         } catch (QueryException) {
             throw ApiError::message('Error adding cipher to folder');
         }
