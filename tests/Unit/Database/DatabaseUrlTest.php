@@ -5,6 +5,9 @@ namespace Tests\Unit\Database;
 use App\Config\Config;
 use App\Config\ConfigException;
 use App\Database\DatabaseUrl;
+use Illuminate\Container\Container;
+use Illuminate\Database\Connectors\ConnectionFactory;
+use Illuminate\Database\QueryException;
 use Pdo\Mysql;
 use PHPUnit\Framework\TestCase;
 use Tests\Attributes\Parity;
@@ -33,6 +36,7 @@ class DatabaseUrlTest extends TestCase
             'driver' => 'sqlite',
             'database' => "{$this->base}/data/db.sqlite3",
             'prefix' => '',
+            'mask_bindings_in_exception_messages' => true,
             'foreign_key_constraints' => true,
             'busy_timeout' => 5000,
             'synchronous' => 'normal',
@@ -69,6 +73,7 @@ class DatabaseUrlTest extends TestCase
         $this->assertSame('p@ss:word', $connection['password']);
         $this->assertSame('+00:00', $connection['timezone']);
         $this->assertSame([Mysql::ATTR_SSL_CA => '/etc/ca.pem', Mysql::ATTR_SSL_VERIFY_SERVER_CERT => true], $connection['options']);
+        $this->assertTrue($connection['mask_bindings_in_exception_messages']);
     }
 
     public function test_mysql_socket_url(): void
@@ -91,6 +96,27 @@ class DatabaseUrlTest extends TestCase
             $this->assertSame('vaultwarden', $connection['database']);
             $this->assertSame('require', $connection['sslmode']);
             $this->assertSame('UTC', $connection['timezone']);
+            $this->assertTrue($connection['mask_bindings_in_exception_messages']);
+        }
+    }
+
+    /**
+     * Query errors are logged, so their messages must not carry the bound
+     * values: tokens, two-factor secrets and password hashes.
+     */
+    public function test_query_errors_do_not_show_the_bound_values(): void
+    {
+        touch("{$this->base}/data/errors.db");
+        $connection = new ConnectionFactory(new Container)->make(DatabaseUrl::connection($this->config(['DATABASE_URL' => "sqlite://{$this->base}/data/errors.db"])), 'vaultwarden');
+        $connection->statement('CREATE TABLE devices (refresh_token TEXT UNIQUE)');
+        $connection->insert('INSERT INTO devices VALUES (?)', ['secret-refresh-token']);
+
+        try {
+            $connection->insert('INSERT INTO devices VALUES (?)', ['secret-refresh-token']);
+            $this->fail('The insert should fail.');
+        } catch (QueryException $error) {
+            $this->assertStringContainsString('INSERT INTO devices VALUES (?)', $error->getMessage());
+            $this->assertStringNotContainsString('secret-refresh-token', $error->getMessage());
         }
     }
 

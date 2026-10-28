@@ -13,6 +13,12 @@ use Pdo\Mysql;
 final class DatabaseUrl
 {
     /**
+     * Query errors are logged; unlike Diesel's, Laravel's messages would
+     * carry the bound values, such as tokens and two-factor secrets.
+     */
+    private const array MASK_BINDINGS = ['mask_bindings_in_exception_messages' => true];
+
+    /**
      * DbConnType::from_url
      *
      * @return 'sqlite'|'mysql'|'postgresql'
@@ -68,6 +74,7 @@ final class DatabaseUrl
                 'driver' => 'sqlite',
                 'database' => self::sqlitePath($url, $config),
                 'prefix' => '',
+                ...self::MASK_BINDINGS,
                 // Diesel enforces foreign keys on SQLite; only the migrations run without.
                 'foreign_key_constraints' => true,
                 // The default DATABASE_CONN_INIT; a custom one replaces it.
@@ -82,6 +89,7 @@ final class DatabaseUrl
                 'charset' => 'utf8mb4',
                 'collation' => null,
                 'prefix' => '',
+                ...self::MASK_BINDINGS,
                 // Diesel runs every MySQL session in UTC.
                 'timezone' => '+00:00',
                 'options' => self::mysqlOptions($url),
@@ -91,6 +99,7 @@ final class DatabaseUrl
                 'driver' => 'pgsql',
                 'charset' => 'utf8',
                 'prefix' => '',
+                ...self::MASK_BINDINGS,
                 'search_path' => 'public',
                 // Diesel runs every PostgreSQL session in UTC.
                 'timezone' => 'UTC',
