@@ -28,25 +28,25 @@ class KeycloakTest extends DifferentialTestCase
             $steps = [];
             $browser = $this->keycloak();
             $code = $this->code($server, $steps, 'sign up', 'kc-alice', $browser);
-            $steps['sign up login'] = $login = self::login($server, $code);
+            $steps['sign up login'] = $login = self::ok(self::login($server, $code));
             // Keycloak's access tokens are JWTs: the session follows their lifetime and that of its refresh tokens.
             $steps['sign up lifetimes'] = self::lifetimes($login);
             $steps['profile'] = $server->send('GET', '/api/accounts/profile', self::auth($login));
 
             // Keycloak remembers the browser and sends it back without the login form.
             $code = $this->code($server, $steps, 'still signed in', 'kc-alice', $browser);
-            $steps['still signed in login'] = $login = self::login($server, $code);
+            $steps['still signed in login'] = $login = self::ok(self::login($server, $code));
 
             // The realm rotates refresh tokens and refuses used ones; the servers reuse their answer for 30 seconds.
-            $steps['refresh'] = $refreshed = self::refresh($server, $login->jsonString('refresh_token'));
+            $steps['refresh'] = $refreshed = self::ok(self::refresh($server, $login->jsonString('refresh_token')));
             $steps['refresh lifetimes'] = self::lifetimes($refreshed);
-            $steps['refresh with the used token'] = self::refresh($server, $login->jsonString('refresh_token'));
-            $steps['refresh with the new token'] = $again = self::refresh($server, $refreshed->jsonString('refresh_token'));
+            $steps['refresh with the used token'] = self::ok(self::refresh($server, $login->jsonString('refresh_token')));
+            $steps['refresh with the new token'] = $again = self::ok(self::refresh($server, $refreshed->jsonString('refresh_token')));
 
             $this->keycloak()->logOut('kc-alice');
             $steps['refresh after the session ended at Keycloak'] = self::refresh($server, $again->jsonString('refresh_token'));
             $code = $this->code($server, $steps, 'sign in again', 'kc-alice', $browser);
-            $steps['sign in again login'] = self::login($server, $code);
+            $steps['sign in again login'] = self::ok(self::login($server, $code));
 
             return $steps;
         });
@@ -57,7 +57,7 @@ class KeycloakTest extends DifferentialTestCase
         $this->assertSameKeycloakFlows(function (Server $server): array {
             $steps = self::register($server, 'kc-linked@example.com');
             $code = $this->code($server, $steps, 'linked', 'kc-linked');
-            $steps['linked login'] = self::login($server, $code);
+            $steps['linked login'] = self::ok(self::login($server, $code));
 
             // Keycloak sends email_verified: false.
             $code = $this->code($server, $steps, 'unverified', 'kc-unverified');
@@ -68,7 +68,7 @@ class KeycloakTest extends DifferentialTestCase
 
             // Two Keycloak users with one address: the second is another identity.
             $code = $this->code($server, $steps, 'first twin', 'kc-twin-1');
-            $steps['first twin login'] = self::login($server, $code);
+            $steps['first twin login'] = self::ok(self::login($server, $code));
             $code = $this->code($server, $steps, 'second twin', 'kc-twin-2');
             $steps['second twin login'] = self::login($server, $code);
 
@@ -93,7 +93,7 @@ class KeycloakTest extends DifferentialTestCase
                 $steps['no sign-ups again'] = self::configure($server, ['sso_signups_allowed' => false]);
                 $steps['invite'] = $server->json('POST', '/admin/invite', ['email' => 'kc-invitee@example.com'], self::adminSession($server));
                 $code = $this->code($server, $steps, 'invited', 'kc-invitee');
-                $steps['invited login'] = self::login($server, $code);
+                $steps['invited login'] = self::ok(self::login($server, $code));
 
                 $steps['no matching by email'] = self::configure($server, ['sso_signups_match_email' => false]);
                 $steps += self::register($server, 'kc-no-match@example.com');
@@ -125,9 +125,9 @@ class KeycloakTest extends DifferentialTestCase
 
                 $steps['unknown allowed'] = self::configure($server, [...$client, 'sso_allow_unknown_email_verification' => true]);
                 $code = $this->code($server, $steps, 'allowed', 'kc-unknown');
-                $steps['allowed login'] = self::login($server, $code);
+                $steps['allowed login'] = self::ok(self::login($server, $code));
                 $code = $this->code($server, $steps, 'allowed linked', 'kc-unknown-linked');
-                $steps['allowed linked login'] = self::login($server, $code);
+                $steps['allowed linked login'] = self::ok(self::login($server, $code));
             } finally {
                 $steps['reset'] = self::configure($server);
             }
@@ -151,7 +151,7 @@ class KeycloakTest extends DifferentialTestCase
                 $steps['config'] = self::withoutServer($server->send('GET', '/api/config'));
                 $steps['css'] = $server->send('GET', '/css/vaultwarden.css');
                 $code = $this->code($server, $steps, 'only sso', 'kc-sso-only');
-                $steps['only sso login'] = $login = self::login($server, $code);
+                $steps['only sso login'] = $login = self::ok(self::login($server, $code));
                 $steps['policy'] = $server->send('GET', '/api/organizations/'.self::FAKE_ORGANIZATION.'/policies/master-password', self::auth($login));
             } finally {
                 $steps['reset'] = self::configure($server);
@@ -171,11 +171,11 @@ class KeycloakTest extends DifferentialTestCase
             try {
                 $steps['sessions of their own'] = self::configure($server, ['sso_auth_only_not_session' => true]);
                 $code = $this->code($server, $steps, 'own session', 'kc-own-session');
-                $steps['own session login'] = $login = self::login($server, $code);
+                $steps['own session login'] = $login = self::ok(self::login($server, $code));
                 $steps['own session lifetimes'] = self::lifetimes($login);
 
                 $this->keycloak()->logOut('kc-own-session');
-                $steps['refresh after the session ended at Keycloak'] = $refreshed = self::refresh($server, $login->jsonString('refresh_token'));
+                $steps['refresh after the session ended at Keycloak'] = $refreshed = self::ok(self::refresh($server, $login->jsonString('refresh_token')));
                 $steps['refresh lifetimes'] = self::lifetimes($refreshed);
             } finally {
                 $steps['reset'] = self::configure($server);
@@ -197,9 +197,9 @@ class KeycloakTest extends DifferentialTestCase
             try {
                 $steps['offline access'] = self::configure($server, ['sso_scopes' => 'email profile offline_access']);
                 $code = $this->code($server, $steps, 'offline', 'kc-offline');
-                $steps['offline login'] = $login = self::login($server, $code);
+                $steps['offline login'] = $login = self::ok(self::login($server, $code));
                 $steps['offline lifetimes'] = self::lifetimes($login);
-                $steps['refresh'] = $refreshed = self::refresh($server, $login->jsonString('refresh_token'));
+                $steps['refresh'] = $refreshed = self::ok(self::refresh($server, $login->jsonString('refresh_token')));
                 $steps['refresh lifetimes'] = self::lifetimes($refreshed);
             } finally {
                 $steps['reset'] = self::configure($server);
@@ -220,9 +220,9 @@ class KeycloakTest extends DifferentialTestCase
             try {
                 $steps['no refresh tokens'] = self::configure($server, ['sso_client_id' => 'vaultwarden-access-only', 'sso_client_secret' => Keycloak::SECRET]);
                 $code = $this->code($server, $steps, 'access only', 'kc-access-only');
-                $steps['access only login'] = $login = self::login($server, $code);
+                $steps['access only login'] = $login = self::ok(self::login($server, $code));
                 $steps['access only lifetimes'] = self::lifetimes($login);
-                $steps['refresh'] = $refreshed = self::refresh($server, $login->jsonString('refresh_token'));
+                $steps['refresh'] = $refreshed = self::ok(self::refresh($server, $login->jsonString('refresh_token')));
                 $steps['refresh lifetimes'] = self::lifetimes($refreshed);
 
                 $this->keycloak()->logOut('kc-access-only');
@@ -247,7 +247,7 @@ class KeycloakTest extends DifferentialTestCase
                 $steps['untrusted login'] = self::login($server, $code);
                 $steps['trusted audience'] = self::configure($server, [...$client, 'sso_audience_trusted' => '^vaultwarden-other-.*$']);
                 $code = $this->code($server, $steps, 'trusted', 'kc-audience');
-                $steps['trusted login'] = self::login($server, $code);
+                $steps['trusted login'] = self::ok(self::login($server, $code));
                 $steps['another trusted audience'] = self::configure($server, [...$client, 'sso_audience_trusted' => '^other-']);
                 $code = $this->code($server, $steps, 'still untrusted', 'kc-audience');
                 $steps['still untrusted login'] = self::login($server, $code);
@@ -271,14 +271,14 @@ class KeycloakTest extends DifferentialTestCase
             try {
                 $steps['cache'] = self::configure($server, ['sso_client_cache_expiration' => 3600]);
                 $code = $this->code($server, $steps, 'before the rotation', 'kc-rotation');
-                $steps['before the rotation login'] = self::login($server, $code);
+                $steps['before the rotation login'] = self::ok(self::login($server, $code));
 
                 $key = $this->keycloak()->addKeyProvider('rotated', 'rsa-generated', ['priority' => '1000', 'algorithm' => 'RS256', 'keySize' => '2048']);
                 try {
                     $code = $this->code($server, $steps, 'with the cached keys', 'kc-rotation');
                     $steps['with the cached keys login'] = self::login($server, $code);
                     $code = $this->code($server, $steps, 'with the new keys', 'kc-rotation');
-                    $steps['with the new keys login'] = self::login($server, $code);
+                    $steps['with the new keys login'] = self::ok(self::login($server, $code));
                 } finally {
                     $this->keycloak()->deleteComponent($key);
                 }
@@ -310,7 +310,8 @@ class KeycloakTest extends DifferentialTestCase
                     foreach (['PS256', 'ES256', 'ES512', 'EdDSA'] as $algorithm) {
                         $keycloak->setClientAttributes('vaultwarden-algorithms', ['id.token.signed.response.alg' => $algorithm]);
                         $code = $this->code($server, $steps, $algorithm, 'kc-algorithms');
-                        $steps["{$algorithm} login"] = self::login($server, $code);
+                        $login = self::login($server, $code);
+                        $steps["{$algorithm} login"] = $algorithm === 'ES512' ? $login : self::ok($login);
                     }
                 } finally {
                     $keycloak->setClientAttributes('vaultwarden-algorithms', ['id.token.signed.response.alg' => 'RS256']);
@@ -346,9 +347,9 @@ class KeycloakTest extends DifferentialTestCase
 
                 // The issuer has no trailing slash.
                 $steps['authority with a slash'] = self::configure($server, ['sso_authority' => $keycloak->authority().'/']);
-                $steps['authority with a slash authorize'] = self::authorize($server, 'slash-state');
+                $steps['authority with a slash authorize'] = self::blanked(self::authorize($server, 'slash-state'));
                 $steps['unknown realm'] = self::configure($server, ['sso_authority' => $keycloak->authority('nothing')]);
-                $steps['unknown realm authorize'] = self::authorize($server, 'realm-state');
+                $steps['unknown realm authorize'] = self::blanked(self::authorize($server, 'realm-state'));
             } finally {
                 $steps['reset'] = self::configure($server);
             }
@@ -387,7 +388,8 @@ class KeycloakTest extends DifferentialTestCase
      */
     private function code(Server $server, array &$steps, string $name, string $username, ?Keycloak $browser = null): string
     {
-        $steps["{$name} authorize"] = $authorize = self::authorize($server, str_replace(' ', '-', $name).'-state');
+        $authorize = self::authorize($server, str_replace(' ', '-', $name).'-state');
+        $steps["{$name} authorize"] = self::blanked($authorize);
         $location = $authorize->header('location') ?? throw new RuntimeException("No redirect to Keycloak: {$authorize->status} {$authorize->body}");
         preg_match('/VW_SSO_BINDING=([^;]+)/', (string) $authorize->header('set-cookie'), $binding);
 
@@ -403,15 +405,25 @@ class KeycloakTest extends DifferentialTestCase
     {
         $challenge = rtrim(strtr(base64_encode(hash('sha256', self::VERIFIER, true)), '+/', '-_'), '=');
 
-        return self::blanked($server->send('GET', '/identity/connect/authorize?'.http_build_query(['client_id' => 'web',
+        return $server->send('GET', '/identity/connect/authorize?'.http_build_query(['client_id' => 'web',
             'redirect_uri' => 'https://example.com/redirect', 'response_type' => 'code', 'scope' => 'api offline_access', 'state' => $state,
-            'code_challenge' => $challenge, 'code_challenge_method' => 'S256'])));
+            'code_challenge' => $challenge, 'code_challenge_method' => 'S256']));
     }
 
     private static function login(Server $server, string $code): Exchange
     {
         return $server->form('/identity/connect/token', ['grant_type' => 'authorization_code', 'code' => $code, 'code_verifier' => self::VERIFIER,
             'client_id' => 'web', 'scope' => 'api offline_access', 'device_identifier' => self::DEVICE, 'device_name' => 'firefox', 'device_type' => '10']);
+    }
+
+    /**
+     * A login or refresh that must succeed: a failure on both servers is a broken setup, not a match.
+     */
+    private static function ok(Exchange $exchange): Exchange
+    {
+        $exchange->jsonString('access_token');
+
+        return $exchange;
     }
 
     private static function refresh(Server $server, string $refreshToken, string $clientId = 'web'): Exchange
@@ -443,8 +455,10 @@ class KeycloakTest extends DifferentialTestCase
     }
 
     /**
-     * How long the tokens of a login or refresh are valid, and which token
-     * of Keycloak's the refresh token keeps: the tokens themselves differ.
+     * How long the tokens of a login or refresh are valid, in minutes, and
+     * which token of Keycloak's the refresh token keeps: the tokens themselves
+     * differ. A refresh may keep the end of the access token, a second or so
+     * closer then.
      */
     private static function lifetimes(Exchange $login): Exchange
     {
@@ -455,11 +469,12 @@ class KeycloakTest extends DifferentialTestCase
         };
         $access = $claims($login->jsonString('access_token'));
         $refresh = $claims($login->jsonString('refresh_token'));
-        $lifetime = static fn (array $claims): mixed => is_int($claims['exp'] ?? null) && is_int($claims['nbf'] ?? null) ? $claims['exp'] - $claims['nbf'] : null;
+        $minutes = static fn (array $claims): ?int => is_int($claims['exp'] ?? null) && is_int($claims['nbf'] ?? null)
+            ? intdiv($claims['exp'] - $claims['nbf'] + 30, 60) : null;
 
         return new Exchange(200, ['content-type' => 'application/json'], (string) json_encode([
-            'access token' => $lifetime($access),
-            'refresh token' => $lifetime($refresh),
+            'access token' => $minutes($access),
+            'refresh token' => $minutes($refresh),
             'kept' => is_array($refresh['token'] ?? null) ? array_keys($refresh['token']) : ($refresh['token'] ?? null),
         ]));
     }

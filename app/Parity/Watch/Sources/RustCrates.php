@@ -21,7 +21,7 @@ final readonly class RustCrates implements Source
      */
     public const array CRATES = [
         'rocket', 'rocket_http', 'rocket_ws', 'tungstenite', 'diesel', 'serde', 'serde_json', 'chrono',
-        'jsonwebtoken', 'governor', 'data-encoding', 'openidconnect', 'oauth2', 'url', 'lettre', 'handlebars',
+        'jsonwebtoken', 'governor', 'data-encoding', 'openidconnect', 'oauth2', 'rsa', 'p256', 'p384', 'url', 'lettre', 'handlebars',
         'webauthn-rs', 'webauthn-rs-core', 'webauthn-rs-proto', 'base64urlsafedata', 'serde_cbor_2', 'yubico_ng',
         'cron', 'job_scheduler_ng', 'reqwest', 'rustls-native-certs', 'cookie_store', 'rmp', 'rmpv', 'grass_compiler',
     ];

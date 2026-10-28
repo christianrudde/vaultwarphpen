@@ -28,7 +28,10 @@ environment variables, so the official Bitwarden clients and existing Vaultwarde
   fallback (`EMAIL_2FA_*`); accounts registered by the tests are unverified unless their token
   says otherwise. A fifth pair logs in with SSO (`VW_SSO_*`) at the fake OpenID provider of
   `fake-services.php` (`/oidc`), where tests pick the user with extra parameters on the
-  authorization URL. The default pair also runs our notifications daemon (`VW_SUBJECT_NOTIFICATIONS_URL`);
+  authorization URL. With `KEYCLOAK_URL` (reference.yml starts Keycloak with
+  `.github/scripts/keycloak-realm.json`) a sixth pair logs in at a real Keycloak (`VW_KEYCLOAK_*`,
+  `tests/Differential/KeycloakTest`): the test signs in at its login form (`Tests\Differential\Keycloak`),
+  switches SSO settings through the admin panel and uses Keycloak's admin API. The default pair also runs our notifications daemon (`VW_SUBJECT_NOTIFICATIONS_URL`);
   `assertSameNotificationFlows()` hands flows a `Server` whose `hub()` opens a WebSocket
   (`Tests\Support\WebSocketClient`) at Vaultwarden's or the daemon's address. The features pair pushes to
   fake relays of `fake-services.php` (`/relay/<label>`); `assertSamePushFlows()` and `Server::relayed()`
@@ -48,7 +51,7 @@ environment variables, so the official Bitwarden clients and existing Vaultwarde
 - Two-factor login: `App\Auth\Webauthn` ports webauthn-rs and keeps its stored formats;
   `Tests\Support\SoftwareAuthenticator` answers WebAuthn ceremonies in tests. Outgoing requests
   (Yubico, Duo, SSO) go through `App\Support\HttpClient`.
-- SSO: `App\Auth\Sso\Sso` ports src/sso.rs, `OidcClient` src/sso_client.rs with what it takes from
+- SSO ([setup guide](docs/sso.md)): `App\Auth\Sso\Sso` ports src/sso.rs, `OidcClient` src/sso_client.rs with what it takes from
   the openidconnect and oauth2 crates (discovery, token requests, ID token checks in `Jws`).
 - Scheduled jobs: `App\Scheduler\Jobs` ports the jobs of `schedule_jobs` (src/main.rs), `JobScheduler`
   and `Job` port job_scheduler_ng, `App\Support\CronSchedule` the cron crate. `php86 artisan

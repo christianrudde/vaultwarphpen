@@ -74,10 +74,9 @@ no effect so far. The `config:` items in [PARITY.md](../PARITY.md) show the stat
 - **The server's name.** Where Vaultwarden names itself to the clients (the `server` object of
   `/api/config`), Vaultwarphpen names itself and links to its own repository, so that users find the
   source of the server they use and report problems in the right place.
-- **SSO** works like Vaultwarden's, with two gaps: ID tokens signed with RSA-PSS (`PS256` and the
-  like) are refused, where Vaultwarden accepts them, and `SSO_DEBUG_TOKENS` logs nothing. The
-  discovered provider is cached for `SSO_CLIENT_CACHE_EXPIRATION` seconds in Laravel's cache, so all
-  PHP workers share it.
+- **SSO** works like Vaultwarden's ([setup guide](sso.md)), except that `SSO_DEBUG_TOKENS` logs
+  nothing. The discovered provider is cached for `SSO_CLIENT_CACHE_EXPIRATION` seconds in Laravel's
+  cache, so all PHP workers share it.
 - **The admin diagnostics** name Vaultwarphpen, with the Vaultwarden release it follows, and look for
   newer versions in Vaultwarphpen's repository (its latest release, or the latest commit for an
   installation from a branch). The installed version is what Composer recorded when it last installed

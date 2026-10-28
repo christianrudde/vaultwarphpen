@@ -4,6 +4,7 @@ namespace Tests\Differential;
 
 use GuzzleHttp\Client;
 use RuntimeException;
+use stdClass;
 
 /**
  * The Keycloak of the sixth pair (VW_KEYCLOAK_URL) with the realm of
@@ -95,10 +96,11 @@ final class Keycloak
      */
     public function setClientAttributes(string $clientId, array $attributes): void
     {
-        $clients = json_decode($this->admin('GET', '/clients?'.http_build_query(['clientId' => $clientId])), true);
-        $client = is_array($clients) && is_array($clients[0] ?? null) ? $clients[0] : throw new RuntimeException("No client {$clientId} in Keycloak.");
-        $client['attributes'] = [...(is_array($client['attributes'] ?? null) ? $client['attributes'] : []), ...$attributes];
-        $id = is_string($client['id'] ?? null) ? $client['id'] : '';
+        // As objects: Keycloak refuses its empty maps as empty lists.
+        $clients = json_decode($this->admin('GET', '/clients?'.http_build_query(['clientId' => $clientId])));
+        $client = is_array($clients) && ($clients[0] ?? null) instanceof stdClass ? $clients[0] : throw new RuntimeException("No client {$clientId} in Keycloak.");
+        $client->attributes = (object) [...(array) ($client->attributes ?? []), ...$attributes];
+        $id = is_string($client->id ?? null) ? $client->id : '';
         $this->admin('PUT', "/clients/{$id}", $client, 204);
     }
 
@@ -138,12 +140,12 @@ final class Keycloak
     /**
      * A request to the admin API of the realm, with a token of the master realm's admin.
      *
-     * @param  array<mixed>|null  $json
+     * @param  array<mixed>|stdClass|null  $json
      * @param  array<string, string>|null  $headers  The response headers
      *
      * @param-out array<string, string> $headers
      */
-    private function admin(string $method, string $path, ?array $json = null, int $expected = 200, ?array &$headers = null): string
+    private function admin(string $method, string $path, array|stdClass|null $json = null, int $expected = 200, ?array &$headers = null): string
     {
         $login = $this->client->post("{$this->url}/realms/master/protocol/openid-connect/token", ['form_params' => [
             'grant_type' => 'password', 'client_id' => 'admin-cli', 'username' => self::ADMIN, 'password' => self::ADMIN,

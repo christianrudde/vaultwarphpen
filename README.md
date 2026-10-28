@@ -33,7 +33,7 @@ pinned Vaultwarden version and whether it is ported. In short:
   device; folders and Sends; ciphers and attachments; the organization API (members, collections,
   groups, policies, account recovery, import and export, API keys, the event log); emergency access;
   mails over SMTP or sendmail; Vaultwarden's scheduled jobs; the admin panel; the web vault (from
-  Vaultwarden's [builds](docs/installation.md#web-vault)); SSO with OpenID Connect; live
+  Vaultwarden's [builds](docs/installation.md#web-vault)); SSO with OpenID Connect ([setup](docs/sso.md)); live
   notifications over WebSocket, served by an optional daemon ([installation](docs/installation.md#live-notifications)),
   and mobile push through Bitwarden's relay; website icons, fetched and cached like Vaultwarden's or
   redirected to an external icon service.
@@ -77,6 +77,7 @@ For a real installation, read the documentation:
 - [Installation](docs/installation.md): with Composer or from a release archive, web server, PHP
   settings, updates
 - [Configuration](docs/configuration.md): Vaultwarden's settings and where Vaultwarphpen differs
+- [Single sign-on](docs/sso.md): setting up Microsoft Entra ID, Keycloak or Google Workspace
 - [Moving from Vaultwarden](docs/migrating-from-vaultwarden.md): taking over an existing database and
   data folder, and going back
 
