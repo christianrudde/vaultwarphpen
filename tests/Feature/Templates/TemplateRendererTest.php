@@ -85,6 +85,19 @@ class TemplateRendererTest extends TestCase
         $this->assertSame('', $this->renderer()->render('logic', ['name' => 'domain', 'list' => [1], 'zero' => 0, 'text' => '']));
     }
 
+    /**
+     * handlebars-rust indents the lines of a standalone partial, except an
+     * empty line that starts right after a standalone tag.
+     */
+    public function test_partials_are_indented_like_handlebars_rust(): void
+    {
+        $this->template('outer', "<a>\n    {{> inner}}\n</a>\n");
+        $this->template('inner', "{{#if x}}\nyes\n{{/if}}\n\nmid\n\nend\n");
+
+        $this->assertSame("<a>\n    yes\n\n    mid\n    \n    end\n</a>\n", $this->renderer()->render('outer', ['x' => true]));
+        $this->assertSame("yes\n\nmid\n\nend\n", $this->renderer()->render('inner', ['x' => true]));
+    }
+
     public function test_to_json_helper_writes_unescaped_json(): void
     {
         $this->template('json', '{{to_json data}}');

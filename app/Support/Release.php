@@ -24,9 +24,8 @@ final class Release
     public static function installed(): string
     {
         $root = InstalledVersions::getRootPackage();
-        $version = $root['pretty_version'];
-        if (! str_starts_with($version, 'dev-') && ! str_ends_with($version, '-dev')) {
-            return ltrim($version, 'v');
+        if (self::isTagged()) {
+            return ltrim($root['pretty_version'], 'v');
         }
 
         return $root['reference'] === null ? '-' : substr($root['reference'], 0, 8);

@@ -23,6 +23,11 @@ final class TemplateRenderer
      */
     private const array HELPERS = ['case', 'to_json', 'webver', 'vwver', 'eq', 'not', 'or'];
 
+    /**
+     * Marks a blank line that handlebars-rust leaves unindented in an indented partial.
+     */
+    private const string UNINDENTED = "\u{F8FF}";
+
     /** @var array<string, Closure> */
     private array $compiled = [];
 
@@ -62,7 +67,11 @@ final class TemplateRenderer
             'partialResolver' => fn (string $name): Closure => $this->compile($name, builtinOnly: false),
         ]);
 
-        return is_string($result) ? $result : throw new RuntimeException('Template did not render to a string.');
+        if (! is_string($result)) {
+            throw new RuntimeException('Template did not render to a string.');
+        }
+
+        return str_replace(self::UNINDENTED, '', (string) preg_replace('/^[ \t]*'.self::UNINDENTED.'/mu', '', $result));
     }
 
     private function compile(string $name, bool $builtinOnly): Closure
@@ -93,11 +102,24 @@ final class TemplateRenderer
         foreach ($paths as $path) {
             $file = "{$path}/{$name}.hbs";
             if (is_file($file)) {
-                return (string) file_get_contents($file);
+                return self::markUnindentedLines((string) file_get_contents($file));
             }
         }
 
         throw new RuntimeException("Template [{$name}] not found.");
+    }
+
+    /**
+     * handlebars-rust indents a partial while writing it: after a line break
+     * only when more of the same text follows, or when the next text does not
+     * start with a line break. So an empty line right after a standalone tag
+     * line (whose line break is stripped) stays empty, where DevTheorem
+     * indents every line. Those lines are marked here; execute() removes the
+     * indent in front of the mark, and the mark.
+     */
+    private static function markUnindentedLines(string $source): string
+    {
+        return (string) preg_replace('/^([ \t]*\{\{~?\s*(?:[#\/^>!]|else\b)(?:[^}]|\}(?!\}))*\}\}[ \t]*\n)(?=\n)/m', '$1'.self::UNINDENTED, $source);
     }
 
     /**

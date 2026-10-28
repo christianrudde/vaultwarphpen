@@ -98,7 +98,9 @@ Everything is measured against one pinned Vaultwarden commit.
 - Where Vaultwarden names itself to clients (the `server` object of `/api/config`), we name Vaultwarphpen
   and link to this repository: users must be able to find the source of the server they talk to (AGPL
   section 13), and bug reports must not land at Vaultwarden. Copied templates and setting defaults stay
-  as they are.
+  as they are. The same holds for the diagnostics of the admin panel: they name Vaultwarphpen with the
+  Vaultwarden release it mirrors (`App\Support\Release`), look for newer versions in this repository and
+  show PHP's runtime instead of Rust's; the differential test compares that page by its structure only.
 
 ## HTTP conventions
 

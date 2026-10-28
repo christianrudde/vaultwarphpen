@@ -17,8 +17,8 @@ Like Vaultwarden, in this order:
    in `.env`. Real environment variables win over `.env`.
 2. **`<NAME>_FILE`** instead of `<NAME>` reads the value from a file, for secrets such as
    `ADMIN_TOKEN_FILE` or `DATABASE_URL_FILE`.
-3. **`config.json`** in the data folder (or at `CONFIG_FILE`) overrides the environment. Vaultwarden's
-   admin panel writes it; Vaultwarphpen reads an existing one, but has no admin panel yet.
+3. **`config.json`** in the data folder (or at `CONFIG_FILE`) overrides the environment. The admin panel
+   writes it, in Vaultwarden's format, so either implementation reads what the other saved.
 4. **Defaults** for everything not set.
 
 Invalid values and combinations are refused with Vaultwarden's error messages.
@@ -64,6 +64,14 @@ no effect so far. The `config:` items in [PARITY.md](../PARITY.md) show the stat
 - **The server's name.** Where Vaultwarden names itself to the clients (the `server` object of
   `/api/config`), Vaultwarphpen names itself and links to its own repository, so that users find the
   source of the server they use and report problems in the right place. This route is not ported yet.
+- **The admin diagnostics** name Vaultwarphpen, with the Vaultwarden release it follows, and look for
+  newer versions in Vaultwarphpen's repository (its latest release, or the latest commit for an
+  installation from a branch). The installed version is what Composer recorded when it last installed
+  the checkout, so run `composer install` after updating. The page shows PHP's version and server API
+  where Vaultwarden shows Rust's runtime.
+- **Settings take effect at once.** Vaultwarden reads `config.json` when it starts and when its admin
+  panel saves; PHP reads the configuration for every request. Setting or removing `ADMIN_TOKEN` in
+  `config.json` therefore opens or closes the admin panel right away, where Vaultwarden needs a restart.
 - **Development routes.** Vaultwarden's debug builds serve static files from the source tree at
   `/vw_static/`; release builds do not, and neither does Vaultwarphpen.
 - **Caches.** Do not cache Laravel's configuration or routes (see

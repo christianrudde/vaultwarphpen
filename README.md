@@ -28,10 +28,10 @@ pinned Vaultwarden version and whether it is ported. In short:
 - **Ported:** the database schema for SQLite, MySQL/MariaDB and PostgreSQL, interchangeable with
   Vaultwarden's; registration and login with the master password; folders and Sends; ciphers and
   attachments; most of the organization API (members, collections, groups, policies, import and
-  export, API keys, the event log); emergency access; Vaultwarden's scheduled jobs. Push notifications
-  are still missing everywhere.
-- **Not yet:** two-step login, the admin panel, the web vault, push and WebSocket notifications, website
-  icons and sending mails.
+  export, API keys, the event log); emergency access; Vaultwarden's scheduled jobs; the admin panel.
+  Push notifications are still missing everywhere.
+- **Not yet:** two-step login, the web vault, push and WebSocket notifications, website icons and
+  sending mails.
 
 Every ported route is compared with Vaultwarden itself: the differential tests send the same requests
 to both servers and compare the answers.

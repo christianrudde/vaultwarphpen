@@ -101,6 +101,8 @@ class AdminTest extends TestCase
         $this->assertSame([], $this->get('/admin/logout')->assertStatus(303)->headers->getCookies());
     }
 
+    #[Parity('config:ADMIN_TOKEN')]
+    #[Parity('config:ADMIN_RATELIMIT_*')]
     public function test_argon2_tokens_and_the_rate_limit(): void
     {
         $this->useDatabase('sqlite');
@@ -313,7 +315,7 @@ class AdminTest extends TestCase
 
         $this->get('/admin/diagnostics/http?code=403')->assertStatus(403)->assertJsonPath('message', 'Testing error 403 response');
         $this->get('/admin/diagnostics/http?code=1000')->assertStatus(400)->assertJsonPath('message', 'Testing error 1000 response');
-        $this->get('/admin/diagnostics/http?code=%2B299')->assertStatus(299);
+        $this->get('/admin/diagnostics/http?code=%2B299')->assertStatus(400);
         $this->get('/admin/diagnostics/http?code=70000')->assertStatus(404);
         $this->get('/admin/diagnostics/http')->assertStatus(404);
     }
