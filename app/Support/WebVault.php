@@ -110,9 +110,10 @@ final class WebVault
      * Rocket's PathBuf guard on the segments of a path: decoded, empty ones
      * skipped, ".." removes the last one. Null where Rocket refuses the path:
      * hidden files, segments starting with "*" or ending with ":", ">" or
-     * "<", and encoded slashes.
+     * "<", and encoded slashes; on Windows also backslashes and colons,
+     * which would lead out of the folder there.
      */
-    public static function relativePath(string $rawPath): ?string
+    public static function relativePath(string $rawPath, bool $windows = PHP_OS_FAMILY === 'Windows'): ?string
     {
         $segments = [];
         foreach (explode('/', $rawPath) as $segment) {
@@ -123,7 +124,8 @@ final class WebVault
             if ($segment === '..') {
                 array_pop($segments);
             } elseif (str_starts_with($segment, '.') || str_starts_with($segment, '*') || str_contains($segment, '/')
-                || str_ends_with($segment, ':') || str_ends_with($segment, '>') || str_ends_with($segment, '<')) {
+                || str_ends_with($segment, ':') || str_ends_with($segment, '>') || str_ends_with($segment, '<')
+                || ($windows && (str_contains($segment, '\\') || str_contains($segment, ':')))) {
                 return null;
             } else {
                 $segments[] = $segment;

@@ -61,6 +61,8 @@ class WebVaultTest extends TestCase
         $this->get('/vault/.hidden')->assertStatus(422);
         $this->get('/vault/app/%2Fmain.js')->assertStatus(422);
         $this->get('/vault/app/main.js:')->assertStatus(422);
+        // NamedFile cannot open a name with a NUL byte.
+        $this->get('/vault/app/main.js%00')->assertStatus(404);
         $missing = $this->get('/vault/app/missing.js')->assertStatus(404)->assertHeader('Content-Type', 'text/html; charset=utf-8');
         $this->assertStringContainsString('/vault/vw_static/404.png', (string) $missing->getContent());
         $this->get('/vault/app')->assertStatus(404);
@@ -68,6 +70,24 @@ class WebVaultTest extends TestCase
         // Unknown API routes keep their JSON answer; a bad id forwards to the catch-all.
         $this->get('/vault/api/missing')->assertStatus(404)->assertJsonPath('error.code', 404);
         $this->get('/vault/attachments/not-a-uuid/abc?token=x')->assertStatus(404);
+    }
+
+    /**
+     * Rocket's PathBuf guard also refuses backslashes and colons on Windows,
+     * where they would lead out of the web vault's folder.
+     */
+    public function test_paths_out_of_the_web_vault(): void
+    {
+        $this->assertSame('app/main.js', WebVault::relativePath('/app/x/../main.js', windows: false));
+        $this->assertSame('main.js', WebVault::relativePath('/app/../../main.js', windows: false));
+        $this->assertNull(WebVault::relativePath('/app/../.env', windows: false));
+        $this->assertSame('x\\..\\..\\.env', WebVault::relativePath('/x%5C..%5C..%5C.env', windows: false));
+
+        $this->assertNull(WebVault::relativePath('/x%5C..%5C..%5C.env', windows: true));
+        $this->assertNull(WebVault::relativePath('/x\\..\\..\\data\\config.json', windows: true));
+        $this->assertNull(WebVault::relativePath('/C:%5Cdata%5Cconfig.json', windows: true));
+        $this->assertNull(WebVault::relativePath('/app/c:data', windows: true));
+        $this->assertSame('app/main.js', WebVault::relativePath('/app/main.js', windows: true));
     }
 
     #[Parity('route:GET /app-id.json')]

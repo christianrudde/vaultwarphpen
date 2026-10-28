@@ -250,7 +250,8 @@ final readonly class WebController
     private function webVaultFile(string $path): FileResponse
     {
         $file = rtrim($this->config->path('web_vault_folder'), '/').'/'.$path;
-        if (! is_file($file)) {
+        // A NUL byte names no file; PHP's file functions would throw.
+        if (str_contains($file, "\0") || ! is_file($file)) {
             throw new HttpStatus(404, 'No such file in the web vault.');
         }
 
