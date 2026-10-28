@@ -108,7 +108,8 @@ function respond(string $method, string $target, array $headers, string $body, s
  * An OpenID provider for SSO at /oidc. Its client is "vaultwarden" with the
  * secret in SSO_CLIENT_SECRET. The authorization endpoint logs in at once
  * whoever the test names with extra parameters: email, sub (default from
- * the email), name and verified (true, false or absent); deny=1 answers
+ * the email), name and verified (true, false, text-true and text-false for
+ * the strings some providers send, or absent); deny=1 answers
  * with an error instead. Tokens are RS256 JWTs of a key made at start.
  *
  * @return array{int, string, string}
@@ -200,6 +201,9 @@ function oidcUser(array $query, string $email): array
     $user = ['sub' => is_string($query['sub'] ?? null) ? $query['sub'] : 'sub-'.substr(sha1($email), 0, 12), 'email' => $email];
     if (in_array($query['verified'] ?? 'true', ['true', 'false'], true)) {
         $user['email_verified'] = ($query['verified'] ?? 'true') === 'true';
+    }
+    if (in_array($query['verified'] ?? null, ['text-true', 'text-false'], true)) {
+        $user['email_verified'] = substr($query['verified'], 5);
     }
     if (is_string($query['name'] ?? null)) {
         $user['preferred_username'] = $query['name'];

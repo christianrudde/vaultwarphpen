@@ -181,7 +181,7 @@ final readonly class OidcClient
             throw ApiError::message('Request to user_info endpoint failed: Other error: unexpected response Content-Type: '.EscapeDebug::debug($contentType));
         }
         $claims = json_decode($body);
-        if (! $claims instanceof stdClass || ! is_string($claims->sub ?? null)) {
+        if (! $claims instanceof stdClass || ! is_string($claims->sub ?? null) || ! self::hasBooleanClaims($claims)) {
             throw ApiError::message('Request to user_info endpoint failed: Failed to parse server response');
         }
 
@@ -393,8 +393,30 @@ final readonly class OidcClient
             || strtolower($tokens->token_type) !== 'bearer') {
             throw new TokenRequestError('Parse(..)');
         }
+        // The ID token's claims are parsed with the response.
+        $idToken = is_string($tokens->id_token ?? null) ? Jws::parse($tokens->id_token) : null;
+        if ($idToken !== null && ! self::hasBooleanClaims($idToken->payload)) {
+            throw new TokenRequestError('Parse(..)');
+        }
 
         return $tokens;
+    }
+
+    /**
+     * The boolean claims of StandardClaims are booleans or null: Vaultwarden
+     * builds openidconnect without accept-string-booleans, so "false" fails
+     * to parse rather than leaving the email's verification unknown.
+     */
+    private static function hasBooleanClaims(stdClass $claims): bool
+    {
+        foreach (['email_verified', 'phone_number_verified'] as $name) {
+            $value = $claims->{$name} ?? null;
+            if ($value !== null && ! is_bool($value)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
