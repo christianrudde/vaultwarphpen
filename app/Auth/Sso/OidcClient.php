@@ -492,15 +492,11 @@ final readonly class OidcClient
 
     /**
      * The Debug form of RequestTokenError::ServerResponse(StandardErrorResponse { .. }).
+     * BasicErrorResponseType prints its code as it came, without quotes.
      */
     private static function serverResponseDebug(stdClass $error): string
     {
-        $types = [
-            'invalid_request' => 'InvalidRequest', 'invalid_client' => 'InvalidClient', 'invalid_grant' => 'InvalidGrant',
-            'unauthorized_client' => 'UnauthorizedClient', 'unsupported_grant_type' => 'UnsupportedGrantType', 'invalid_scope' => 'InvalidScope',
-        ];
-        $code = self::stringField($error, 'error') ?? '';
-        $type = $types[$code] ?? 'Extension('.EscapeDebug::debug($code).')';
+        $type = self::stringField($error, 'error') ?? '';
         $description = self::stringField($error, 'error_description');
         $uri = self::stringField($error, 'error_uri');
         $description = $description === null ? 'None' : 'Some('.EscapeDebug::debug($description).')';
