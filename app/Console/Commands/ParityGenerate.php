@@ -26,6 +26,7 @@ class ParityGenerate extends Command
     {
         $reference = Reference::load(base_path());
         $reference->assertCheckedOut();
+        $reference->assertWebVaultMatches();
 
         $source = new RustSource($reference->checkout);
         $routes = new RouteExtractor($source);

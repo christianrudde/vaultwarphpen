@@ -69,8 +69,10 @@ What Vaultwarphpen takes from it:
   <https://github.com/bitwarden/ios>), by Bitwarden, Inc., GPL-3.0. These are the clients Vaultwarphpen
   has to work with. None of their code is included.
 - **Web vault builds** (<https://github.com/dani-garcia/bw_web_builds>), GPL-3.0: the patched Bitwarden
-  web vault that Vaultwarden serves. `parity/reference.json` pins version 2026.8.0; Vaultwarphpen does
-  not include or serve it yet.
+  web vault that Vaultwarden serves. `parity/reference.json` pins version 2026.8.0 and the Docker image
+  that Vaultwarden's Dockerfile takes it from. Vaultwarphpen does not include it: `php artisan
+  vaultwarden:web-vault` downloads that image and unpacks its `web-vault` folder, which Vaultwarphpen
+  then serves.
 
 Bitwarden is a trademark of Bitwarden, Inc. Vaultwarphpen is not affiliated with, associated with or
 endorsed by Bitwarden, Inc. or the Vaultwarden project. Vaultwarphpen uses no Bitwarden logos.

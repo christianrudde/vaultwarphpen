@@ -56,6 +56,9 @@ environment variables, so the official Bitwarden clients and existing Vaultwarde
 - Web vault: `WebController` serves `WEB_VAULT_FOLDER` like src/api/web.rs, its catch-all as Laravel's
   fallback route; `App\Support\WebVault` holds Rocket's path segment rules, NamedFile's content types and
   the web vault version that the `webver` helper compares. scssphp compiles `/css/vaultwarden.css`.
+  `php86 artisan vaultwarden:web-vault` installs the web vault from the Docker image Vaultwarden pins
+  (`App\Support\WebVaultImage`, downloads through `App\Support\Downloader`, which tests fake);
+  `composer create-project` and `composer setup` run it after `key:generate` and `vaultwarden:migrate`.
 - Uploads: Vaultwarden takes files up to 525 MB, so PHP needs `upload_max_filesize=525M` and a
   `post_max_size` above it (or `0`). PHP cuts uploaded file names at the last slash, which encrypted
   names contain; read them with `getClientOriginalPath()` (see `App\Http\Data\UploadData`).
@@ -71,7 +74,9 @@ environment variables, so the official Bitwarden clients and existing Vaultwarde
 
 Everything is measured against one pinned Vaultwarden commit.
 
-- `parity/reference.json` pins the commit, release and web vault version.
+- `parity/reference.json` pins the commit, release and web vault version, with the digest of the web
+  vault's Docker image. Both come from Vaultwarden's `docker/DockerSettings.yaml`; `parity:generate`
+  checks them.
 - `php artisan parity:fetch` checks that commit out into `reference/vaultwarden` (git-ignored).
 - `php artisan parity:sync` copies Vaultwarden's SQL migrations to `database/vaultwarden/<dialect>`,
   its Handlebars templates to `resources/vaultwarden/templates` and `global_domains.json` to

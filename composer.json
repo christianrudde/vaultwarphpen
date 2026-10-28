@@ -1,6 +1,6 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "vaultwarphpen/vaultwarphpen",
+    "name": "christianrudde/vaultwarphpen",
     "type": "project",
     "description": "PHP port of Vaultwarden, the Bitwarden-compatible server.",
     "homepage": "https://github.com/christianrudde/vaultwarphpen",
@@ -8,6 +8,7 @@
         "bitwarden",
         "vaultwarden",
         "password-manager",
+        "self-hosted",
         "laravel"
     ],
     "license": "AGPL-3.0-only",
@@ -23,6 +24,7 @@
     "support": {
         "issues": "https://github.com/christianrudde/vaultwarphpen/issues",
         "source": "https://github.com/christianrudde/vaultwarphpen",
+        "docs": "https://github.com/christianrudde/vaultwarphpen/blob/main/docs/installation.md",
         "security": "https://github.com/christianrudde/vaultwarphpen/security/policy"
     },
     "require": {
@@ -60,7 +62,8 @@
             "composer install",
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
             "@php artisan key:generate",
-            "@php artisan vaultwarden:migrate"
+            "@php artisan vaultwarden:migrate",
+            "@php artisan vaultwarden:web-vault"
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
@@ -81,7 +84,9 @@
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
         ],
         "post-create-project-cmd": [
-            "@php artisan key:generate --ansi"
+            "@php artisan key:generate --ansi",
+            "@php artisan vaultwarden:migrate --ansi",
+            "@php artisan vaultwarden:web-vault --ansi"
         ],
         "pre-package-uninstall": [
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"

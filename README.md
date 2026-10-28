@@ -48,15 +48,17 @@ to both servers and compare the answers.
 
 ## Getting started
 
-To try it locally, install it:
+To try it locally, let [Composer](https://getcomposer.org) install it into a new folder:
 
 ```bash
-composer setup
+composer create-project christianrudde/vaultwarphpen vaultwarphpen dev-main
+cd vaultwarphpen
 ```
 
-This installs the dependencies, creates `.env` and the application key, and creates the database
-(SQLite at `data/db.sqlite3` by default). Then start PHP's built-in server and point a Bitwarden client
-at `http://127.0.0.1:8000`:
+This installs the dependencies, creates `.env` and the application key, creates the database (SQLite at
+`data/db.sqlite3` by default) and downloads the web vault that Vaultwarden ships. In a Git checkout,
+`composer setup` does the same. Then start PHP's built-in server and open `http://127.0.0.1:8000`, or
+point a Bitwarden client at it:
 
 ```bash
 php -S 127.0.0.1:8000 -t public public/index.php

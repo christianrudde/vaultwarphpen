@@ -27,3 +27,5 @@ Homestead.yaml
 Thumbs.db
 
 /reference
+# The web vault that `php artisan vaultwarden:web-vault` installs.
+/web-vault

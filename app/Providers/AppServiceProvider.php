@@ -25,8 +25,12 @@ use App\Mail\SmtpTransport;
 use App\Mail\Transport as MailTransport;
 use App\Notifications\Channel as NotificationsChannel;
 use App\Notifications\SocketChannel;
+use App\Parity\Reference;
 use App\Support\Deferred;
+use App\Support\Downloader;
+use App\Support\StreamDownloader;
 use App\Support\WebVault;
+use App\Support\WebVaultImage;
 use App\Templates\TemplateRenderer;
 use Illuminate\Database\Connectors\ConnectionFactory;
 use Illuminate\Database\DatabaseManager;
@@ -89,6 +93,14 @@ class AppServiceProvider extends ServiceProvider
             $this->app->make(Config::class),
             $this->app->make(RsaKeys::class),
         ));
+
+        // The web vault that vaultwarden:web-vault installs, as parity/reference.json pins it.
+        $this->app->bind(Downloader::class, StreamDownloader::class);
+        $this->app->bind(WebVaultImage::class, function (): WebVaultImage {
+            $reference = Reference::load(base_path());
+
+            return new WebVaultImage($reference->webVault, $reference->webVaultDigest, $this->app->make(Downloader::class));
+        });
 
         $this->app->singleton(TemplateRenderer::class, function (): TemplateRenderer {
             $config = $this->app->make(Config::class);

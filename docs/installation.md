@@ -12,12 +12,32 @@ hosting package that gives you PHP 8.5, Composer and a shell.
 
 - PHP 8.5 or newer, as PHP-FPM or an Apache module, with the extensions `openssl`, `sodium` and
   `mbstring`, the ones Laravel needs (`ctype`, `filter`, `hash`, `session`, `tokenizer`) and one of
-  `pdo_sqlite`, `pdo_mysql` or `pdo_pgsql`
+  `pdo_sqlite`, `pdo_mysql` or `pdo_pgsql`; `phar`, `zlib` and `allow_url_fopen` to download the web
+  vault
 - [Composer](https://getcomposer.org)
 - SQLite, MySQL/MariaDB or PostgreSQL
 - A web server with HTTPS. The Bitwarden clients need HTTPS for everything but `localhost`.
 
-## Getting the code
+## Installing it
+
+Composer installs Vaultwarphpen with everything it needs in one step, into a new folder:
+
+```bash
+composer create-project --no-dev christianrudde/vaultwarphpen vaultwarphpen dev-main
+cd vaultwarphpen
+```
+
+`dev-main` is the current state of `main`; there are no releases yet. After the PHP dependencies,
+Composer sets up:
+
+1. `.env`, copied from `.env.example`, with a new application key (`php artisan key:generate`)
+2. the database schema, in SQLite at `data/db.sqlite3` (`php artisan vaultwarden:migrate`)
+3. the web vault in `web-vault/` (`php artisan vaultwarden:web-vault`, see [below](#web-vault))
+
+If a step fails, Composer stops there and names it; the folder and what was done stay. Fix the cause
+and run the remaining steps by hand, in the order above.
+
+From a Git checkout, the same steps are:
 
 ```bash
 git clone https://github.com/christianrudde/vaultwarphpen.git
@@ -25,6 +45,8 @@ cd vaultwarphpen
 composer install --no-dev --optimize-autoloader
 cp .env.example .env
 php artisan key:generate
+php artisan vaultwarden:migrate
+php artisan vaultwarden:web-vault
 ```
 
 ## Configuring it
@@ -47,7 +69,8 @@ The database is SQLite in `data/db.sqlite3` unless you set `DATABASE_URL`, for e
 `mysql://user:password@localhost:3306/vaultwarden` or `postgresql://user:password@localhost/vaultwarden`.
 [Configuration](configuration.md) explains the settings and where they differ from Vaultwarden.
 
-Then create the database schema:
+The installation created the schema in SQLite. After setting `DATABASE_URL`, create it in that database
+(and delete the unused `data/db.sqlite3`):
 
 ```bash
 php artisan vaultwarden:migrate
@@ -55,24 +78,45 @@ php artisan vaultwarden:migrate
 
 ## Web vault
 
-The Bitwarden web vault is not part of this repository. Vaultwarden's builds of it
-([bw_web_builds](https://github.com/dani-garcia/bw_web_builds)) work unchanged. Take the version
-Vaultwarphpen follows (`web_vault` in [`parity/reference.json`](../parity/reference.json)) and unpack it
-in the installation folder; the archive holds the `web-vault` folder that `WEB_VAULT_FOLDER` names by
-default:
+The Bitwarden web vault is not part of this repository. Vaultwarphpen serves the one Vaultwarden's
+Docker images ship: Vaultwarden's build of it ([bw_web_builds](https://github.com/dani-garcia/bw_web_builds)),
+in the version and image that Vaultwarden's Dockerfile pins (`web_vault` and `web_vault_digest` in
+[`parity/reference.json`](../parity/reference.json)). The installation puts it into `WEB_VAULT_FOLDER`
+(`web-vault/` by default); to do that again, for example after an update:
 
 ```bash
-curl -fsSL https://github.com/dani-garcia/bw_web_builds/releases/download/v2026.8.0/bw_web_v2026.8.0.tar.gz | tar -xz
+php artisan vaultwarden:web-vault
+```
+
+If the folder holds that version already, the command leaves it alone (`--force` installs it anyway).
+Otherwise it downloads about 75 MB:
+
+1. an anonymous token and the image from the GitHub container registry
+   (`ghcr.io/dani-garcia/bw_web_builds`), or, if anything fails there, from Docker Hub
+   (`docker.io/vaultwarden/web-vault`),
+2. checks the image and each of its parts against the pinned digest and refuses anything else,
+3. unpacks the image's `web-vault` folder next to `WEB_VAULT_FOLDER`, then puts it in place of the
+   old one.
+
+PHP needs to write to the folder that holds `WEB_VAULT_FOLDER`. If the server cannot download the image,
+run the command on another computer and copy the `web-vault` folder over, or take it from the image with
+Docker:
+
+```bash
+docker create --name web-vault --platform linux/amd64 docker.io/vaultwarden/web-vault@sha256:632375471c7c06a799335cd74dfeaef63f92f45f9cd322c337ae7ad70081e48a
+docker cp web-vault:/web-vault ./web-vault
+docker rm web-vault
 ```
 
 PHP serves its files, with the same headers as Vaultwarden, and adds `/css/vaultwarden.css`, which hides
 what the server does not offer (built from the templates `scss/vaultwarden.scss.hbs` and
 `scss/user.vaultwarden.scss.hbs`, which you may override in `data/templates`). `WEB_VAULT_ENABLED=false`
-leaves the web vault out, as in Vaultwarden.
+leaves the web vault out, as in Vaultwarden; `vaultwarden:web-vault` then installs nothing.
 
 ## Permissions
 
-The PHP user must be able to write to:
+Run Composer and Artisan as the user PHP runs as, or give that user the files afterwards. It must be
+able to write to:
 
 - `data/`: the database (with SQLite), the RSA key that signs the login tokens, attachments and Sends
 - `storage/`: logs and the cache that holds the rate limits
@@ -295,11 +339,24 @@ This needs no daemon: the web requests send the notifications themselves, once t
 ## Updating
 
 1. Back up the database and the `data` folder.
-2. Fetch the new version and its dependencies:
+2. Fetch the new version and its dependencies. In a Git checkout:
 
    ```bash
    git pull
    composer install --no-dev --optimize-autoloader
+   ```
+
+   An installation made with `composer create-project` has nothing to pull from. Install the new version
+   next to it without the setup steps, move the settings, the data and the web vault over, and swap the
+   folders:
+
+   ```bash
+   composer create-project --no-dev --no-scripts christianrudde/vaultwarphpen vaultwarphpen-new dev-main
+   rm -r vaultwarphpen-new/data
+   mv vaultwarphpen/.env vaultwarphpen/data vaultwarphpen/web-vault vaultwarphpen-new/
+   mv vaultwarphpen vaultwarphpen-old
+   mv vaultwarphpen-new vaultwarphpen
+   cd vaultwarphpen
    ```
 
 3. Apply new schema migrations:
@@ -308,8 +365,12 @@ This needs no daemon: the web requests send the notifications themselves, once t
    php artisan vaultwarden:migrate
    ```
 
-4. If `web_vault` in `parity/reference.json` changed, unpack that web vault as described
-   [above](#web-vault), after removing the old `web-vault` folder.
+4. Install the web vault of the new version. Unless it pins another one, nothing happens:
+
+   ```bash
+   php artisan vaultwarden:web-vault
+   ```
+
 5. Restart the scheduler and the notifications daemon, if you use them, so that they load the new code.
 
 There are no releases yet; `main` is the current state.
