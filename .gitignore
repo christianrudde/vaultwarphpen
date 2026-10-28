@@ -29,3 +29,5 @@ Thumbs.db
 /reference
 # The web vault that `php artisan vaultwarden:web-vault` installs.
 /web-vault
+# The archives that `php artisan release:build` writes.
+/build

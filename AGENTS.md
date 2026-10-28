@@ -59,6 +59,11 @@ environment variables, so the official Bitwarden clients and existing Vaultwarde
   `php86 artisan vaultwarden:web-vault` installs the web vault from the Docker image Vaultwarden pins
   (`App\Support\WebVaultImage`, downloads through `App\Support\Downloader`, which tests fake);
   `composer create-project` and `composer setup` run it after `key:generate` and `vaultwarden:migrate`.
+- Release archives: `php86 artisan release:build [ref]` clones the ref, installs it without dev
+  dependencies and with the web vault, drops `ReleaseBuild::LEFT_OUT` and writes reproducible tar.gz
+  and zip archives (`App\Release\ArchiveWriter`) with a `.sha256` to `build/`. `release.yml` runs it
+  for `v*` tags and attaches them to the release (a draft if there is none). When a new top-level
+  file or folder is only for development, add it to `LEFT_OUT`.
 - Uploads: Vaultwarden takes files up to 525 MB, so PHP needs `upload_max_filesize=525M` and a
   `post_max_size` above it (or `0`). PHP cuts uploaded file names at the last slash, which encrypted
   names contain; read them with `getClientOriginalPath()` (see `App\Http\Data\UploadData`).

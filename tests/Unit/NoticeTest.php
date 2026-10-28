@@ -3,11 +3,13 @@
 namespace Tests\Unit;
 
 use App\Console\Commands\ParitySync;
+use App\Parity\Reference;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Keeps NOTICE.md complete: it names every file taken over from Vaultwarden
- * and every package Composer installs.
+ * Keeps NOTICE.md complete: it names every file taken over from Vaultwarden,
+ * every package Composer installs and the source of the web vault that the
+ * release archives include.
  */
 class NoticeTest extends TestCase
 {
@@ -32,6 +34,15 @@ class NoticeTest extends TestCase
 
         foreach ([...$lock['packages'], ...$lock['packages-dev']] as $package) {
             $this->assertStringContainsString("`{$package['name']}`", $this->notice, "NOTICE.md does not list {$package['name']}.");
+        }
+    }
+
+    public function test_the_source_of_the_web_vault_in_the_release_archives_is_named_for_the_pinned_version(): void
+    {
+        $version = Reference::load(dirname(__DIR__, 2))->webVault;
+
+        foreach (["https://github.com/vaultwarden/vw_web_builds/tree/v{$version}", "https://github.com/dani-garcia/bw_web_builds/tree/v{$version}", "`web-v{$version}`"] as $source) {
+            $this->assertStringContainsString($source, $this->notice, "NOTICE.md must name {$source}, the source of the web vault the release archives include (GPL-3.0 section 6).");
         }
     }
 

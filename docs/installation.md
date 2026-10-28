@@ -2,7 +2,8 @@
 
 Vaultwarphpen is an ordinary Laravel application: PHP runs `public/index.php` for every request, and
 the data lives in a database and a data folder. This guide sets it up on a server of your own or on a
-hosting package that gives you PHP 8.5, Composer and a shell.
+hosting package that gives you PHP 8.5 and a shell, with Composer or from a
+[release archive](#installing-from-a-release-archive) that needs no Composer.
 
 > [!WARNING]
 > Vaultwarphpen is in early development and has not been audited. See the status in the
@@ -13,8 +14,8 @@ hosting package that gives you PHP 8.5, Composer and a shell.
 - PHP 8.5 or newer, as PHP-FPM or an Apache module, with the extensions `openssl`, `sodium` and
   `mbstring`, the ones Laravel needs (`ctype`, `filter`, `hash`, `session`, `tokenizer`) and one of
   `pdo_sqlite`, `pdo_mysql` or `pdo_pgsql`; `phar`, `zlib` and `allow_url_fopen` to download the web
-  vault
-- [Composer](https://getcomposer.org)
+  vault (a release archive brings it along)
+- [Composer](https://getcomposer.org), unless you install from a release archive
 - SQLite, MySQL/MariaDB or PostgreSQL
 - A web server with HTTPS. The Bitwarden clients need HTTPS for everything but `localhost`.
 
@@ -49,6 +50,61 @@ php artisan vaultwarden:migrate
 php artisan vaultwarden:web-vault
 ```
 
+## Installing from a release archive
+
+For hosts without Composer, the releases on [GitHub](https://github.com/christianrudde/vaultwarphpen/releases)
+come as archives that hold everything: the code, its PHP dependencies in `vendor/` and the web vault in
+`web-vault/`. Take `vaultwarphpen-<version>.tar.gz`, or `vaultwarphpen-<version>.zip` if your host
+unpacks only zip files, and check it against `vaultwarphpen-<version>.sha256` next to it:
+
+```bash
+sha256sum --check --ignore-missing vaultwarphpen-1.0.0.sha256
+```
+
+(On macOS: `shasum -a 256 --check --ignore-missing vaultwarphpen-1.0.0.sha256`.) There are no releases
+yet; you can build the archive of any commit [yourself](#building-an-archive).
+
+1. Unpack the archive on the server, or unpack it on your computer and upload the folder
+   `vaultwarphpen-<version>` it holds (by SFTP, FTP or the host's file manager). Rename the folder as you
+   like, `vaultwarphpen` below. Only its `public` folder is served: keep the folder itself out of the
+   document root and point the document root at `public` (see [Web server](#web-server)).
+2. Let the user PHP runs as write to `data/`, `storage/` and `bootstrap/cache/` (see
+   [Permissions](#permissions)). Uploaded by FTP, the files usually belong to that user already.
+3. Copy `.env.example` to `.env` and set at least `APP_ENV=production`, `APP_DEBUG=false` and `DOMAIN`
+   (see [Configuring it](#configuring-it), also for `DATABASE_URL`).
+4. In a shell on the server, in the folder, create the application key and the database schema:
+
+   ```bash
+   php artisan key:generate
+   php artisan vaultwarden:migrate
+   ```
+
+   Use the PHP command line of the same version as the web server; many hosts name it `php8.5`. If the
+   host gives you no shell, run each command once as a cron job, as for the
+   [scheduled jobs](#scheduled-jobs).
+
+The web vault needs no download: `php artisan vaultwarden:web-vault` finds it installed. To update,
+see [Updating](#updating).
+
+### Building an archive
+
+`php artisan release:build` builds the archives in a Git checkout with Composer, the way the release
+workflow (`.github/workflows/release.yml`) does for every tag:
+
+```bash
+php artisan release:build v1.0.0
+```
+
+It takes a tag, branch or commit (the last one by default; changes that are not committed stay out),
+clones it, installs the dependencies with `composer install --no-dev --optimize-autoloader`, installs
+the web vault with `php artisan vaultwarden:web-vault`, leaves out what only development needs (the
+tests, the CI files, the parity matrix and schema snapshots, the tool settings) and writes
+`build/vaultwarphpen-<version>.tar.gz`, `.zip` and `.sha256`. The version is the tag without its `v`, or
+the first 8 characters of the commit. The archives are reproducible: entries sorted, every file with the
+time of the commit, no owners, and modes reduced to 0644 and 0755. The same commit built with the same
+Composer version (the workflow uses 2.10.3) gives the same bytes, so a release can be checked by
+building it again.
+
 ## Configuring it
 
 Open `.env`. The upper part holds Laravel's own settings; for a server, set:
@@ -82,7 +138,8 @@ The Bitwarden web vault is not part of this repository. Vaultwarphpen serves the
 Docker images ship: Vaultwarden's build of it ([bw_web_builds](https://github.com/dani-garcia/bw_web_builds)),
 in the version and image that Vaultwarden's Dockerfile pins (`web_vault` and `web_vault_digest` in
 [`parity/reference.json`](../parity/reference.json)). The installation puts it into `WEB_VAULT_FOLDER`
-(`web-vault/` by default); to do that again, for example after an update:
+(`web-vault/` by default), and the release archives hold it there already; to do that again, for
+example after an update:
 
 ```bash
 php artisan vaultwarden:web-vault
@@ -359,13 +416,31 @@ This needs no daemon: the web requests send the notifications themselves, once t
    cd vaultwarphpen
    ```
 
+   From a release archive, replace the code and keep `.env` and `data/`: unpack the new archive next to
+   the installation, move the two over (in place of the new, empty `data`), and swap the folders, so
+   that the document root keeps its path. The new archive brings its own web vault; leave the old one
+   behind. With a file manager or FTP client, do the same by renaming and moving:
+
+   ```bash
+   tar -xzf vaultwarphpen-1.1.0.tar.gz
+   rm -r vaultwarphpen-1.1.0/data
+   mv vaultwarphpen/.env vaultwarphpen/data vaultwarphpen-1.1.0/
+   mv vaultwarphpen vaultwarphpen-old
+   mv vaultwarphpen-1.1.0 vaultwarphpen
+   cd vaultwarphpen
+   ```
+
+   If `DATA_FOLDER` points outside the installation, only `.env` moves. Do not unpack the new archive
+   over the old folder: files that the new version no longer has would stay behind.
+
 3. Apply new schema migrations:
 
    ```bash
    php artisan vaultwarden:migrate
    ```
 
-4. Install the web vault of the new version. Unless it pins another one, nothing happens:
+4. Install the web vault of the new version. Unless it pins another one, or it came with the release
+   archive, nothing happens:
 
    ```bash
    php artisan vaultwarden:web-vault

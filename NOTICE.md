@@ -70,12 +70,33 @@ What Vaultwarphpen takes from it:
   has to work with. None of their code is included.
 - **Web vault builds** (<https://github.com/dani-garcia/bw_web_builds>), GPL-3.0: the patched Bitwarden
   web vault that Vaultwarden serves. `parity/reference.json` pins version 2026.8.0 and the Docker image
-  that Vaultwarden's Dockerfile takes it from. Vaultwarphpen does not include it: `php artisan
+  that Vaultwarden's Dockerfile takes it from. The repository does not include it: `php artisan
   vaultwarden:web-vault` downloads that image and unpacks its `web-vault` folder, which Vaultwarphpen
-  then serves.
+  then serves. The release archives include it; see [below](#web-vault).
 
 Bitwarden is a trademark of Bitwarden, Inc. Vaultwarphpen is not affiliated with, associated with or
 endorsed by Bitwarden, Inc. or the Vaultwarden project. Vaultwarphpen uses no Bitwarden logos.
+
+## Web vault
+
+The release archives (built by `php artisan release:build` and attached to the
+[releases](https://github.com/christianrudde/vaultwarphpen/releases)) include, unchanged, the web vault that
+`parity/reference.json` pins, in `web-vault/`: Vaultwarden's build of the Bitwarden web client, version
+2026.8.0. It is licensed under the GPL-3.0, whose text is in [`LICENSES/GPL-3.0.txt`](LICENSES/GPL-3.0.txt).
+The libraries bundled into its scripts keep their notices in the `*.LICENSE.txt` files next to them. The
+web vault is a separate program that the browser runs; the archives only bring it along with Vaultwarphpen.
+
+Its Corresponding Source, as section 6 of the GPL-3.0 calls it, is:
+
+- the source of the web client: <https://github.com/vaultwarden/vw_web_builds/tree/v2026.8.0>,
+  Vaultwarden's fork of [bitwarden/clients](https://github.com/bitwarden/clients) (tag `web-v2026.8.0`)
+  with its changes for Vaultwarden
+- the scripts that build it with `npm run dist:oss:selfhost`, which leaves out the code under the
+  Bitwarden License: <https://github.com/dani-garcia/bw_web_builds/tree/v2026.8.0>
+
+The archives take the build from the image `ghcr.io/dani-garcia/bw_web_builds` (also
+`docker.io/vaultwarden/web-vault`) with the digest that `parity/reference.json` pins, as `php artisan
+vaultwarden:web-vault` does.
 
 ## Web libraries of the admin panel
 
@@ -162,7 +183,8 @@ the crates Vaultwarden uses for that, at the versions locked in its `Cargo.lock`
 
 ## PHP packages
 
-Composer installs these packages; each one ships its license in `vendor/<package>`. The tables list
+Composer installs these packages; each one ships its license in `vendor/<package>`, and the release
+archives include the runtime ones with their licenses in that place. The tables list
 what `composer.lock` locks. `tests/Unit/NoticeTest.php` fails when the tables and `composer.lock` disagree.
 
 All runtime licenses are compatible with the AGPL-3.0: MIT, BSD-3-Clause and Apache-2.0, and the
@@ -304,7 +326,8 @@ published by the maintainers, who answer for them.
 
 ## License texts
 
-The AGPL-3.0 is in [`LICENSE.txt`](LICENSE.txt). The licenses of the PHP packages ship with them in
+The AGPL-3.0 is in [`LICENSE.txt`](LICENSE.txt), the GPL-3.0 of the web vault in
+[`LICENSES/GPL-3.0.txt`](LICENSES/GPL-3.0.txt). The licenses of the PHP packages ship with them in
 `vendor/`. Code copied or started from MIT-licensed works carries these notices:
 
 ### MIT License (Rocket)

@@ -64,9 +64,13 @@ point a Bitwarden client at it:
 php -S 127.0.0.1:8000 -t public public/index.php
 ```
 
+Hosts without Composer get everything from a release archive instead: the code with its dependencies and
+the web vault, ready to upload ([Installing from a release archive](docs/installation.md#installing-from-a-release-archive)).
+
 For a real installation, read the documentation:
 
-- [Installation](docs/installation.md): web server, PHP settings, updates
+- [Installation](docs/installation.md): with Composer or from a release archive, web server, PHP
+  settings, updates
 - [Configuration](docs/configuration.md): Vaultwarden's settings and where Vaultwarphpen differs
 - [Moving from Vaultwarden](docs/migrating-from-vaultwarden.md): taking over an existing database and
   data folder, and going back

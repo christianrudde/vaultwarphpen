@@ -1,0 +1,99 @@
+name: Release
+
+# Builds the release archives (`php artisan release:build`) for a tag and
+# attaches them to the GitHub release of that tag, or to a new draft release
+# when there is none yet. Started by hand, it builds any ref and keeps the
+# archives as a workflow artifact only.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Tag, branch or commit to build
+        required: true
+        default: main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  archives:
+    name: Archives
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The build clones the ref from here, and Composer names the version after its tag.
+          fetch-depth: 0
+          persist-credentials: false
+
+      # The Composer version is pinned: it writes the autoloader, so another one gives other bytes.
+      - name: Set up PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2 (2.40.0)
+        with:
+          php-version: "8.5"
+          extensions: openssl, sodium, mbstring, phar, zlib
+          tools: composer:2.10.3
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-dev --no-interaction --no-progress --prefer-dist
+
+      - name: Build the archives
+        run: php artisan release:build "$REF" --output=build
+        env:
+          REF: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref_name }}
+
+      - name: Keep the archives
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release
+          path: build/vaultwarphpen-*
+          if-no-files-found: error
+
+  # Apart from the build, so that the token that may write releases never runs Composer.
+  release:
+    name: Release
+    if: github.event_name == 'push'
+    needs: archives
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Fetch the archives
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+          path: build
+
+      - name: Attach them to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" build/* --clobber
+          else
+            gh release create "$TAG" build/* --draft --verify-tag --title "Vaultwarphpen ${TAG#v}" --generate-notes --notes "$(cat <<EOF
+          Archives for PHP hosts without Composer: the code with its dependencies in \`vendor/\` and the web vault
+          that Vaultwarden ships in \`web-vault/\`. [Installing from a release archive](https://github.com/$GH_REPO/blob/$TAG/docs/installation.md#installing-from-a-release-archive)
+          describes the installation and the update; \`sha256sum -c vaultwarphpen-${TAG#v}.sha256\` checks a download.
+
+          The web vault is Vaultwarden's build of the Bitwarden web client, under the GPL-3.0;
+          [NOTICE.md](https://github.com/$GH_REPO/blob/$TAG/NOTICE.md#web-vault) names its source.
+          EOF
+          )"
+          fi
