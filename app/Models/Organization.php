@@ -8,6 +8,7 @@ use App\Http\Json;
 use App\Support\EmailAddress;
 use App\Support\EscapeDebug;
 use App\Support\Random;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
@@ -149,5 +150,13 @@ final class Organization extends Model
     public static function findByUuid(string $uuid): ?self
     {
         return self::query()->where('uuid', $uuid)->first();
+    }
+
+    /**
+     * @return Collection<int, self>
+     */
+    public static function getAll(): Collection
+    {
+        return self::query()->get();
     }
 }

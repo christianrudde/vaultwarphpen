@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Config;
 
+use App\Config\SettingDocs;
 use App\Config\Settings;
 use App\Parity\Matrix;
 use Closure;
@@ -65,6 +66,24 @@ class SettingsTest extends TestCase
                 $setting->default instanceof Closure,
                 $setting->env(),
             );
+        }
+    }
+
+    /**
+     * The admin panel shows the name and description of each doc comment.
+     */
+    public function test_documentation_matches(): void
+    {
+        $this->assertSame(array_keys(Settings::all()), array_keys(SettingDocs::SETTINGS));
+        foreach (self::matrix() as $item) {
+            $name = strtolower(Matrix::string($item['env'] ?? null));
+            $this->assertSame([$item['title'] ?? '', $item['description'] ?? ''], SettingDocs::SETTINGS[$name], $name);
+        }
+
+        $groups = array_values(array_unique(array_map(static fn ($setting): string => $setting->group, Settings::all())));
+        $this->assertSame($groups, array_keys(SettingDocs::GROUPS));
+        foreach (SettingDocs::GROUPS as [$toggle]) {
+            $this->assertTrue($toggle === '' || isset(Settings::all()[$toggle]), $toggle);
         }
     }
 

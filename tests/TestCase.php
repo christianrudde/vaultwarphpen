@@ -4,6 +4,7 @@ namespace Tests;
 
 use App\Config\Config;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Routing\Router;
 use Illuminate\Testing\PendingCommand;
 
 abstract class TestCase extends BaseTestCase
@@ -39,6 +40,10 @@ abstract class TestCase extends BaseTestCase
     {
         $this->setEnvironment($environment);
         $this->app->forgetInstance(Config::class);
+        // Routes keep the controllers they made, with the configuration they were given.
+        foreach ($this->app->make(Router::class)->getRoutes()->getRoutes() as $route) {
+            $route->flushController();
+        }
     }
 
     /**

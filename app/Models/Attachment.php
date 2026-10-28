@@ -146,6 +146,16 @@ final class Attachment extends Model
         return self::sumOfSizes(self::query()->join('ciphers', 'ciphers.uuid', '=', 'attachments.cipher_uuid')->where('ciphers.organization_uuid', $orgUuid)->sum('attachments.file_size'));
     }
 
+    public static function countByUser(string $userUuid): int
+    {
+        return self::query()->join('ciphers', 'ciphers.uuid', '=', 'attachments.cipher_uuid')->where('ciphers.user_uuid', $userUuid)->count();
+    }
+
+    public static function countByOrg(string $orgUuid): int
+    {
+        return self::query()->join('ciphers', 'ciphers.uuid', '=', 'attachments.cipher_uuid')->where('ciphers.organization_uuid', $orgUuid)->count();
+    }
+
     /**
      * @return Collection<int, self>
      */

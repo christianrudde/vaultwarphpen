@@ -658,6 +658,16 @@ final class Cipher extends Model
         return self::query()->where('organization_uuid', $orgUuid)->get();
     }
 
+    public static function countByOrg(string $orgUuid): int
+    {
+        return self::query()->where('organization_uuid', $orgUuid)->count();
+    }
+
+    public static function countOwnedByUser(string $userUuid): int
+    {
+        return self::query()->where('user_uuid', $userUuid)->count();
+    }
+
     /**
      * The user's own ciphers, not those of organizations.
      *

@@ -18,7 +18,11 @@ mkdir -p "${work}/reference" "${work}/subject" "${work}/shared" "${work}/feature
 echo '<!DOCTYPE html><title>Web vault</title>' > "${work}/web-vault/index.html"
 export WEB_VAULT_FOLDER="${work}/web-vault/"
 # Every flow logs in; Vaultwarden's limits (10 logins, then one a minute) would cut the suite short.
-export LOGIN_RATELIMIT_MAX_BURST=10000 UNAUTHENTICATED_RATELIMIT_MAX_BURST=10000
+export LOGIN_RATELIMIT_MAX_BURST=10000 UNAUTHENTICATED_RATELIMIT_MAX_BURST=10000 ADMIN_RATELIMIT_MAX_BURST=10000
+# The admin panel: a plain token on the default pair, an Argon2id PHC string of another one
+# on the mail pair (tests/Differential/AdminTest). The pair with groups and events has none.
+admin_token=differential-admin-token
+mail_admin_token='$argon2id$v=19$m=19456,t=2,p=1$1u9NMozy1wIOfBlcUShBoA$QV3xAUsbGY31IC8a82I+DXWOcb6PBY7xD3/yupWvJ3k'
 
 pids=()
 trap 'kill "${pids[@]}" 2> /dev/null || true' EXIT
@@ -32,7 +36,7 @@ cp "${work}/subject/rsa_key.pem" "${work}/features-subject/rsa_key.pem"
 cp "${work}/subject/rsa_key.pem" "${work}/mail-reference/rsa_key.pem"
 cp "${work}/subject/rsa_key.pem" "${work}/mail-subject/rsa_key.pem"
 
-DATA_FOLDER="${work}/reference" ROCKET_PORT=8000 "${binary}" > "${work}/reference.log" 2>&1 &
+DATA_FOLDER="${work}/reference" ADMIN_TOKEN="${admin_token}" ROCKET_PORT=8000 "${binary}" > "${work}/reference.log" 2>&1 &
 pids+=($!)
 # A second pair on one database: Vaultwarden creates it, we use it too.
 DATA_FOLDER="${work}/shared" ROCKET_PORT=8001 "${binary}" > "${work}/shared-reference.log" 2>&1 &
@@ -62,7 +66,7 @@ pids+=($!)
 php .github/scripts/smtp-sink.php 2502 "${work}/mail-subject-inbox" > "${work}/sink-subject.log" 2>&1 &
 pids+=($!)
 mail_env=(SMTP_HOST=127.0.0.1 SMTP_SECURITY=off SMTP_FROM=vaultwarden@example.com SMTP_TIMEOUT=5
-    EMAIL_2FA_ENFORCE_ON_VERIFIED_INVITE=true EMAIL_2FA_AUTO_FALLBACK=true)
+    EMAIL_2FA_ENFORCE_ON_VERIFIED_INVITE=true EMAIL_2FA_AUTO_FALLBACK=true ADMIN_TOKEN="${mail_admin_token}")
 env DATA_FOLDER="${work}/mail-reference" "${mail_env[@]}" SMTP_PORT=2501 ROCKET_PORT=8003 "${binary}" > "${work}/mail-reference.log" 2>&1 &
 pids+=($!)
 
@@ -73,7 +77,7 @@ php artisan vaultwarden:migrate --no-ansi > /dev/null
 DATA_FOLDER="${work}/features-subject" php artisan vaultwarden:migrate --no-ansi > /dev/null
 DATA_FOLDER="${work}/mail-subject" php artisan vaultwarden:migrate --no-ansi > /dev/null
 # Each PHP server has a cache of its own: the rate limits are per server, like Vaultwarden's.
-(cd public && CACHE_PATH="${work}/subject-cache" exec php -d upload_max_filesize=525M -d post_max_size=0 -S 127.0.0.1:8080 ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php) \
+(cd public && ADMIN_TOKEN="${admin_token}" CACHE_PATH="${work}/subject-cache" exec php -d upload_max_filesize=525M -d post_max_size=0 -S 127.0.0.1:8080 ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php) \
     > "${work}/subject.log" 2>&1 &
 pids+=($!)
 (cd public && DATA_FOLDER="${work}/shared" CACHE_PATH="${work}/shared-cache" exec php -d upload_max_filesize=525M -d post_max_size=0 -S 127.0.0.1:8081 ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php) \

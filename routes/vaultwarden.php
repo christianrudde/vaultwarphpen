@@ -1,6 +1,8 @@
 <?php
 
+use App\Config\Config;
 use App\Http\Controllers\AccountsController;
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\CiphersController;
 use App\Http\Controllers\CoreController;
 use App\Http\Controllers\EmergencyAccessController;
@@ -35,6 +37,7 @@ Route::get('/alive', [WebController::class, 'alive'])->name('web::alive');
 // Registered after the GET route, which would otherwise answer HEAD too.
 Route::match(['HEAD'], '/alive', [WebController::class, 'aliveHead'])->name('web::alive_head');
 Route::get('/attachments/{cipherId}/{fileId}', [WebController::class, 'attachments'])->name('web::attachments');
+Route::get('/vw_static/{filename}', [WebController::class, 'staticFiles'])->name('web::static_files');
 
 // api::core_routes()
 Route::prefix('/api')->group(function (): void {
@@ -316,4 +319,41 @@ Route::prefix('/identity')->group(function (): void {
 // api::core_events_routes()
 Route::prefix('/events')->group(function (): void {
     Route::post('/collect', [EventsController::class, 'postEventsCollect'])->name('core::events::post_events_collect');
+});
+
+// api::admin_routes(): without a token only the notice that the panel is disabled.
+Route::prefix('/admin')->group(function (): void {
+    if (! AdminController::enabled(app(Config::class))) {
+        Route::get('/', [AdminController::class, 'adminDisabled'])->name('admin::admin_disabled');
+
+        return;
+    }
+
+    Route::get('/', [AdminController::class, 'adminPage'])->name('admin::admin_page');
+    Route::post('/', [AdminController::class, 'postAdminLogin'])->name('admin::post_admin_login');
+    Route::get('/logout', [AdminController::class, 'logout'])->name('admin::logout');
+    Route::post('/invite', [AdminController::class, 'inviteUser'])->name('admin::invite_user');
+    Route::post('/test/smtp', [AdminController::class, 'testSmtp'])->name('admin::test_smtp');
+    Route::post('/config', [AdminController::class, 'postConfig'])->name('admin::post_config');
+    Route::post('/config/delete', [AdminController::class, 'deleteConfig'])->name('admin::delete_config');
+    Route::post('/config/backup_db', [AdminController::class, 'backupDb'])->name('admin::backup_db');
+    // Static segments before the user id, which Rocket ranks lower.
+    Route::get('/users', [AdminController::class, 'getUsersJson'])->name('admin::get_users_json');
+    Route::get('/users/overview', [AdminController::class, 'usersOverview'])->name('admin::users_overview');
+    Route::get('/users/by-mail/{mail}', [AdminController::class, 'getUserByMailJson'])->name('admin::get_user_by_mail_json');
+    Route::post('/users/org_type', [AdminController::class, 'updateMembershipType'])->name('admin::update_membership_type');
+    Route::post('/users/update_revision', [AdminController::class, 'updateRevisionUsers'])->name('admin::update_revision_users');
+    Route::get('/users/{userId}', [AdminController::class, 'getUserJson'])->name('admin::get_user_json');
+    Route::post('/users/{userId}/delete', [AdminController::class, 'deleteUser'])->name('admin::delete_user');
+    Route::delete('/users/{userId}/sso', [AdminController::class, 'deleteSsoUser'])->name('admin::delete_sso_user');
+    Route::post('/users/{userId}/deauth', [AdminController::class, 'deauthUser'])->name('admin::deauth_user');
+    Route::post('/users/{userId}/disable', [AdminController::class, 'disableUser'])->name('admin::disable_user');
+    Route::post('/users/{userId}/enable', [AdminController::class, 'enableUser'])->name('admin::enable_user');
+    Route::post('/users/{userId}/remove-2fa', [AdminController::class, 'remove2fa'])->name('admin::remove_2fa');
+    Route::post('/users/{userId}/invite/resend', [AdminController::class, 'resendUserInvite'])->name('admin::resend_user_invite');
+    Route::get('/organizations/overview', [AdminController::class, 'organizationsOverview'])->name('admin::organizations_overview');
+    Route::post('/organizations/{orgId}/delete', [AdminController::class, 'deleteOrganization'])->name('admin::delete_organization');
+    Route::get('/diagnostics', [AdminController::class, 'diagnostics'])->name('admin::diagnostics');
+    Route::get('/diagnostics/config', [AdminController::class, 'getDiagnosticsConfig'])->name('admin::get_diagnostics_config');
+    Route::get('/diagnostics/http', [AdminController::class, 'getDiagnosticsHttp'])->name('admin::get_diagnostics_http');
 });

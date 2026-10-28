@@ -18,7 +18,10 @@ use RuntimeException;
  */
 final class TemplateRenderer
 {
-    private const array HELPERS = ['case', 'to_json', 'webver', 'vwver'];
+    /**
+     * Vaultwarden's own helpers, then those handlebars-rust registers by default that the templates use.
+     */
+    private const array HELPERS = ['case', 'to_json', 'webver', 'vwver', 'eq', 'not', 'or'];
 
     /** @var array<string, Closure> */
     private array $compiled = [];
@@ -119,6 +122,23 @@ final class TemplateRenderer
             ),
             'webver' => fn (string $requirement): bool => VersionRequirement::matches($requirement, $this->webVaultVersion),
             'vwver' => fn (string $requirement): bool => VersionRequirement::matches($requirement, $this->vaultwardenVersion),
+            'eq' => static fn (mixed $a, mixed $b): bool => $a === $b,
+            'not' => static fn (mixed $value): bool => ! self::isTruthy($value),
+            'or' => static fn (mixed $a, mixed $b): bool => self::isTruthy($a) || self::isTruthy($b),
         ];
+    }
+
+    /**
+     * JsonTruthy::is_truthy of handlebars-rust, without zero: empty strings,
+     * lists and objects, zero, null and false are false.
+     */
+    private static function isTruthy(mixed $value): bool
+    {
+        return match (true) {
+            is_bool($value) => $value,
+            is_int($value), is_float($value) => $value != 0 && ! is_nan((float) $value),
+            is_string($value), is_array($value) => $value !== '' && $value !== [],
+            default => $value !== null,
+        };
     }
 }

@@ -212,6 +212,165 @@ final class Config
         return trim($this->optionalString('admin_token') ?? '') !== '';
     }
 
+    /**
+     * Config::prepare_json: every group of settings with its documentation,
+     * and each setting with its value, its default (the environment's value
+     * or the built-in default) and whether config.json overrides it.
+     *
+     * @return list<array{group: string, grouptoggle: string, groupdoc: string, elements: list<array<string, mixed>>}>
+     */
+    public function prepareJson(): array
+    {
+        $defaults = $this->env->build();
+        $elements = [];
+        foreach (Settings::all() as $name => $setting) {
+            [$docName, $description] = SettingDocs::SETTINGS[$name];
+            // ElementData
+            $elements[$setting->group][] = [
+                'editable' => $setting->editable,
+                'name' => $name,
+                'value' => $this->values[$name],
+                'default' => $defaults[$name],
+                'type' => match ($setting->type) {
+                    SettingType::Pass => 'password',
+                    SettingType::String => 'text',
+                    SettingType::Bool => 'checkbox',
+                    default => 'number',
+                },
+                'doc' => ['name' => $docName, 'description' => $description],
+                'overridden' => in_array(strtoupper($name), $this->overrides, true),
+            ];
+        }
+
+        // GroupData
+        $groups = [];
+        foreach (SettingDocs::GROUPS as $group => [$toggle, $doc]) {
+            $groups[] = ['group' => $group, 'grouptoggle' => $toggle, 'groupdoc' => $doc, 'elements' => $elements[$group] ?? []];
+        }
+
+        return $groups;
+    }
+
+    /**
+     * Config::get_support_json: every setting, with passwords replaced by
+     * "***" and the values that could identify the server masked.
+     *
+     * @return array<string, string|int|bool|null> Sorted by name
+     */
+    public function supportJson(): array
+    {
+        $json = [];
+        foreach (Settings::all() as $name => $setting) {
+            $value = $this->values[$name];
+            if ($setting->type === SettingType::Pass) {
+                $value = $setting->action === 'option' && $value === null ? null : '***';
+            } elseif (is_string($value) && in_array($name, self::PRIVACY_CONFIG, true)) {
+                $value = self::privacyMask($value);
+            }
+            $json[$name] = $value;
+        }
+        ksort($json, SORT_STRING);
+
+        return $json;
+    }
+
+    /**
+     * Config::update_config: keep the settings that may be edited, check the
+     * result like at startup (more strictly) and write config.json. Values
+     * that equal their defaults are written too.
+     *
+     * @return self The configuration from now on
+     *
+     * @throws ConfigException
+     */
+    public function updateConfig(ConfigBuilder $other): self
+    {
+        $builder = $other->withoutNonEditable();
+
+        $overrides = [];
+        $config = new self($this->env->merge($builder, $overrides)->build(), $this->basePath, $this->env, $builder,
+            $overrides, ConfigFileStatus::Loaded, $this->configFile);
+        ConfigValidator::validate($config, onUpdate: true);
+
+        $file = $this->absolutePath($this->configFile);
+        if (! is_dir(dirname($file))) {
+            @mkdir(dirname($file), 0777, true);
+        }
+        if (@file_put_contents($file, $builder->toJson()) === false) {
+            throw new ConfigException("Failed to write `{$this->configFile}`.");
+        }
+
+        return $config;
+    }
+
+    /**
+     * Config::delete_user_config: remove config.json; a missing file is fine.
+     *
+     * @return self The configuration from now on: the environment and the defaults
+     *
+     * @throws ConfigException
+     */
+    public function deleteUserConfig(): self
+    {
+        $file = $this->absolutePath($this->configFile);
+        if (is_file($file) && ! @unlink($file)) {
+            throw new ConfigException("Failed to delete `{$this->configFile}`.");
+        }
+
+        return new self($this->env->build(), $this->basePath, $this->env, new ConfigBuilder, [], ConfigFileStatus::NotFound, $this->configFile);
+    }
+
+    /**
+     * The settings whose string values get_support_json masks. Passwords are always hidden.
+     */
+    private const array PRIVACY_CONFIG = [
+        'allowed_connect_src',
+        'allowed_iframe_ancestors',
+        'database_url',
+        'domain_origin',
+        'domain_path',
+        'domain',
+        'duo_ikey',
+        'duo_host',
+        'helo_name',
+        'org_creation_users',
+        'signups_domains_whitelist',
+        '_smtp_img_src',
+        'smtp_from_name',
+        'smtp_from',
+        'smtp_host',
+        'smtp_username',
+        'sso_authority',
+        'sso_callback_path',
+        'sso_client_id',
+        'yubico_client_id',
+        'yubico_server',
+    ];
+
+    /**
+     * Every character becomes `*`, except commas, a colon among the first 11
+     * characters and slashes among the first 13 after it, so that a URL keeps
+     * its scheme.
+     */
+    private static function privacyMask(string $value): string
+    {
+        $masked = '';
+        $colon = false;
+        foreach (mb_str_split($value, 1, 'UTF-8') as $index => $char) {
+            $position = $index + 1;
+            if ($char === ':' && $position <= 11) {
+                $colon = true;
+                $masked .= $char;
+            } elseif (($char === '/' && $position <= 13 && $colon) || $char === ',') {
+                $masked .= $char;
+            } else {
+                $masked .= '*';
+            }
+        }
+
+        return $masked;
+    }
+
     private static function absolute(string $path, string $basePath): string
     {
         return $path === '' || str_starts_with($path, '/') ? $path : rtrim($basePath, '/').'/'.$path;

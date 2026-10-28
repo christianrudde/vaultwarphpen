@@ -498,6 +498,14 @@ final class Membership extends Model
         return self::query()->where('user_uuid', $userUuid)->get();
     }
 
+    /**
+     * Members of the organization in any state.
+     */
+    public static function countByOrg(string $orgUuid): int
+    {
+        return self::query()->where('org_uuid', $orgUuid)->count();
+    }
+
     public static function countAcceptedAndConfirmedByUser(string $userUuid, string $excludedOrgUuid): int
     {
         return self::query()->where('user_uuid', $userUuid)->where('org_uuid', '!=', $excludedOrgUuid)

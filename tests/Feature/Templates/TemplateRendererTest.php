@@ -74,6 +74,17 @@ class TemplateRendererTest extends TestCase
         $this->assertSame('', $this->renderer()->render('case', ['value' => '1']));
     }
 
+    /**
+     * Helpers handlebars-rust registers by default, which the admin pages and the CSS use.
+     */
+    public function test_comparison_and_logic_helpers(): void
+    {
+        $this->template('logic', '{{#if (eq name "database_url")}}eq{{/if}}{{#if (not list)}} not{{/if}}{{#if (or zero text)}} or{{/if}}');
+
+        $this->assertSame('eq not or', $this->renderer()->render('logic', ['name' => 'database_url', 'list' => [], 'zero' => 0, 'text' => 'x']));
+        $this->assertSame('', $this->renderer()->render('logic', ['name' => 'domain', 'list' => [1], 'zero' => 0, 'text' => '']));
+    }
+
     public function test_to_json_helper_writes_unescaped_json(): void
     {
         $this->template('json', '{{to_json data}}');

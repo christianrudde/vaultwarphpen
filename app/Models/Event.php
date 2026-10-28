@@ -95,6 +95,8 @@ final class Event extends Model
 
     public const int ORGANIZATION_USER_UPDATED_GROUPS = 1504;
 
+    public const int ORGANIZATION_USER_UNLINKED_SSO = 1505;
+
     public const int ORGANIZATION_USER_RESET_PASSWORD_ENROLL = 1506;
 
     public const int ORGANIZATION_USER_RESET_PASSWORD_WITHDRAW = 1507;
@@ -108,6 +110,9 @@ final class Event extends Model
     public const int ORGANIZATION_USER_APPROVED_AUTH_REQUEST = 1513;
 
     public const int ORGANIZATION_USER_REJECTED_AUTH_REQUEST = 1514;
+
+    // Both the user and the membership were deleted.
+    public const int ORGANIZATION_USER_DELETED = 1515;
 
     public const int ORGANIZATION_USER_LEFT = 1516;
 

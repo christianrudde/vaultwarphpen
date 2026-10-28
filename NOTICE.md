@@ -50,7 +50,7 @@ What Vaultwarphpen takes from it:
   | `database/vaultwarden/mysql` | `migrations/mysql` (the `up.sql` files) |
   | `database/vaultwarden/postgresql` | `migrations/postgresql` (the `up.sql` files) |
   | `resources/vaultwarden/templates` | `src/static/templates` (Handlebars templates for mails, the admin panel and the web vault's CSS) |
-  | `resources/vaultwarden/static` | `src/static/global_domains.json` and `src/static/images` (the images of the mails and the web pages) |
+  | `resources/vaultwarden/static` | `src/static/global_domains.json`, `src/static/images` and `src/static/scripts` (the images of the mails and the web pages, the scripts and styles of the admin panel and the 404 page) |
 
 - **Data derived from it:** `parity/matrix.json` and `PARITY.md` are extracted from its source;
   `parity/schema/*.json` describe the databases Vaultwarden itself creates.
@@ -74,6 +74,18 @@ What Vaultwarphpen takes from it:
 
 Bitwarden is a trademark of Bitwarden, Inc. Vaultwarphpen is not affiliated with, associated with or
 endorsed by Bitwarden, Inc. or the Vaultwarden project. Vaultwarphpen uses no Bitwarden logos.
+
+## Web libraries of the admin panel
+
+Vaultwarden ships these libraries with its admin panel, and Vaultwarphpen serves the same files, copied
+unchanged into `resources/vaultwarden/static/scripts` by `php artisan parity:sync`. Each file keeps the
+copyright header of its authors.
+
+| Library | Version | License | Files |
+|---|---|---|---|
+| [Bootstrap](https://getbootstrap.com/), by the Bootstrap Authors, with [Popper](https://popper.js.org/) bundled in | 5.3.8 | MIT, reproduced [below](#mit-license-bootstrap) ([Popper's](#mit-license-popper)) | `bootstrap.css`, `bootstrap.bundle.js` |
+| [DataTables](https://datatables.net/), by SpryMedia Ltd | 3.1.4 | MIT, reproduced [below](#mit-license-datatables) | `datatables.css`, `datatables.js` |
+| [Jdenticon](https://jdenticon.com/), by Daniel Mester Pirttijärvi | 3.3.0 | MIT, reproduced in the file itself | `jdenticon-3.3.0.js` |
 
 ## Rocket
 
@@ -294,6 +306,84 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 The MIT License (MIT)
 
 Copyright (c) Taylor Otwell
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+```
+
+### MIT License (Bootstrap)
+
+```
+The MIT License (MIT)
+
+Copyright (c) 2011-2025 The Bootstrap Authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+```
+
+### MIT License (Popper)
+
+```
+The MIT License (MIT)
+
+Copyright (c) 2019 Federico Zivolo
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+```
+
+### MIT License (DataTables)
+
+```
+The MIT License (MIT)
+
+Copyright (C) 2008-2025, SpryMedia Ltd.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

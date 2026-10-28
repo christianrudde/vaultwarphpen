@@ -383,6 +383,18 @@ final class User extends Model
         );
     }
 
+    /**
+     * User::get_all: every user, with the identifier of its SSO link.
+     *
+     * @return list<array{self, ?string}>
+     */
+    public static function getAll(): array
+    {
+        $identifiers = SsoUser::identifiers();
+
+        return array_values(self::query()->get()->map(static fn (self $user): array => [$user, $identifiers[$user->uuid] ?? null])->all());
+    }
+
     public static function findByMail(string $mail): ?self
     {
         return self::query()->where('email', mb_strtolower($mail))->first();

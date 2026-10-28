@@ -3,6 +3,7 @@
 namespace App\Http;
 
 use App\Config\Config;
+use App\Http\Controllers\AdminController;
 use App\Templates\TemplateRenderer;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -43,6 +44,10 @@ final readonly class ErrorRenderer
     public function catch(Request $request, int $status): Response
     {
         $base = $this->config->string('domain_path');
+
+        if ($status === 401 && self::isUnder($request, "{$base}/admin") && AdminController::enabled($this->config)) {
+            return app(AdminController::class)->adminLogin($request);
+        }
 
         if ($status === 404 && self::isUnder($request, "{$base}/api")) {
             // core::api_not_found

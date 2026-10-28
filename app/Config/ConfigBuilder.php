@@ -2,6 +2,7 @@
 
 namespace App\Config;
 
+use App\Http\Json;
 use Closure;
 use JsonException;
 use stdClass;
@@ -78,7 +79,21 @@ final readonly class ConfigBuilder
             throw new ConfigException("`{$file}` does not contain a JSON object.");
         }
 
-        // Unknown keys are ignored, null means unset.
+        try {
+            return self::fromJson($data);
+        } catch (ConfigException $exception) {
+            throw new ConfigException("`{$file}` {$exception->getMessage()}", previous: $exception);
+        }
+    }
+
+    /**
+     * Deserialize a JSON object like serde: unknown keys are ignored, null
+     * means unset, and every other value must fit the type of its setting.
+     *
+     * @throws ConfigException
+     */
+    public static function fromJson(stdClass $data): self
+    {
         $values = [];
         foreach (Settings::all() as $name => $setting) {
             $value = property_exists($data, $name) ? $data->{$name} : null;
@@ -86,12 +101,28 @@ final readonly class ConfigBuilder
                 continue;
             }
             if (! is_string($value) && ! is_int($value) && ! is_bool($value) || ! $setting->type->accepts($value)) {
-                throw new ConfigException("`{$file}` has an invalid value for `{$name}`, expected {$setting->type->value}.");
+                throw new ConfigException("has an invalid value for `{$name}`, expected {$setting->type->value}.");
             }
             $values[$name] = $value;
         }
 
         return new self($values);
+    }
+
+    /**
+     * The builder as config.json holds it: serde_json's pretty format, in
+     * the order of the settings, without the ones that are not set.
+     */
+    public function toJson(): string
+    {
+        $lines = [];
+        foreach (array_keys(Settings::all()) as $name) {
+            if (isset($this->values[$name])) {
+                $lines[] = '  '.Json::encode($name).': '.Json::encode($this->values[$name]);
+            }
+        }
+
+        return $lines === [] ? '{}' : "{\n".implode(",\n", $lines)."\n}";
     }
 
     /**

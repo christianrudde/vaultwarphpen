@@ -210,6 +210,11 @@ final class OrgCollection extends Model
         return self::query()->where('org_uuid', $orgUuid)->get();
     }
 
+    public static function countByOrg(string $orgUuid): int
+    {
+        return self::query()->where('org_uuid', $orgUuid)->count();
+    }
+
     /**
      * The collection, if the user reaches it, or is admin or owner of its organization.
      */

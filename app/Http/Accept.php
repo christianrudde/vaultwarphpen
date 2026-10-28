@@ -43,4 +43,53 @@ final class Accept
     {
         return self::preferred($request) === 'application/json';
     }
+
+    /**
+     * Request::format(): the media type of the body (Content-Type) for
+     * methods that carry one, otherwise the preferred one of Accept.
+     */
+    public static function format(Request $request): ?string
+    {
+        if (! self::carriesPayload($request)) {
+            return self::preferred($request);
+        }
+
+        $type = $request->headers->get('Content-Type');
+        $type = $type === null ? '' : strtolower(trim(explode(';', $type)[0]));
+
+        return $type === '' ? null : $type;
+    }
+
+    /**
+     * Whether a route with `format = "<type>"` matches: the media type of the
+     * body must be fully given and match, the accepted one must match when
+     * there is one. A `*` matches anything.
+     */
+    public static function matchesFormat(Request $request, string $format): bool
+    {
+        $type = self::format($request);
+        if ($type === null) {
+            return ! self::carriesPayload($request);
+        }
+
+        $requested = explode('/', $type, 2) + [1 => ''];
+        if (self::carriesPayload($request) && in_array('*', $requested, true)) {
+            return false;
+        }
+        foreach (explode('/', $format, 2) as $index => $part) {
+            if ($part !== '*' && $requested[$index] !== '*' && $part !== $requested[$index]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Method::supports_payload
+     */
+    private static function carriesPayload(Request $request): bool
+    {
+        return in_array($request->getMethod(), ['POST', 'PUT', 'DELETE', 'PATCH'], true);
+    }
 }
