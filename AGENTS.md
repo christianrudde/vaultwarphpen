@@ -18,6 +18,9 @@ environment variables, so the official Bitwarden clients and existing Vaultwarde
   `.github/scripts/differential.sh <vaultwarden binary>` starts both servers and runs them. Write
   one for every route you implement. The script raises the login and unauthenticated rate limits,
   since every flow logs in; `Exchange::jsonString()` throws, so a broken setup fails loudly.
+  Besides the default pair it starts one on a shared database (`VW_SHARED_*`) and one with groups
+  and events enabled (`VW_FEATURES_*`, used with `assertSameFlowsOn()`); `signedToken()` signs
+  tokens with the key all servers share (`VW_RSA_KEY`).
 - Uploads: Vaultwarden takes files up to 525 MB, so PHP needs `upload_max_filesize=525M` and a
   `post_max_size` above it (or `0`). PHP cuts uploaded file names at the last slash, which encrypted
   names contain; read them with `getClientOriginalPath()` (see `App\Http\Data\UploadData`).

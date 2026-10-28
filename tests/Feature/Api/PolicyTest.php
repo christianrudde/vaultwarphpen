@@ -106,7 +106,9 @@ class PolicyTest extends TestCase
             ->assertStatus(400)->assertJsonPath('message', "Token doesn't match request organization");
         $this->get('/api/organizations/00000000-0000-0000-0000-000000000000/policies/token?token='.$token('00000000-0000-0000-0000-000000000000'))
             ->assertStatus(200)->assertContent('{}');
-        $this->get("/api/organizations/{$org}/policies/token")->assertStatus(404);
+        // Without a token, the next route answers: its guard first, then no type "token".
+        $this->get("/api/organizations/{$org}/policies/token", ['Accept' => 'application/json'])->assertStatus(401);
+        $this->get("/api/organizations/{$org}/policies/token", $this->owner)->assertStatus(404);
     }
 
     private function createOrganization(): string

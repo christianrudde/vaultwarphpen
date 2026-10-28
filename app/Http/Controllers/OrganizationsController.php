@@ -1244,9 +1244,13 @@ final readonly class OrganizationsController
      */
     public function listPoliciesToken(Request $request, string $orgId): Response
     {
-        $orgId = Uuid::parameter($request, $orgId);
-        // Without the token the route does not match; the next one cannot parse "token" as a type.
-        $token = Query::first($request, 'token') ?? throw new HttpStatus(404, 'No token.');
+        $token = Query::first($request, 'token');
+        if (! Uuid::isValid($orgId) || $token === null) {
+            // The route does not match. get_policy is next: its guard comes first, then it cannot read "token" as a type.
+            app(AdminHeaders::class);
+
+            throw new HttpStatus(404, 'No token or no valid organization id.');
+        }
 
         $claims = $this->jwt->decode($token, JwtIssuer::Invite, fields: Jwt::INVITE_CLAIMS);
         if ($claims['org_id'] !== $orgId) {

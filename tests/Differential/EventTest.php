@@ -13,6 +13,7 @@ class EventTest extends DifferentialTestCase
 {
     private const string RANGE = 'start=2000-01-01T00:00:00.000Z&end=2100-01-01T00:00:00.000Z';
 
+    #[Parity('config:ORG_EVENTS_ENABLED')]
     #[Parity('route:GET /api/organizations/{org_id}/events')]
     #[Parity('route:GET /api/ciphers/{cipher_id}/events')]
     #[Parity('route:GET /api/organizations/{org_id}/users/{member_id}/events')]
@@ -56,17 +57,18 @@ class EventTest extends DifferentialTestCase
             $steps['without range'] = $server->send('GET', "/api/organizations/{$org}/events", $owner);
             $steps['an empty range'] = $server->send('GET', "/api/organizations/{$org}/events?start=2000-01-01T00:00:00Z&end=2000-01-02T00:00:00Z", $owner);
 
-            // What the clients add: only what they may, for what they reach.
-            $now = gmdate('Y-m-d\TH:i:s.v\Z');
+            // What the clients add: only what they may, for what they reach. Their date
+            // comes first in the lists, whatever the timing of either server.
+            $now = '2099-01-01T00:00:00.000Z';
             $steps['collect'] = $server->json('POST', '/events/collect', [
-                ['type' => 1107, 'cipherId' => $cipher, 'date' => $now],
-                ['type' => 1111, 'cipherId' => 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', 'date' => $now],
-                ['type' => 1602, 'organizationId' => $org, 'date' => $now],
-                ['type' => 1602, 'organizationId' => 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', 'date' => $now],
-                ['type' => 1007, 'date' => $now],
-                ['type' => 1522, 'organizationId' => $org, 'date' => $now],
-                ['type' => 1500, 'organizationId' => $org, 'date' => $now],
-                ['type' => 1100, 'cipherId' => $cipher, 'date' => $now],
+                ['type' => 1107, 'cipherId' => $cipher, 'date' => '2099-01-01T00:00:01.000Z'],
+                ['type' => 1111, 'cipherId' => 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', 'date' => '2099-01-01T00:00:02.000Z'],
+                ['type' => 1602, 'organizationId' => $org, 'date' => '2099-01-01T00:00:03.000Z'],
+                ['type' => 1602, 'organizationId' => 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', 'date' => '2099-01-01T00:00:04.000Z'],
+                ['type' => 1007, 'date' => '2099-01-01T00:00:05+01:00'],
+                ['type' => 1522, 'organizationId' => $org, 'date' => '2099-01-01T00:00:06.123456Z'],
+                ['type' => 1500, 'organizationId' => $org, 'date' => '2099-01-01T00:00:07.000Z'],
+                ['type' => 1100, 'cipherId' => $cipher, 'date' => '2099-01-01T00:00:08.000Z'],
             ], $member);
             $steps['collect with a bad date'] = $server->json('POST', '/events/collect', [['type' => 1107, 'cipherId' => $cipher, 'date' => 'now']], $member);
             $steps['collect without a type'] = $server->json('POST', '/events/collect', [['date' => $now]], $member);

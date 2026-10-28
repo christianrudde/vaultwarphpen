@@ -38,6 +38,7 @@ class GroupTest extends DifferentialTestCase
         });
     }
 
+    #[Parity('config:ORG_GROUPS_ENABLED')]
     #[Parity('route:GET /api/organizations/{org_id}/groups')]
     #[Parity('route:GET /api/organizations/{org_id}/groups/details')]
     #[Parity('route:POST /api/organizations/{org_id}/groups')]
