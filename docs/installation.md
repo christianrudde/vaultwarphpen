@@ -24,12 +24,13 @@ hosting package that gives you PHP 8.5 and a shell, with Composer or from a
 Composer installs Vaultwarphpen with everything it needs in one step, into a new folder:
 
 ```bash
-composer create-project --no-dev christianrudde/vaultwarphpen vaultwarphpen dev-main
+composer create-project --no-dev christianrudde/vaultwarphpen vaultwarphpen
 cd vaultwarphpen
 ```
 
-`dev-main` is the current state of `main`; there are no releases yet. After the PHP dependencies,
-Composer sets up:
+This takes the latest [release](https://github.com/christianrudde/vaultwarphpen/releases); add
+`dev-main` after the folder for the current state of `main`. After the PHP dependencies, Composer sets
+up:
 
 1. `.env`, copied from `.env.example`, with a new application key (`php artisan key:generate`)
 2. the database schema, in SQLite at `data/db.sqlite3` (`php artisan vaultwarden:migrate`)
@@ -61,8 +62,8 @@ unpacks only zip files, and check it against `vaultwarphpen-<version>.sha256` ne
 sha256sum --check --ignore-missing vaultwarphpen-1.0.0.sha256
 ```
 
-(On macOS: `shasum -a 256 --check --ignore-missing vaultwarphpen-1.0.0.sha256`.) There are no releases
-yet; you can build the archive of any commit [yourself](#building-an-archive).
+(On macOS: `shasum -a 256 --check --ignore-missing vaultwarphpen-1.0.0.sha256`.) You can also build the
+archive of any commit [yourself](#building-an-archive).
 
 1. Unpack the archive on the server, or unpack it on your computer and upload the folder
    `vaultwarphpen-<version>` it holds (by SFTP, FTP or the host's file manager). Rename the folder as you
@@ -411,7 +412,7 @@ This needs no daemon: the web requests send the notifications themselves, once t
    folders:
 
    ```bash
-   composer create-project --no-dev --no-scripts christianrudde/vaultwarphpen vaultwarphpen-new dev-main
+   composer create-project --no-dev --no-scripts christianrudde/vaultwarphpen vaultwarphpen-new
    rm -r vaultwarphpen-new/data
    mv vaultwarphpen/.env vaultwarphpen/data vaultwarphpen/web-vault vaultwarphpen-new/
    mv vaultwarphpen vaultwarphpen-old
@@ -451,4 +452,5 @@ This needs no daemon: the web requests send the notifications themselves, once t
 
 5. Restart the scheduler and the notifications daemon, if you use them, so that they load the new code.
 
-There are no releases yet; `main` is the current state.
+The [releases](https://github.com/christianrudde/vaultwarphpen/releases) list what changed; `main` is
+the current state between them.

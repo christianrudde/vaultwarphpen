@@ -51,9 +51,12 @@ to both servers and compare the answers.
 To try it locally, let [Composer](https://getcomposer.org) install it into a new folder:
 
 ```bash
-composer create-project christianrudde/vaultwarphpen vaultwarphpen dev-main
+composer create-project christianrudde/vaultwarphpen vaultwarphpen
 cd vaultwarphpen
 ```
+
+That is the latest [release](https://github.com/christianrudde/vaultwarphpen/releases); add `dev-main`
+for the current state of `main`.
 
 This installs the dependencies, creates `.env` and the application key, creates the database (SQLite at
 `data/db.sqlite3` by default) and downloads the web vault that Vaultwarden ships. In a Git checkout,
