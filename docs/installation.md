@@ -53,6 +53,23 @@ Then create the database schema:
 php artisan vaultwarden:migrate
 ```
 
+## Web vault
+
+The Bitwarden web vault is not part of this repository. Vaultwarden's builds of it
+([bw_web_builds](https://github.com/dani-garcia/bw_web_builds)) work unchanged. Take the version
+Vaultwarphpen follows (`web_vault` in [`parity/reference.json`](../parity/reference.json)) and unpack it
+in the installation folder; the archive holds the `web-vault` folder that `WEB_VAULT_FOLDER` names by
+default:
+
+```bash
+curl -fsSL https://github.com/dani-garcia/bw_web_builds/releases/download/v2026.8.0/bw_web_v2026.8.0.tar.gz | tar -xz
+```
+
+PHP serves its files, with the same headers as Vaultwarden, and adds `/css/vaultwarden.css`, which hides
+what the server does not offer (built from the templates `scss/vaultwarden.scss.hbs` and
+`scss/user.vaultwarden.scss.hbs`, which you may override in `data/templates`). `WEB_VAULT_ENABLED=false`
+leaves the web vault out, as in Vaultwarden.
+
 ## Permissions
 
 The PHP user must be able to write to:
@@ -207,6 +224,8 @@ php artisan vaultwarden:job trash_purge
    php artisan vaultwarden:migrate
    ```
 
-4. Restart the scheduler service, if you use one, so that it loads the new code.
+4. If `web_vault` in `parity/reference.json` changed, unpack that web vault as described
+   [above](#web-vault), after removing the old `web-vault` folder.
+5. Restart the scheduler service, if you use one, so that it loads the new code.
 
 There are no releases yet; `main` is the current state.

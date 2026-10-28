@@ -14,8 +14,15 @@ binary="$(realpath "$1")"
 shift
 work="$(mktemp -d)"
 mkdir -p "${work}/reference" "${work}/subject" "${work}/shared" "${work}/features-reference" "${work}/features-subject" \
-    "${work}/mail-reference" "${work}/mail-subject" "${work}/web-vault"
+    "${work}/mail-reference" "${work}/mail-subject" "${work}/web-vault/app" "${work}/web-vault/images"
+# A few files for tests/Differential/WebVaultTest, without a version file.
 echo '<!DOCTYPE html><title>Web vault</title>' > "${work}/web-vault/index.html"
+echo 'console.log("web vault");' > "${work}/web-vault/app/main.js"
+echo 'body{margin:0}' > "${work}/web-vault/app/STYLE.CSS"
+echo 'data' > "${work}/web-vault/app/data.unknown"
+echo '<svg xmlns="http://www.w3.org/2000/svg"/>' > "${work}/web-vault/images/icon.svg"
+echo '<!DOCTYPE html><title>Connector</title>' > "${work}/web-vault/webauthn-connector.html"
+echo 'secret' > "${work}/web-vault/.hidden"
 export WEB_VAULT_FOLDER="${work}/web-vault/"
 # Every flow logs in; Vaultwarden's limits (10 logins, then one a minute) would cut the suite short.
 export LOGIN_RATELIMIT_MAX_BURST=10000 UNAUTHENTICATED_RATELIMIT_MAX_BURST=10000 ADMIN_RATELIMIT_MAX_BURST=10000

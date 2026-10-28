@@ -8,11 +8,11 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 
 | Area | Total | ✅ | 🟨 | ⬜ | ➖ | With tests |
 |---|--:|--:|--:|--:|--:|--:|
-| Routes | 294 | 206 | 67 | 20 | 1 | 273 |
-| Settings | 153 | 92 | 61 | 0 | 0 | 153 |
+| Routes | 294 | 213 | 67 | 13 | 1 | 280 |
+| Settings | 153 | 94 | 59 | 0 | 0 | 153 |
 | Scheduled jobs | 9 | 9 | 0 | 0 | 0 | 9 |
 | Database tables | 28 | 28 | 0 | 0 | 0 | 28 |
-| Templates | 74 | 59 | 15 | 0 | 0 | 74 |
+| Templates | 74 | 62 | 12 | 0 | 0 | 74 |
 | Static assets | 21 | 21 | 0 | 0 | 0 | 21 |
 
 ## Routes
@@ -23,13 +23,13 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | GET `/alive` | src/api/web.rs:245 | 2 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
 | ✅ | HEAD `/alive` | src/api/web.rs:250 | 2 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
 | ✅ | GET `/vw_static/{filename}` | src/api/web.rs:330 | 2 | The embedded images and scripts with Vaultwarden's ETag and caching; compared byte for byte in tests/Differential/AdminTest. |
-| ⬜ | GET `/` | src/api/web.rs:154 | 0 |  |
-| ⬜ | GET `/index.html` | src/api/web.rs:161 | 0 |  |
-| ⬜ | HEAD `/` | src/api/web.rs:166 | 0 |  |
-| ⬜ | GET `/app-id.json` | src/api/web.rs:177 | 0 |  |
-| ⬜ | GET `/.well-known/apple-app-site-association` | src/api/web.rs:209 | 0 |  |
-| ⬜ | GET `/{p..}` | src/api/web.rs:227 | 0 |  |
-| ⬜ | GET `/css/vaultwarden.css` | src/api/web.rs:82 | 0 |  |
+| ✅ | GET `/` | src/api/web.rs:154 | 2 | Compared with Vaultwarden in tests/Differential/WebVaultTest; also tests/Feature/Http/WebVaultTest. |
+| ✅ | GET `/index.html` | src/api/web.rs:161 | 2 | Compared with Vaultwarden in tests/Differential/WebVaultTest; also tests/Feature/Http/WebVaultTest. |
+| ✅ | HEAD `/` | src/api/web.rs:166 | 2 | Compared with Vaultwarden in tests/Differential/WebVaultTest; also tests/Feature/Http/WebVaultTest. |
+| ✅ | GET `/app-id.json` | src/api/web.rs:177 | 2 | Compared with Vaultwarden in tests/Differential/WebVaultTest; also tests/Feature/Http/WebVaultTest. |
+| ✅ | GET `/.well-known/apple-app-site-association` | src/api/web.rs:209 | 2 | Compared with Vaultwarden in tests/Differential/WebVaultTest; also tests/Feature/Http/WebVaultTest. |
+| ✅ | GET `/{p..}` | src/api/web.rs:227 | 2 | Compared with Vaultwarden in tests/Differential/WebVaultTest; also tests/Feature/Http/WebVaultTest. Laravel's fallback route, matched after every other route like Rocket's rank 10; Rocket's segment rules and content types in App\Support\WebVault. A folder answers 404, where Rocket would open it as a file. |
+| ✅ | GET `/css/vaultwarden.css` | src/api/web.rs:82 | 2 | Compared with Vaultwarden in tests/Differential/WebVaultTest; also tests/Feature/Http/WebVaultTest. Rendered from the templates and compiled by scssphp (a PHP port of Dart Sass, like grass), with the ETag of its SHA-256; the web vault version for "webver" comes from its version file, as in Vaultwarden. |
 | ➖ | GET `/vw_static/{filename}` | src/api/web.rs:262 | 0 | Only in debug builds of Vaultwarden (cfg(debug_assertions)); release builds serve static_files. |
 | ✅ | GET `/api/settings/domains` | src/api/core/mod.rs:75 | 1 | Compared with Vaultwarden in tests/Differential/SyncTest. |
 | ✅ | POST `/api/settings/domains` | src/api/core/mod.rs:112 | 1 | Compared with Vaultwarden in tests/Differential/SyncTest. |
@@ -326,7 +326,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `TMP_FOLDER` | src/config.rs:531 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | ✅ | `TEMPLATES_FOLDER` | src/config.rs:533 | 3 | Read like Vaultwarden (environment, *_FILE, config.json, default) and used: DATABASE_URL drives the default connection, the templates folder and reload drive the renderer. |
 | ✅ | `RSA_KEY_FILENAME` | src/config.rs:535 | 2 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it; tested in tests/Unit/Auth/JwtTest. |
-| 🟨 | `WEB_VAULT_FOLDER` | src/config.rs:537 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `WEB_VAULT_FOLDER` | src/config.rs:537 | 2 | Read, defaulted and validated like Vaultwarden (App\Config); the web vault is served from it (tests/Feature/Http/WebVaultTest, compared in tests/Differential/WebVaultTest). |
 | 🟨 | `ENABLE_WEBSOCKET` | src/config.rs:541 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `PUSH_ENABLED` | src/config.rs:545 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `PUSH_RELAY_URI` | src/config.rs:547 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
@@ -347,7 +347,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `DOMAIN_SET` | src/config.rs:594 | 1 | Derived like Vaultwarden (App\Config, tests/Unit/Config/ConfigTest). Without DOMAIN, Send links take the host from the request (App\Auth\Headers::host); not tested. |
 | ✅ | `DOMAIN_ORIGIN` | src/config.rs:596 | 2 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it; tested in tests/Feature/Http/BasePathTest and tests/Unit/Config/ConfigTest. |
 | ✅ | `DOMAIN_PATH` | src/config.rs:598 | 2 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it; tested in tests/Feature/Http/BasePathTest and tests/Unit/Config/ConfigTest. |
-| 🟨 | `WEB_VAULT_ENABLED` | src/config.rs:600 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `WEB_VAULT_ENABLED` | src/config.rs:600 | 2 | Read, defaulted and validated like Vaultwarden (App\Config); without it the web vault routes and its 404 page are left out (tests/Feature/Http/WebVaultTest). |
 | ✅ | `SENDS_ALLOWED` | src/config.rs:604 | 2 | Creating and changing Sends is refused without it; deleting stays possible (tests/Feature/Api/SendTest). |
 | 🟨 | `HIBP_API_KEY` | src/config.rs:607 | 1 | Read, defaulted and validated like Vaultwarden (App\Config). GET /api/hibp/breach asks haveibeenpwned.com with it through App\Support\HttpClient; not compared with Vaultwarden, which needs a real key. |
 | ✅ | `USER_ATTACHMENT_LIMIT` | src/config.rs:610 | 3 | Enforced on uploads like save_attachment (tests/Feature/Api/AttachmentTest). |
@@ -523,7 +523,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 
 | | Item | Source | Tests | Notes |
 |---|---|---|--:|---|
-| 🟨 | `404` | src/static/templates/404.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
+| ✅ | `404` | src/static/templates/404.hbs | 2 | The page of the web vault catcher (App\Http\ErrorRenderer); compared with Vaultwarden in tests/Differential/WebVaultTest. |
 | ✅ | `admin/base` | src/static/templates/admin/base.hbs | 2 | Rendered with the data Vaultwarden passes and compared to its output in tests/Differential/AdminTest. |
 | ✅ | `admin/diagnostics` | src/static/templates/admin/diagnostics.hbs | 2 | Rendered unchanged with the deviating data of the diagnostics (AGENTS.md); compared by structure in tests/Differential/AdminTest. |
 | ✅ | `admin/login` | src/static/templates/admin/login.hbs | 2 | Rendered with the data Vaultwarden passes and compared to its output in tests/Differential/AdminTest. |
@@ -595,8 +595,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | `email/welcome.html` | src/static/templates/email/welcome.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
 | 🟨 | `email/welcome_must_verify` | src/static/templates/email/welcome_must_verify.hbs | 1 | App\Mail\Mail renders it (tests/Feature/Mail/MailTest) and registration sends it with SIGNUPS_VERIFY; not compared with Vaultwarden, since the mail servers of the differential tests run without SIGNUPS_VERIFY. |
 | 🟨 | `email/welcome_must_verify.html` | src/static/templates/email/welcome_must_verify.html.hbs | 1 | App\Mail\Mail renders it (tests/Feature/Mail/MailTest) and registration sends it with SIGNUPS_VERIFY; not compared with Vaultwarden, since the mail servers of the differential tests run without SIGNUPS_VERIFY. |
-| 🟨 | `scss/user.vaultwarden.scss` | src/static/templates/scss/user.vaultwarden.scss.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `scss/vaultwarden.scss` | src/static/templates/scss/vaultwarden.scss.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
+| ✅ | `scss/user.vaultwarden.scss` | src/static/templates/scss/user.vaultwarden.scss.hbs | 3 | Rendered for GET /css/vaultwarden.css and compiled; compared with Vaultwarden in tests/Differential/WebVaultTest. Broken user styles fall back to the built-in ones (tests/Feature/Http/WebVaultTest). |
+| ✅ | `scss/vaultwarden.scss` | src/static/templates/scss/vaultwarden.scss.hbs | 3 | Rendered for GET /css/vaultwarden.css and compiled; compared with Vaultwarden in tests/Differential/WebVaultTest. Broken user styles fall back to the built-in ones (tests/Feature/Http/WebVaultTest). |
 
 ## Static assets
 

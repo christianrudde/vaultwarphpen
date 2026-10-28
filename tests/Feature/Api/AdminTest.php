@@ -353,7 +353,8 @@ class AdminTest extends TestCase
             ->assertHeader('Content-Type', 'text/javascript')->assertHeader('Etag', $etag)->assertContent('');
         $this->get('/vw_static/hibp.png')->assertStatus(200)->assertHeader('Content-Type', 'image/png');
         $this->get('/vw_static/bootstrap.css')->assertStatus(200)->assertHeader('Content-Type', 'text/css; charset=utf-8');
-        $this->get('/vw_static/../.env')->assertStatus(404);
+        // The web vault's catch-all refuses hidden files: its guard forwards, and no route is left.
+        $this->get('/vw_static/../.env')->assertStatus(422);
         $this->get('/vw_static/admin')->assertStatus(400)->assertJsonPath('message', 'Static file not found: admin');
     }
 

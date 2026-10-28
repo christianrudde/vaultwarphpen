@@ -29,7 +29,8 @@
         "php": "^8.5",
         "devtheorem/php-handlebars": "^2.2",
         "laravel/framework": "^13.17",
-        "laravel/tinker": "^3.0"
+        "laravel/tinker": "^3.0",
+        "scssphp/scssphp": "^2.1"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

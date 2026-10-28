@@ -30,9 +30,10 @@ pinned Vaultwarden version and whether it is ported. In short:
   email, WebAuthn, YubiKey, Duo, recovery code); account management, devices and login with a
   device; folders and Sends; ciphers and attachments; the organization API (members, collections,
   groups, policies, account recovery, import and export, API keys, the event log); emergency access;
-  mails over SMTP or sendmail; Vaultwarden's scheduled jobs; the admin panel.
-- **Not yet:** the web vault, push and WebSocket notifications (clients see changes at their next
-  sync), website icons and SSO.
+  mails over SMTP or sendmail; Vaultwarden's scheduled jobs; the admin panel; the web vault (from
+  Vaultwarden's [builds](docs/installation.md#web-vault)).
+- **Not yet:** push and WebSocket notifications (clients see changes at their next sync), website
+  icons and SSO.
 
 Every ported route is compared with Vaultwarden itself: the differential tests send the same requests
 to both servers and compare the answers.

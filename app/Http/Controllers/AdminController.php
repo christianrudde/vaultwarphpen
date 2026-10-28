@@ -42,6 +42,7 @@ use App\Support\RateLimiter;
 use App\Support\Release;
 use App\Support\SemVer;
 use App\Support\Uuid;
+use App\Support\WebVault;
 use App\Templates\TemplateRenderer;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -607,7 +608,7 @@ final readonly class AdminController
         $resolved = gethostbynamel('github.com');
 
         [$latestRelease, $latestCommit, $latestWebRelease] = $this->releaseInfo($hasHttpAccess);
-        $activeWebRelease = $this->activeWebRelease();
+        $activeWebRelease = WebVault::activeRelease($this->config);
 
         // Vaultwarphpen with the Vaultwarden release it mirrors. The newest version
         // is compared like the installed one, a release with releases and a
@@ -1085,22 +1086,6 @@ final readonly class AdminController
         }
 
         return 'Unable to fetch NTP time.';
-    }
-
-    /**
-     * get_active_web_release: from the web vault's version file.
-     */
-    private function activeWebRelease(): string
-    {
-        $folder = $this->config->path('web_vault_folder');
-        foreach (["{$folder}/vw-version.json", "{$folder}/version.json"] as $file) {
-            $json = is_file($file) ? json_decode((string) file_get_contents($file)) : null;
-            if ($json instanceof stdClass && is_string($json->version ?? null)) {
-                return ltrim($json->version, 'v');
-            }
-        }
-
-        return 'Version file missing';
     }
 
     /**

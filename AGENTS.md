@@ -38,6 +38,9 @@ environment variables, so the official Bitwarden clients and existing Vaultwarde
 - Scheduled jobs: `App\Scheduler\Jobs` ports the jobs of `schedule_jobs` (src/main.rs), `JobScheduler`
   and `Job` port job_scheduler_ng, `App\Support\CronSchedule` the cron crate. `php86 artisan
   vaultwarden:schedule` runs them (`--once` for cron), `vaultwarden:job <name>` runs one now.
+- Web vault: `WebController` serves `WEB_VAULT_FOLDER` like src/api/web.rs, its catch-all as Laravel's
+  fallback route; `App\Support\WebVault` holds Rocket's path segment rules, NamedFile's content types and
+  the web vault version that the `webver` helper compares. scssphp compiles `/css/vaultwarden.css`.
 - Uploads: Vaultwarden takes files up to 525 MB, so PHP needs `upload_max_filesize=525M` and a
   `post_max_size` above it (or `0`). PHP cuts uploaded file names at the last slash, which encrypted
   names contain; read them with `getClientOriginalPath()` (see `App\Http\Data\UploadData`).

@@ -95,9 +95,10 @@ copyright header of its authors.
 
 Vaultwarden runs on Rocket, so its answers include Rocket's. [`app/Http/DefaultCatcher.php`](app/Http/DefaultCatcher.php)
 copies Rocket's default catcher: the HTML error page, the JSON error body and the reason phrase and
-description of every status. The rest is behaviour reproduced without copying code: request guards,
-catchers per mount point, the order of the response fairings, media type negotiation and the handling
-of form and JSON bodies (`app/Http`, `app/Auth`).
+description of every status. [`app/Support/WebVault.php`](app/Support/WebVault.php) copies its table
+of known file extensions and their media types. The rest is behaviour reproduced without copying code:
+request guards, catchers per mount point, the order of the response fairings, media type negotiation,
+the rules for path segments and the handling of form and JSON bodies (`app/Http`, `app/Auth`).
 
 ## Other Rust crates
 
@@ -121,6 +122,7 @@ byte for byte. No code is copied from them. Versions are those locked in Vaultwa
 | [cron](https://github.com/zslayton/cron) | 0.17.0 | MIT or Apache-2.0 | the syntax of the job schedules (seconds, names, steps, years, shorthands) and when they are next due | `app/Support/CronSchedule.php` |
 | [job_scheduler_ng](https://github.com/BlackDex/job_scheduler) | 2.5.0 | MIT or Apache-2.0 | when scheduled jobs run: at most once per tick, in UTC, the first tick only noting the time | `app/Scheduler` |
 | [reqwest](https://github.com/seanmonstar/reqwest), [rustls-native-certs](https://github.com/rustls/rustls-native-certs) | 0.13.5, 0.8.5 | MIT or Apache-2.0; Apache-2.0, ISC or MIT | outgoing requests: user agent, timeout, redirects, trusted roots from `SSL_CERT_FILE` | `app/Support/HttpClient.php` |
+| [grass](https://github.com/connorskees/grass) (grass_compiler) | 0.13.4 | MIT | the compressed CSS of the web vault's style changes, compiled by scssphp, a PHP port of Dart Sass like grass | `app/Http/Controllers/WebController.php` |
 | [Rust standard library](https://github.com/rust-lang/rust) (core) | 1.99.1 (Vaultwarden's `rust-toolchain.toml`) | MIT or Apache-2.0 | `str::escape_debug` in error messages | `app/Support/EscapeDebug.php` |
 
 ## Laravel
@@ -140,7 +142,7 @@ what `composer.lock` locks. `tests/Unit/NoticeTest.php` fails when the tables an
 All runtime licenses are compatible with the AGPL-3.0: MIT, BSD-3-Clause and Apache-2.0, and the
 `nette` packages are offered under BSD-3-Clause as one choice.
 
-### Runtime (79)
+### Runtime (82)
 
 | Package | License | Source |
 |---|---|---|
@@ -188,6 +190,8 @@ All runtime licenses are compatible with the AGPL-3.0: MIT, BSD-3-Clause and Apa
 | `psy/psysh` | MIT | <https://github.com/bobthecow/psysh> |
 | `ramsey/collection` | MIT | <https://github.com/ramsey/collection> |
 | `ramsey/uuid` | MIT | <https://github.com/ramsey/uuid> |
+| `scssphp/scssphp` | MIT | <https://github.com/scssphp/scssphp> |
+| `scssphp/source-span` | MIT | <https://github.com/scssphp/source-span> |
 | `symfony/clock` | MIT | <https://github.com/symfony/clock> |
 | `symfony/console` | MIT | <https://github.com/symfony/console> |
 | `symfony/css-selector` | MIT | <https://github.com/symfony/css-selector> |
@@ -195,6 +199,7 @@ All runtime licenses are compatible with the AGPL-3.0: MIT, BSD-3-Clause and Apa
 | `symfony/error-handler` | MIT | <https://github.com/symfony/error-handler> |
 | `symfony/event-dispatcher` | MIT | <https://github.com/symfony/event-dispatcher> |
 | `symfony/event-dispatcher-contracts` | MIT | <https://github.com/symfony/event-dispatcher-contracts> |
+| `symfony/filesystem` | MIT | <https://github.com/symfony/filesystem> |
 | `symfony/finder` | MIT | <https://github.com/symfony/finder> |
 | `symfony/http-foundation` | MIT | <https://github.com/symfony/http-foundation> |
 | `symfony/http-kernel` | MIT | <https://github.com/symfony/http-kernel> |

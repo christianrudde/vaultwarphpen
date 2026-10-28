@@ -22,6 +22,7 @@ use App\Logging\LogLevel;
 use App\Mail\SendmailTransport;
 use App\Mail\SmtpTransport;
 use App\Mail\Transport as MailTransport;
+use App\Support\WebVault;
 use App\Templates\TemplateRenderer;
 use Illuminate\Database\Connectors\ConnectionFactory;
 use Illuminate\Database\DatabaseManager;
@@ -84,7 +85,7 @@ class AppServiceProvider extends ServiceProvider
                 builtinPath: resource_path('vaultwarden/templates'),
                 overridePath: $config->path('templates_folder'),
                 vaultwardenVersion: config()->string('vaultwarden.version'),
-                webVaultVersion: config()->string('vaultwarden.web_vault_version'),
+                webVaultVersion: WebVault::version($config),
                 reload: $config->bool('reload_templates'),
             );
         });

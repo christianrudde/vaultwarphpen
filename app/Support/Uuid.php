@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Config\Config;
+use App\Http\Controllers\WebController;
 use App\Http\HttpStatus;
 use Illuminate\Http\Request;
 
@@ -22,13 +24,14 @@ final class Uuid
      * An id path parameter. Rocket parses it after the request guards; a bad
      * one forwards the request to the next matching route. For GET requests
      * that is the web vault's catch-all, which finds no such file: 404.
+     * Without the web vault no route is left: 422.
      *
      * @throws HttpStatus
      */
     public static function parameter(Request $request, string $value): string
     {
         if (! self::isValid($value)) {
-            throw new HttpStatus(in_array($request->getMethod(), ['GET', 'HEAD'], true) ? 404 : 422, 'Path parameter is not a UUID.');
+            throw new HttpStatus(self::forwardStatus($request), 'Path parameter is not a UUID.');
         }
 
         return $value;
@@ -44,9 +47,14 @@ final class Uuid
     public static function idParameter(Request $request, string $value): string
     {
         if (! preg_match('/^[A-Za-z0-9-]*$/D', $value)) {
-            throw new HttpStatus(in_array($request->getMethod(), ['GET', 'HEAD'], true) ? 404 : 422, 'Path parameter is not an id.');
+            throw new HttpStatus(self::forwardStatus($request), 'Path parameter is not an id.');
         }
 
         return $value;
+    }
+
+    private static function forwardStatus(Request $request): int
+    {
+        return in_array($request->getMethod(), ['GET', 'HEAD'], true) && WebController::webVaultEnabled(app(Config::class)) ? 404 : 422;
     }
 }

@@ -38,6 +38,16 @@ Route::get('/alive', [WebController::class, 'alive'])->name('web::alive');
 Route::match(['HEAD'], '/alive', [WebController::class, 'aliveHead'])->name('web::alive_head');
 Route::get('/attachments/{cipherId}/{fileId}', [WebController::class, 'attachments'])->name('web::attachments');
 Route::get('/vw_static/{filename}', [WebController::class, 'staticFiles'])->name('web::static_files');
+if (WebController::webVaultEnabled(app(Config::class))) {
+    Route::get('/', [WebController::class, 'webIndex'])->name('web::web_index');
+    Route::match(['HEAD'], '/', [WebController::class, 'webIndexHead'])->name('web::web_index_head');
+    Route::get('/index.html', [WebController::class, 'webIndexDirect'])->name('web::web_index_direct');
+    Route::get('/app-id.json', [WebController::class, 'appId'])->name('web::app_id');
+    Route::get('/.well-known/apple-app-site-association', [WebController::class, 'appleAppSiteAssociation'])->name('web::apple_app_site_association');
+    Route::get('/css/vaultwarden.css', [WebController::class, 'vaultwardenCss'])->name('web::vaultwarden_css');
+    // Rocket ranks it below every other route; a fallback route is matched last.
+    Route::fallback([WebController::class, 'webFiles'])->name('web::web_files');
+}
 
 // api::core_routes()
 Route::prefix('/api')->group(function (): void {

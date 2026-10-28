@@ -12,8 +12,9 @@ return [
     |--------------------------------------------------------------------------
     |
     | The Vaultwarden release and web vault build this implementation mirrors
-    | (see parity/reference.json). Templates compare against them through the
-    | "vwver" and "webver" helpers.
+    | (see parity/reference.json). Templates compare the release through the
+    | "vwver" helper; "webver" compares the version of the installed web vault
+    | (App\Support\WebVault), like Vaultwarden.
     |
     */
 
