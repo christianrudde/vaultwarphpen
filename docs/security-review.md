@@ -147,9 +147,10 @@ Notes without a security impact:
 - `.env.example` is set up for development (`APP_ENV=local`, `APP_DEBUG=true`). No response showed more
   with debug on, because every error goes through `ErrorRenderer`, but the installation documentation's
   advice to switch both off on a server stands.
-- `DnsResolver` takes IPv4 addresses from the system's resolver (so the hosts file counts) and IPv6
-  addresses from DNS; an AAAA entry in the hosts file is not seen. Connections only go to addresses that
-  were checked, so this cannot be used to get past the checks.
+- `DnsResolver` asks the system's `getaddrinfo` through the sockets extension. Without that extension it
+  takes IPv4 addresses from the system's resolver and IPv6 addresses from DNS, so an AAAA entry in the
+  hosts file is not seen. Connections only go to addresses that were checked either way, so this cannot
+  be used to get past the checks.
 - `KdfData::equals()` compares loosely (`null == 0`), and an `attachments2` key made of digits is bound as
   an integer. Neither reaches anything but the user's own data.
 

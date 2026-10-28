@@ -10,11 +10,26 @@ namespace App\Support;
 class DnsResolver
 {
     /**
-     * @return list<string> The addresses of the name: IPv4 from the system's
-     *                      resolver (hosts file included), IPv6 from DNS
+     * The system's getaddrinfo (the hosts file included), with the sockets
+     * extension; without it, IPv4 from the system's resolver and IPv6 from DNS.
+     *
+     * @return list<string> The addresses of the name
      */
     public function lookup(string $domain): array
     {
+        $addresses = [];
+        if (function_exists('socket_addrinfo_lookup')) {
+            foreach (@socket_addrinfo_lookup($domain, null, ['ai_socktype' => SOCK_STREAM]) ?: [] as $info) {
+                $address = socket_addrinfo_explain($info)['ai_addr'] ?? null;
+                $ip = is_array($address) ? ($address['sin6_addr'] ?? $address['sin_addr'] ?? null) : null;
+                if (is_string($ip)) {
+                    $addresses[] = $ip;
+                }
+            }
+
+            return array_values(array_unique($addresses));
+        }
+
         $addresses = gethostbynamel($domain) ?: [];
         $records = @dns_get_record($domain, DNS_AAAA);
         foreach (is_array($records) ? $records : [] as $record) {
