@@ -309,13 +309,14 @@ final readonly class CiphersController
 
     /**
      * PUT /api/ciphers/{cipher_id}/collections-admin, also POST: as above,
-     * starting from all of an admin's collections. Answers nothing.
+     * starting from all of an admin's collections, answered in the
+     * organization's view.
      */
-    public function putCollectionsAdmin(Headers $headers, Request $request, string $cipherId): EmptyResponse
+    public function putCollectionsAdmin(Headers $headers, Request $request, string $cipherId): Response
     {
-        $this->updateCollections($headers, $request, $cipherId, admin: true);
+        $cipher = $this->updateCollections($headers, $request, $cipherId, admin: true);
 
-        return new EmptyResponse;
+        return Json::response($cipher->toApi($headers->host, $headers->user->uuid, organizationView: true));
     }
 
     /**
