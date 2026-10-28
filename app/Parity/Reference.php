@@ -71,9 +71,7 @@ final readonly class Reference
      */
     public function assertWebVaultMatches(): void
     {
-        $settings = (string) @file_get_contents($this->checkout.'/docker/DockerSettings.yaml');
-        $version = preg_match('/^vault_version:\s*"v?([^"]+)"/m', $settings, $match) === 1 ? $match[1] : null;
-        $digest = preg_match('/^vault_image_digest:\s*"([^"]+)"/m', $settings, $match) === 1 ? $match[1] : null;
+        [$version, $digest] = self::webVaultIn((string) @file_get_contents($this->checkout.'/docker/DockerSettings.yaml'));
 
         if ($version !== $this->webVault || $digest !== $this->webVaultDigest) {
             throw new RuntimeException(sprintf(
@@ -101,6 +99,27 @@ final readonly class Reference
         }
 
         return $source;
+    }
+
+    /**
+     * The web vault version and image digest of a docker/DockerSettings.yaml.
+     *
+     * @return array{?string, ?string}
+     */
+    public static function webVaultIn(string $settings): array
+    {
+        return [
+            preg_match('/^vault_version:\s*"v?([^"]+)"/m', $settings, $match) === 1 ? $match[1] : null,
+            preg_match('/^vault_image_digest:\s*"([^"]+)"/m', $settings, $match) === 1 ? $match[1] : null,
+        ];
+    }
+
+    /**
+     * The repository's web address, e.g. https://github.com/dani-garcia/vaultwarden.
+     */
+    public function webUrl(): string
+    {
+        return preg_replace('/\.git$/', '', $this->repository) ?? $this->repository;
     }
 
     /**

@@ -1,0 +1,37 @@
+# Security updates (any version that fixes an advisory) are on in the repository settings and are
+# not limited by this file. Version updates are limited to patches, grouped into one weekly pull
+# request; minor and major updates are listed in the "Composer updates" issue of the watch workflow
+# instead. Nothing is merged automatically. See docs/maintenance.md.
+version: 2
+updates:
+  - package-ecosystem: composer
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:00"
+      timezone: Europe/Berlin
+    allow:
+      # update-types only limits version updates, never security updates.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
+    groups:
+      patches:
+        patterns: ["*"]
+        update-types: ["patch"]
+    labels: ["dependencies"]
+    commit-message:
+      prefix: Update
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+      time: "05:00"
+      timezone: Europe/Berlin
+    groups:
+      actions:
+        patterns: ["*"]
+    labels: ["dependencies"]
+    commit-message:
+      prefix: Update

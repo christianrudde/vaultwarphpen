@@ -57,6 +57,10 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
 
+      # Fails on known advisories and abandoned packages in composer.lock (docs/maintenance.md).
+      - name: Security advisories
+        run: composer audit --locked --no-interaction
+
       - name: Prepare environment
         run: cp .env.example .env && php artisan key:generate
 

@@ -29,6 +29,8 @@ version, so that the official Bitwarden clients and existing Vaultwarden data ke
 - If you copy a file, start from one or reproduce another library's behaviour, credit it in
   [NOTICE.md](NOTICE.md).
 - Security issues do not belong in public issues or pull requests; see [SECURITY.md](SECURITY.md).
+- [docs/maintenance.md](docs/maintenance.md) describes how advisories and Vaultwarden's changes are
+  watched, which issues the watch opens and how the pin is moved.
 
 ## License of contributions
 

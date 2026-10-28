@@ -71,11 +71,16 @@ environment variables, so the official Bitwarden clients and existing Vaultwarde
   names contain; read them with `getClientOriginalPath()` (see `App\Http\Data\UploadData`).
 - Database schema: `php86 artisan vaultwarden:migrate`. It also converts old U2F and WebAuthn data,
   which Vaultwarden does at every start.
-- CI (GitHub Actions): `tests.yml` runs Pint, PHPStan and the tests on SQLite, MySQL and PostgreSQL.
+- CI (GitHub Actions): `tests.yml` runs Pint, PHPStan, `composer audit` and the tests on SQLite, MySQL
+  and PostgreSQL.
   `reference.yml` builds the pinned Vaultwarden for Linux, and for macOS (arm64) only when started by
   hand (Actions → Reference → Run workflow), and keeps the binaries as workflow artifacts. Its databases job lets Vaultwarden create SQLite, MySQL and PostgreSQL databases
   and checks both directions with `.github/scripts/database-parity.sh`. It runs when the pin, the
   snapshots or the migrator change, or on demand.
+- Advisories and upstream changes ([docs/maintenance.md](docs/maintenance.md)): Dependabot proposes
+  security updates and patches (`.github/dependabot.yml`), and `watch.yml` runs `php artisan
+  parity:watch --issues`, which keeps one issue per finding (`app/Parity/Watch`). Run it without
+  `--issues` to see the findings; it never changes code.
 
 ## Parity workflow
 
@@ -93,9 +98,12 @@ Everything is measured against one pinned Vaultwarden commit.
 - Status is `todo`, `partial`, `done` or `wontfix`. An item may only be `done` when a test carries
   `#[Parity('<id>')]` (a trailing `*` matches a prefix); `tests/Unit/Parity/ParityMatrixTest` enforces this.
 - Set a status with `php artisan parity:report --mark='route:GET /api/sync' --status=done --note='...'`.
+- `php artisan parity:upstream [revision]` lists the upstream commits since the pin with the parity
+  items whose source they change. Run it for the release before moving the pin: a changed item keeps
+  its status, so `parity:generate` does not show it.
 - Moving to a newer upstream: update `parity/reference.json`, then `parity:fetch`, `parity:sync`,
-  `parity:generate`, and work through the added and removed items. Push, and commit the
-  `parity-schema` artifact of the Reference run to `parity/schema`.
+  `parity:generate`, and work through the added and removed items and the list of `parity:upstream`.
+  Push, and commit the `parity-schema` artifact of the Reference run to `parity/schema`.
 
 ## Rules
 

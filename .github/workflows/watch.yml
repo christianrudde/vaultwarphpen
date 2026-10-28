@@ -1,0 +1,52 @@
+name: Watch
+
+# Looks for security advisories and upstream changes and keeps one issue per
+# finding (php artisan parity:watch, docs/maintenance.md). It only opens,
+# updates and closes issues; it never changes code.
+on:
+  workflow_dispatch:
+  # Twice a day, once enabled (docs/maintenance.md):
+  # schedule:
+  #   - cron: "17 4,16 * * *"
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    name: Watch
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2 (2.40.0)
+        with:
+          php-version: "8.5"
+          extensions: pdo_sqlite, sodium, openssl
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Prepare environment
+        run: cp .env.example .env && php artisan key:generate
+
+      - name: Check out the pinned Vaultwarden
+        run: php artisan parity:fetch
+
+      # Fails when a source could not be read; the issues of the others are still kept.
+      - name: Watch
+        run: php artisan parity:watch --issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

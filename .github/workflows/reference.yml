@@ -19,6 +19,9 @@ on:
       - "resources/**"
       - "tests/Differential/**"
       - "database/vaultwarden/**"
+      # Dependency updates, Dependabot's included, can change what we answer.
+      - "composer.json"
+      - "composer.lock"
   workflow_dispatch:
 
 permissions:
