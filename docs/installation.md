@@ -145,8 +145,51 @@ that the rate limits and logs see the client's address.
 
 ## Scheduled jobs
 
-Vaultwarden runs jobs on a schedule, for example to purge expired Sends and the trash. They are not
-ported yet. Once they are, they will need a cron job, and this guide will describe it.
+Vaultwarden runs jobs on a schedule: it purges expired Sends, the trash (with `TRASH_AUTO_DELETE_DAYS`),
+old events (with `EVENTS_DAYS_RETAIN`) and unfinished logins, mails users about two-step logins that
+were not completed, and grants and reminds of emergency access requests. Vaultwarphpen runs them with
+Artisan, as the user PHP runs as. Either keep the scheduler running as a service, like Vaultwarden's
+own scheduler, which checks every `JOB_POLL_INTERVAL_MS` (30 seconds by default):
+
+```bash
+php artisan vaultwarden:schedule
+```
+
+for example with a systemd unit:
+
+```ini
+[Unit]
+Description=Vaultwarphpen scheduled jobs
+After=network.target
+
+[Service]
+User=www-data
+WorkingDirectory=/var/www/vaultwarphpen
+ExecStart=/usr/bin/php artisan vaultwarden:schedule
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+It stops between two checks on `SIGTERM` or `SIGINT` (with PHP's `pcntl` extension). Or, where only
+cron is available, check once a minute:
+
+```cron
+* * * * * cd /var/www/vaultwarphpen && php artisan vaultwarden:schedule --once
+```
+
+`--once` keeps the time of the previous run in Laravel's cache and skips a run while the previous one
+is still busy. The first run, like the service's first check, only notes the time.
+
+The schedules are Vaultwarden's settings (`SEND_PURGE_SCHEDULE`, `TRASH_PURGE_SCHEDULE`, ...): cron
+expressions with seconds, always in UTC. A job runs at most once per check, so with cron at most once a
+minute. A blank schedule turns a job off, `JOB_POLL_INTERVAL_MS=0` all of them. To run one job right
+away, whatever its schedule:
+
+```bash
+php artisan vaultwarden:job trash_purge
+```
 
 ## Updating
 
@@ -163,5 +206,7 @@ ported yet. Once they are, they will need a cron job, and this guide will descri
    ```bash
    php artisan vaultwarden:migrate
    ```
+
+4. Restart the scheduler service, if you use one, so that it loads the new code.
 
 There are no releases yet; `main` is the current state.

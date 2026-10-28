@@ -386,6 +386,20 @@ final class Send extends Model
     }
 
     /**
+     * Deletes the Sends past their deletion date; failures are ignored like upstream.
+     */
+    public static function purge(): void
+    {
+        foreach (self::findByPastDeletionDate() as $send) {
+            try {
+                $send->deleteSend();
+            } catch (ApiError) {
+                // Tried again on the next run.
+            }
+        }
+    }
+
+    /**
      * @throws ApiError
      */
     public static function deleteAllByUser(string $userUuid): void
@@ -401,6 +415,14 @@ final class Send extends Model
     public static function findByUser(string $userUuid): Collection
     {
         return self::query()->where('user_uuid', $userUuid)->get();
+    }
+
+    /**
+     * @return Collection<int, self>
+     */
+    public static function findByPastDeletionDate(): Collection
+    {
+        return self::query()->where('deletion_date', '<', NaiveDateTime::format(Dates::now()))->get();
     }
 
     /**

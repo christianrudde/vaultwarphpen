@@ -51,6 +51,10 @@ no effect so far. The `config:` items in [PARITY.md](../PARITY.md) show the stat
   connection per request.
 - **`LOG_LEVEL`** is read by Laravel as well. Laravel knows neither `trace`, `warn` nor `off`; until
   Vaultwarden's logging is ported, use `debug`, `info` or `error`, which both understand.
+- **Scheduled jobs** run in a process of their own (`php artisan vaultwarden:schedule`) or from cron
+  (`--once`), not inside the web server ([Installation](installation.md#scheduled-jobs)).
+  `JOB_POLL_INTERVAL_MS` sets how often the process checks; with cron, cron decides, but `0` still
+  turns all jobs off.
 - **Rate limits** live in Laravel's cache (`storage/framework/cache`) instead of in memory, so all PHP
   workers share them. Vaultwarden keeps them per process.
 - **The server's name.** Where Vaultwarden names itself to the clients (the `server` object of

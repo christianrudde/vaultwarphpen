@@ -9,8 +9,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | Area | Total | ✅ | 🟨 | ⬜ | ➖ | With tests |
 |---|--:|--:|--:|--:|--:|--:|
 | Routes | 294 | 127 | 64 | 102 | 1 | 191 |
-| Settings | 153 | 51 | 102 | 0 | 0 | 153 |
-| Scheduled jobs | 8 | 0 | 0 | 8 | 0 | 0 |
+| Settings | 153 | 64 | 89 | 0 | 0 | 153 |
+| Scheduled jobs | 9 | 9 | 0 | 0 | 0 | 9 |
 | Database tables | 28 | 28 | 0 | 0 | 0 | 28 |
 | Templates | 74 | 21 | 53 | 0 | 0 | 74 |
 | Static assets | 21 | 0 | 0 | 21 | 0 | 0 |
@@ -333,16 +333,16 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `PUSH_IDENTITY_URI` | src/config.rs:549 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `PUSH_INSTALLATION_ID` | src/config.rs:551 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `PUSH_INSTALLATION_KEY` | src/config.rs:553 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `JOB_POLL_INTERVAL_MS` | src/config.rs:558 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SEND_PURGE_SCHEDULE` | src/config.rs:561 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `TRASH_PURGE_SCHEDULE` | src/config.rs:564 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `INCOMPLETE_2FA_SCHEDULE` | src/config.rs:567 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `EMERGENCY_NOTIFICATION_REMINDER_SCHEDULE` | src/config.rs:570 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `EMERGENCY_REQUEST_TIMEOUT_SCHEDULE` | src/config.rs:573 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `EVENT_CLEANUP_SCHEDULE` | src/config.rs:576 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `AUTH_REQUEST_PURGE_SCHEDULE` | src/config.rs:579 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `DUO_CONTEXT_PURGE_SCHEDULE` | src/config.rs:582 | 1 | Expired Duo contexts can be purged (TwoFactorDuoContext::purgeExpired); the scheduled job is not ported yet. |
-| 🟨 | `PURGE_INCOMPLETE_SSO_AUTH` | src/config.rs:585 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `JOB_POLL_INTERVAL_MS` | src/config.rs:558 | 2 | The interval of `php artisan vaultwarden:schedule`; 0 disables the scheduler, also with `--once`, where cron sets the interval. Tested in tests/Feature/Scheduler/JobSchedulerTest. |
+| ✅ | `SEND_PURGE_SCHEDULE` | src/config.rs:561 | 2 | Chooses and times its job like schedule_jobs (App\Scheduler\JobScheduler, App\Support\CronSchedule ports the cron crate); tested in tests/Feature/Scheduler/JobSchedulerTest. |
+| ✅ | `TRASH_PURGE_SCHEDULE` | src/config.rs:564 | 2 | Chooses and times its job like schedule_jobs (App\Scheduler\JobScheduler, App\Support\CronSchedule ports the cron crate); tested in tests/Feature/Scheduler/JobSchedulerTest. |
+| ✅ | `INCOMPLETE_2FA_SCHEDULE` | src/config.rs:567 | 2 | Chooses and times its job like schedule_jobs (App\Scheduler\JobScheduler, App\Support\CronSchedule ports the cron crate); tested in tests/Feature/Scheduler/JobSchedulerTest. |
+| ✅ | `EMERGENCY_NOTIFICATION_REMINDER_SCHEDULE` | src/config.rs:570 | 2 | Chooses and times its job like schedule_jobs (App\Scheduler\JobScheduler, App\Support\CronSchedule ports the cron crate); tested in tests/Feature/Scheduler/JobSchedulerTest. |
+| ✅ | `EMERGENCY_REQUEST_TIMEOUT_SCHEDULE` | src/config.rs:573 | 2 | Chooses and times its job like schedule_jobs (App\Scheduler\JobScheduler, App\Support\CronSchedule ports the cron crate); tested in tests/Feature/Scheduler/JobSchedulerTest. |
+| ✅ | `EVENT_CLEANUP_SCHEDULE` | src/config.rs:576 | 2 | Chooses and times its job like schedule_jobs (App\Scheduler\JobScheduler, App\Support\CronSchedule ports the cron crate); tested in tests/Feature/Scheduler/JobSchedulerTest. |
+| ✅ | `AUTH_REQUEST_PURGE_SCHEDULE` | src/config.rs:579 | 2 | Chooses and times its job like schedule_jobs (App\Scheduler\JobScheduler, App\Support\CronSchedule ports the cron crate); tested in tests/Feature/Scheduler/JobSchedulerTest. |
+| ✅ | `DUO_CONTEXT_PURGE_SCHEDULE` | src/config.rs:582 | 2 | Chooses and times its job like schedule_jobs (App\Scheduler\JobScheduler, App\Support\CronSchedule ports the cron crate); tested in tests/Feature/Scheduler/JobSchedulerTest. |
+| ✅ | `PURGE_INCOMPLETE_SSO_AUTH` | src/config.rs:585 | 2 | Chooses and times its job like schedule_jobs (App\Scheduler\JobScheduler, App\Support\CronSchedule ports the cron crate); tested in tests/Feature/Scheduler/JobSchedulerTest. |
 | ✅ | `DOMAIN` | src/config.rs:592 | 3 | Read like Vaultwarden and used: DOMAIN for mount path, origin, CORS, Host and token issuers; the IP settings for the client IP; the CSP sources in the security headers. |
 | 🟨 | `DOMAIN_SET` | src/config.rs:594 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `DOMAIN_ORIGIN` | src/config.rs:596 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
@@ -353,8 +353,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | `USER_ATTACHMENT_LIMIT` | src/config.rs:610 | 3 | Enforced on uploads like save_attachment (tests/Feature/Api/AttachmentTest). |
 | 🟨 | `ORG_ATTACHMENT_LIMIT` | src/config.rs:612 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | ✅ | `USER_SEND_LIMIT` | src/config.rs:614 | 2 | Enforced on file Sends like post_send_file_v2 (tests/Feature/Api/SendTest). |
-| 🟨 | `TRASH_AUTO_DELETE_DAYS` | src/config.rs:619 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `INCOMPLETE_2FA_TIME_LIMIT` | src/config.rs:626 | 1 | Logins waiting for their second factor are recorded (TwoFactorIncomplete); the job that mails about them is not ported yet. |
+| ✅ | `TRASH_AUTO_DELETE_DAYS` | src/config.rs:619 | 2 | Cipher::purgeTrash, run by the trash_purge job; unset or 0 keeps the trash. Tested in tests/Feature/Scheduler/ScheduledJobsTest. |
+| ✅ | `INCOMPLETE_2FA_TIME_LIMIT` | src/config.rs:626 | 2 | Incomplete logins are recorded (TwoFactorIncomplete) and mailed about by the incomplete_2fa job; 0 turns both off. Tested in tests/Feature/Scheduler/ScheduledJobsTest. |
 | 🟨 | `DISABLE_ICON_DOWNLOAD` | src/config.rs:632 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | ✅ | `SIGNUPS_ALLOWED` | src/config.rs:634 | 2 | Read like Vaultwarden and used by registration and login. |
 | 🟨 | `SIGNUPS_VERIFY` | src/config.rs:637 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
@@ -365,14 +365,14 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `ORG_CREATION_USERS` | src/config.rs:648 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `INVITATIONS_ALLOWED` | src/config.rs:650 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `INVITATION_EXPIRATION_HOURS` | src/config.rs:653 | 1 | Sets the lifetime of mailed tokens in App\Mail\Mail; not compared with Vaultwarden. |
-| 🟨 | `EMERGENCY_ACCESS_ALLOWED` | src/config.rs:655 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `EMERGENCY_ACCESS_ALLOWED` | src/config.rs:655 | 1 | The scheduled emergency access jobs honour it; the emergency access routes are not ported yet. |
 | 🟨 | `EMAIL_CHANGE_ALLOWED` | src/config.rs:657 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | ✅ | `PASSWORD_ITERATIONS` | src/config.rs:660 | 2 | Read like Vaultwarden and used by registration and login. |
 | 🟨 | `PASSWORD_HINTS_ALLOWED` | src/config.rs:662 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `SHOW_PASSWORD_HINT` | src/config.rs:666 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `ADMIN_TOKEN` | src/config.rs:669 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `INVITATION_ORG_NAME` | src/config.rs:672 | 1 | Used when accepting invitations of the admin panel, which is not ported. |
-| 🟨 | `EVENTS_DAYS_RETAIN` | src/config.rs:675 | 1 | Event::cleanEvents is ported; the scheduled job that runs it is not. |
+| ✅ | `EVENTS_DAYS_RETAIN` | src/config.rs:675 | 2 | Event::cleanEvents, run by the event_cleanup job, which needs a retention other than 0. Tested in tests/Feature/Scheduler. |
 | 🟨 | `CLIENT_SUPPRESS_ONBOARDING` | src/config.rs:680 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | ✅ | `IP_HEADER` | src/config.rs:687 | 2 | Read like Vaultwarden and used: DOMAIN for mount path, origin, CORS, Host and token issuers; the IP settings for the client IP; the CSP sources in the security headers. |
 | ✅ | `_IP_HEADER_ENABLED` | src/config.rs:689 | 2 | Read like Vaultwarden and used: DOMAIN for mount path, origin, CORS, Host and token issuers; the IP settings for the client IP; the CSP sources in the security headers. |
@@ -476,14 +476,15 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 
 | | Item | Source | Tests | Notes |
 |---|---|---|--:|---|
-| ⬜ | `send_purge` | src/config.rs:561 | 0 |  |
-| ⬜ | `trash_purge` | src/config.rs:564 | 0 |  |
-| ⬜ | `incomplete_2fa` | src/config.rs:567 | 0 |  |
-| ⬜ | `emergency_notification_reminder` | src/config.rs:570 | 0 |  |
-| ⬜ | `emergency_request_timeout` | src/config.rs:573 | 0 |  |
-| ⬜ | `event_cleanup` | src/config.rs:576 | 0 |  |
-| ⬜ | `auth_request_purge` | src/config.rs:579 | 0 |  |
-| ⬜ | `duo_context_purge` | src/config.rs:582 | 0 |  |
+| ✅ | `send_purge` | src/config.rs:561 | 1 | Jobs::purgeSends, Send::purge. Run by `php artisan vaultwarden:schedule` (or `--once` from cron) like job_scheduler_ng; `vaultwarden:job` runs it now. Tested in tests/Feature/Scheduler. |
+| ✅ | `trash_purge` | src/config.rs:564 | 1 | Jobs::purgeTrashedCiphers, Cipher::purgeTrash. Run by `php artisan vaultwarden:schedule` (or `--once` from cron) like job_scheduler_ng; `vaultwarden:job` runs it now. Tested in tests/Feature/Scheduler. |
+| ✅ | `incomplete_2fa` | src/config.rs:567 | 1 | Jobs::sendIncomplete2faNotifications. Run by `php artisan vaultwarden:schedule` (or `--once` from cron) like job_scheduler_ng; `vaultwarden:job` runs it now. Tested in tests/Feature/Scheduler. |
+| ✅ | `emergency_notification_reminder` | src/config.rs:570 | 1 | Jobs::emergencyNotificationReminderJob. Run by `php artisan vaultwarden:schedule` (or `--once` from cron) like job_scheduler_ng; `vaultwarden:job` runs it now. Tested in tests/Feature/Scheduler. |
+| ✅ | `emergency_request_timeout` | src/config.rs:573 | 1 | Jobs::emergencyRequestTimeoutJob. Run by `php artisan vaultwarden:schedule` (or `--once` from cron) like job_scheduler_ng; `vaultwarden:job` runs it now. Tested in tests/Feature/Scheduler. |
+| ✅ | `event_cleanup` | src/config.rs:576 | 1 | Jobs::eventCleanupJob, only with ORG_EVENTS_ENABLED and EVENTS_DAYS_RETAIN. Run by `php artisan vaultwarden:schedule` (or `--once` from cron) like job_scheduler_ng; `vaultwarden:job` runs it now. Tested in tests/Feature/Scheduler. |
+| ✅ | `auth_request_purge` | src/config.rs:579 | 1 | Jobs::purgeAuthRequests, AuthRequest::purgeExpiredAuthRequests. Run by `php artisan vaultwarden:schedule` (or `--once` from cron) like job_scheduler_ng; `vaultwarden:job` runs it now. Tested in tests/Feature/Scheduler. |
+| ✅ | `duo_context_purge` | src/config.rs:582 | 1 | Jobs::purgeDuoContexts, only with _ENABLE_DUO. Run by `php artisan vaultwarden:schedule` (or `--once` from cron) like job_scheduler_ng; `vaultwarden:job` runs it now. Tested in tests/Feature/Scheduler. |
+| ✅ | `purge_incomplete_sso_auth` | src/config.rs:585 | 1 | Jobs::purgeIncompleteSsoAuth, SsoAuth::deleteExpired; runs without SSO, like upstream. Run by `php artisan vaultwarden:schedule` (or `--once` from cron) like job_scheduler_ng; `vaultwarden:job` runs it now. Tested in tests/Feature/Scheduler. |
 
 ## Database tables
 

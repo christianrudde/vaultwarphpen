@@ -35,6 +35,9 @@ environment variables, so the official Bitwarden clients and existing Vaultwarde
 - Two-factor login: `App\Auth\Webauthn` ports webauthn-rs and keeps its stored formats;
   `Tests\Support\SoftwareAuthenticator` answers WebAuthn ceremonies in tests. Outgoing requests
   (Yubico, Duo) go through `App\Support\HttpClient`.
+- Scheduled jobs: `App\Scheduler\Jobs` ports the jobs of `schedule_jobs` (src/main.rs), `JobScheduler`
+  and `Job` port job_scheduler_ng, `App\Support\CronSchedule` the cron crate. `php86 artisan
+  vaultwarden:schedule` runs them (`--once` for cron), `vaultwarden:job <name>` runs one now.
 - Uploads: Vaultwarden takes files up to 525 MB, so PHP needs `upload_max_filesize=525M` and a
   `post_max_size` above it (or `0`). PHP cuts uploaded file names at the last slash, which encrypted
   names contain; read them with `getClientOriginalPath()` (see `App\Http\Data\UploadData`).

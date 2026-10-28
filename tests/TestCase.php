@@ -4,6 +4,7 @@ namespace Tests;
 
 use App\Config\Config;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Testing\PendingCommand;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -38,6 +39,19 @@ abstract class TestCase extends BaseTestCase
     {
         $this->setEnvironment($environment);
         $this->app->forgetInstance(Config::class);
+    }
+
+    /**
+     * artisan() with the console output mocked, as it is in tests.
+     *
+     * @param  array<string, mixed>  $parameters
+     */
+    protected function command(string $command, array $parameters = []): PendingCommand
+    {
+        $pending = $this->artisan($command, $parameters);
+        $this->assertInstanceOf(PendingCommand::class, $pending);
+
+        return $pending;
     }
 
     protected function tearDown(): void

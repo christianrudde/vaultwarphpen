@@ -91,9 +91,10 @@ final class ConfigExtractor
                 'source' => "src/config.rs:{$statement['line']}",
             ], static fn (mixed $value): bool => $value !== null && $value !== '');
 
-            if ($group === 'jobs' && str_ends_with($match[1], '_schedule')) {
+            // Every setting of the group but the poll interval schedules a job.
+            if ($group === 'jobs' && $match[1] !== 'job_poll_interval_ms') {
                 $jobs[] = array_filter([
-                    'id' => 'job:'.substr($match[1], 0, -strlen('_schedule')),
+                    'id' => 'job:'.preg_replace('/_schedule$/', '', $match[1]),
                     'kind' => 'job',
                     'config' => $env,
                     'schedule' => preg_match('/^"([^"]*)"/', $match[5] ?? '', $schedule) ? $schedule[1] : null,

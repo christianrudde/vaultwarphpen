@@ -106,6 +106,8 @@ byte for byte. No code is copied from them. Versions are those locked in Vaultwa
 | [webauthn-rs](https://github.com/kanidm/webauthn-rs) with webauthn-rs-core, webauthn-rs-proto and base64urlsafedata | 0.5.5 | MPL-2.0 | passkey registration and authentication, the stored credential and state formats, attestation checks | `app/Auth/Webauthn` |
 | [serde_cbor_2](https://github.com/deuxfleurs-org/cbor) | 0.13.0 | MIT or Apache-2.0 | CBOR decoding of authenticator data | `app/Support/Cbor.php` |
 | [yubico_ng](https://github.com/BlackDex/yubico-rs) | 1.0.0 | MIT or Apache-2.0 | the Yubico Validation Protocol 2.0 client: signed requests, checked answers | `app/Support/Yubico.php` |
+| [cron](https://github.com/zslayton/cron) | 0.17.0 | MIT or Apache-2.0 | the syntax of the job schedules (seconds, names, steps, years, shorthands) and when they are next due | `app/Support/CronSchedule.php` |
+| [job_scheduler_ng](https://github.com/BlackDex/job_scheduler) | 2.5.0 | MIT or Apache-2.0 | when scheduled jobs run: at most once per tick, in UTC, the first tick only noting the time | `app/Scheduler` |
 | [reqwest](https://github.com/seanmonstar/reqwest), [rustls-native-certs](https://github.com/rustls/rustls-native-certs) | 0.13.5, 0.8.5 | MIT or Apache-2.0; Apache-2.0, ISC or MIT | outgoing requests: user agent, timeout, redirects, trusted roots from `SSL_CERT_FILE` | `app/Support/HttpClient.php` |
 
 ## Laravel

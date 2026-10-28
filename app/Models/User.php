@@ -416,27 +416,6 @@ final class User extends Model
         );
     }
 
-    /**
-     * util::retry with ten attempts, 500 ms apart.
-     *
-     * @throws ApiError
-     */
-    private static function retry(callable $query, string $errorMessage): void
-    {
-        for ($attempt = 1; ; $attempt++) {
-            try {
-                $query();
-
-                return;
-            } catch (QueryException) {
-                if ($attempt >= 10) {
-                    throw ApiError::message($errorMessage);
-                }
-                usleep(500_000);
-            }
-        }
-    }
-
     protected function binaryColumns(): array
     {
         return ['password_hash', 'salt'];

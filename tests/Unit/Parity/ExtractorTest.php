@@ -73,7 +73,10 @@ class ExtractorTest extends TestCase
 
         $this->assertSame([], $extractor->warnings);
         $this->assertSame(
-            ['config:TRASH_PURGE_SCHEDULE', 'config:_ENABLE_SMTP', 'config:SMTP_SECURITY', 'config:SMTP_PORT', 'job:trash_purge'],
+            [
+                'config:JOB_POLL_INTERVAL_MS', 'config:TRASH_PURGE_SCHEDULE', 'config:PURGE_INCOMPLETE_SSO_AUTH',
+                'config:_ENABLE_SMTP', 'config:SMTP_SECURITY', 'config:SMTP_PORT', 'job:trash_purge', 'job:purge_incomplete_sso_auth',
+            ],
             array_keys($items),
         );
         $this->assertSame('Trash purge schedule', $items['config:TRASH_PURGE_SCHEDULE']['title']);
@@ -84,5 +87,6 @@ class ExtractorTest extends TestCase
         $this->assertSame('|c| convert(c.smtp_ssl)', $items['config:SMTP_SECURITY']['default']);
         $this->assertSame('smtp', $items['config:SMTP_PORT']['group']);
         $this->assertSame('0 5 0 * * *', $items['job:trash_purge']['schedule']);
+        $this->assertSame('PURGE_INCOMPLETE_SSO_AUTH', $items['job:purge_incomplete_sso_auth']['config']);
     }
 }

@@ -10,7 +10,8 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\QueryException;
 
 /**
- * src/db/models/emergency_access.rs; so far the parts registration needs.
+ * src/db/models/emergency_access.rs; so far the parts registration and the
+ * scheduled jobs need.
  *
  * @property string $uuid
  * @property string $grantor_uuid
@@ -31,6 +32,21 @@ final class EmergencyAccess extends Model
 
     public const int STATUS_ACCEPTED = 1;
 
+    public const int STATUS_CONFIRMED = 2;
+
+    public const int STATUS_RECOVERY_INITIATED = 3;
+
+    public const int STATUS_RECOVERY_APPROVED = 4;
+
+    public const int TYPE_VIEW = 0;
+
+    public const int TYPE_TAKEOVER = 1;
+
+    /**
+     * EMERGENCY_ACCESS_TIMEOUT_RANGE
+     */
+    public const array WAIT_TIME_DAYS = [1, 90];
+
     protected $table = 'emergency_access';
 
     protected $primaryKey = 'uuid';
@@ -48,6 +64,36 @@ final class EmergencyAccess extends Model
         ];
     }
 
+    public function typeAsString(): string
+    {
+        return $this->atype === self::TYPE_VIEW ? 'View' : 'Takeover';
+    }
+
+    /**
+     * When the grantee gets access without the grantor's approval.
+     *
+     * @throws ApiError
+     */
+    public function deadlineAt(): DateTimeImmutable
+    {
+        if ($this->wait_time_days < self::WAIT_TIME_DAYS[0] || $this->wait_time_days > self::WAIT_TIME_DAYS[1]) {
+            throw ApiError::message('Emergency access wait time is out-of-bounds!');
+        }
+        if ($this->recovery_initiated_at === null) {
+            throw ApiError::message('Emergency access initiation date missing!');
+        }
+
+        return $this->recovery_initiated_at->modify("+{$this->wait_time_days} days");
+    }
+
+    /**
+     * @throws ApiError
+     */
+    public function isRecoveryAllowed(DateTimeImmutable $now): bool
+    {
+        return $this->deadlineAt() <= $now;
+    }
+
     /**
      * Saving also tells the grantor's clients to sync.
      *
@@ -62,6 +108,47 @@ final class EmergencyAccess extends Model
         $this->upsertRow(['uuid'], 'Error saving emergency access');
 
         return true;
+    }
+
+    /**
+     * Changes only the status, and only if no one else has changed it, so
+     * that the scheduled jobs do not overwrite each other. The grantee's
+     * clients sync.
+     *
+     * @throws ApiError
+     */
+    public function updateAccessStatusAndSave(int $fromStatus, int $toStatus, DateTimeImmutable $date): void
+    {
+        $updated = self::retry(
+            fn (): int => self::query()->where('uuid', $this->uuid)->where('status', $fromStatus)
+                ->update(['status' => $toStatus, 'updated_at' => NaiveDateTime::format($date)]),
+            'Error updating emergency access status',
+        );
+        if ($updated !== 1) {
+            throw ApiError::message('Emergency access status was changed already');
+        }
+
+        $this->status = $toStatus;
+        $this->updated_at = $date;
+
+        User::updateUuidRevision((string) $this->grantee_uuid);
+    }
+
+    /**
+     * Changes only the date of the last reminder.
+     *
+     * @throws ApiError
+     */
+    public function updateLastNotificationDateAndSave(DateTimeImmutable $date): void
+    {
+        $this->last_notification_at = $date;
+        $this->updated_at = $date;
+
+        self::retry(
+            fn (): int => self::query()->where('uuid', $this->uuid)
+                ->update(['last_notification_at' => NaiveDateTime::format($date), 'updated_at' => NaiveDateTime::format($date)]),
+            'Error updating emergency access status',
+        );
     }
 
     /**
@@ -102,6 +189,14 @@ final class EmergencyAccess extends Model
         foreach (self::findAllInvitedByGranteeEmail($email) as $access) {
             $access->deleteAccess();
         }
+    }
+
+    /**
+     * @return Collection<int, self>
+     */
+    public static function findAllRecoveriesInitiated(): Collection
+    {
+        return self::query()->where('status', self::STATUS_RECOVERY_INITIATED)->whereNotNull('recovery_initiated_at')->get();
     }
 
     public static function findInvitedByGranteeEmail(string $email): ?self

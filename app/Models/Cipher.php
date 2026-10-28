@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Config\Config;
 use App\Http\ApiError;
 use App\Http\Json;
 use App\Models\Casts\NaiveDateTime;
@@ -478,6 +479,26 @@ final class Cipher extends Model
     }
 
     /**
+     * Deletes what has been in the trash for TRASH_AUTO_DELETE_DAYS days;
+     * failures are ignored like upstream.
+     */
+    public static function purgeTrash(): void
+    {
+        $days = app(Config::class)->optionalInt('trash_auto_delete_days');
+        if ($days === null || $days === 0) {
+            return;
+        }
+
+        foreach (self::findDeletedBefore(Dates::now()->modify("-{$days} days")) as $cipher) {
+            try {
+                $cipher->deleteCipher();
+            } catch (ApiError) {
+                // Tried again on the next run.
+            }
+        }
+    }
+
+    /**
      * @return list<string> The users whose clients must sync
      */
     public function updateUsersRevision(): array
@@ -551,6 +572,14 @@ final class Cipher extends Model
             ->value('folders_ciphers.folder_uuid');
 
         return is_string($folder) ? $folder : null;
+    }
+
+    /**
+     * @return Collection<int, self>
+     */
+    public static function findDeletedBefore(DateTimeImmutable $date): Collection
+    {
+        return self::query()->where('deleted_at', '<', NaiveDateTime::format($date))->get();
     }
 
     public static function findByUuid(string $uuid): ?self

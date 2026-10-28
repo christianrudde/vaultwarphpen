@@ -49,6 +49,30 @@ abstract class Model extends EloquentModel
     }
 
     /**
+     * util::retry with ten attempts, 500 ms apart.
+     *
+     * @template T
+     *
+     * @param  callable(): T  $query
+     * @return T
+     *
+     * @throws ApiError With $errorMessage, like map_res()
+     */
+    protected static function retry(callable $query, string $errorMessage): mixed
+    {
+        for ($attempt = 1; ; $attempt++) {
+            try {
+                return $query();
+            } catch (QueryException) {
+                if ($attempt >= 10) {
+                    throw ApiError::message($errorMessage);
+                }
+                usleep(500_000);
+            }
+        }
+    }
+
+    /**
      * Columns holding bytes; they are bound as LOBs, so that SQLite stores a BLOB and PostgreSQL a bytea.
      *
      * @return list<string>
