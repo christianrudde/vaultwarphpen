@@ -8,12 +8,12 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 
 | Area | Total | ✅ | 🟨 | ⬜ | ➖ | With tests |
 |---|--:|--:|--:|--:|--:|--:|
-| Routes | 294 | 175 | 69 | 49 | 1 | 244 |
-| Settings | 153 | 67 | 86 | 0 | 0 | 153 |
+| Routes | 294 | 202 | 71 | 20 | 1 | 273 |
+| Settings | 153 | 73 | 80 | 0 | 0 | 153 |
 | Scheduled jobs | 9 | 9 | 0 | 0 | 0 | 9 |
 | Database tables | 28 | 28 | 0 | 0 | 0 | 28 |
-| Templates | 74 | 43 | 31 | 0 | 0 | 74 |
-| Static assets | 21 | 0 | 0 | 21 | 0 | 0 |
+| Templates | 74 | 51 | 23 | 0 | 0 | 74 |
+| Static assets | 21 | 20 | 0 | 1 | 0 | 20 |
 
 ## Routes
 
@@ -22,7 +22,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | GET `/attachments/{cipher_id}/{file_id}` | src/api/web.rs:232 | 1 | Compared with Vaultwarden in tests/Differential/AttachmentTest. |
 | ✅ | GET `/alive` | src/api/web.rs:245 | 2 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
 | ✅ | HEAD `/alive` | src/api/web.rs:250 | 2 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
-| ⬜ | GET `/vw_static/{filename}` | src/api/web.rs:330 | 0 |  |
+| ✅ | GET `/vw_static/{filename}` | src/api/web.rs:330 | 2 | The embedded images and scripts with Vaultwarden's ETag and caching; compared byte for byte in tests/Differential/AdminTest. |
 | ⬜ | GET `/` | src/api/web.rs:154 | 0 |  |
 | ⬜ | GET `/index.html` | src/api/web.rs:161 | 0 |  |
 | ⬜ | HEAD `/` | src/api/web.rs:166 | 0 |  |
@@ -271,34 +271,34 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | POST `/api/sends/file/v2` | src/api/core/sends.rs:224 | 1 | Compared with Vaultwarden in tests/Differential/SendTest; the organization policies (Disable Send, Send Options) are covered by tests/Feature/Api/SendTest. No live notifications yet. |
 | ✅ | POST `/api/sends/{send_id}/file/{file_id}` | src/api/core/sends.rs:296 | 1 | Compared with Vaultwarden in tests/Differential/SendTest; the organization policies (Disable Send, Send Options) are covered by tests/Feature/Api/SendTest. No live notifications yet. |
 | ✅ | POST `/api/public/organization/import` | src/api/core/public.rs:53 | 1 | Compared with Vaultwarden in tests/Differential/ApiKeyTest (groups on and off) and MailTest (with mail, mails included). |
-| ⬜ | GET `/admin` | src/api/admin.rs:100 | 0 |  |
-| ⬜ | GET `/admin/users` | src/api/admin.rs:357 | 0 |  |
-| ⬜ | GET `/admin/users/{user_id}` | src/api/admin.rs:412 | 0 |  |
-| ⬜ | GET `/admin/users/by-mail/{mail}` | src/api/admin.rs:400 | 0 |  |
-| ⬜ | POST `/admin` | src/api/admin.rs:184 | 0 |  |
-| ⬜ | GET `/admin` | src/api/admin.rs:286 | 0 |  |
-| ⬜ | GET `/admin` | src/api/admin.rs:291 | 0 |  |
-| ⬜ | POST `/admin/invite` | src/api/admin.rs:310 | 0 |  |
-| ⬜ | GET `/admin/logout` | src/api/admin.rs:351 | 0 |  |
-| ⬜ | POST `/admin/users/{user_id}/delete` | src/api/admin.rs:421 | 0 |  |
-| ⬜ | DELETE `/admin/users/{user_id}/sso` | src/api/admin.rs:445 | 0 |  |
-| ⬜ | POST `/admin/users/{user_id}/deauth` | src/api/admin.rs:466 | 0 |  |
-| ⬜ | POST `/admin/users/{user_id}/disable` | src/api/admin.rs:487 | 0 |  |
-| ⬜ | POST `/admin/users/{user_id}/enable` | src/api/admin.rs:502 | 0 |  |
-| ⬜ | POST `/admin/users/{user_id}/remove-2fa` | src/api/admin.rs:510 | 0 |  |
-| ⬜ | POST `/admin/users/org_type` | src/api/admin.rs:551 | 0 |  |
-| ⬜ | POST `/admin/users/update_revision` | src/api/admin.rs:591 | 0 |  |
-| ⬜ | POST `/admin/config` | src/api/admin.rs:836 | 0 |  |
-| ⬜ | POST `/admin/config/delete` | src/api/admin.rs:845 | 0 |  |
-| ⬜ | POST `/admin/config/backup_db` | src/api/admin.rs:853 | 0 |  |
-| ⬜ | POST `/admin/test/smtp` | src/api/admin.rs:340 | 0 |  |
-| ⬜ | GET `/admin/users/overview` | src/api/admin.rs:375 | 0 |  |
-| ⬜ | GET `/admin/organizations/overview` | src/api/admin.rs:596 | 0 |  |
-| ⬜ | POST `/admin/organizations/{org_id}/delete` | src/api/admin.rs:616 | 0 |  |
-| ⬜ | GET `/admin/diagnostics` | src/api/admin.rs:753 | 0 |  |
-| ⬜ | GET `/admin/diagnostics/config` | src/api/admin.rs:825 | 0 |  |
-| ⬜ | POST `/admin/users/{user_id}/invite/resend` | src/api/admin.rs:520 | 0 |  |
-| ⬜ | GET `/admin/diagnostics/http` | src/api/admin.rs:831 | 0 |  |
+| ✅ | GET `/admin` | src/api/admin.rs:100 | 2 | Without ADMIN_TOKEN only this notice is routed; compared with Vaultwarden in tests/Differential/AdminTest on the pair without a token. |
+| ✅ | GET `/admin/users` | src/api/admin.rs:357 | 1 | Compared with Vaultwarden in tests/Differential/AdminTest. |
+| ✅ | GET `/admin/users/{user_id}` | src/api/admin.rs:412 | 1 | Compared with Vaultwarden in tests/Differential/AdminTest. |
+| ✅ | GET `/admin/users/by-mail/{mail}` | src/api/admin.rs:400 | 1 | Compared with Vaultwarden in tests/Differential/AdminTest. |
+| ✅ | POST `/admin` | src/api/admin.rs:184 | 2 | Compared with Vaultwarden in tests/Differential/AdminTest, the cookies by their attributes. The session is an admin JWT in VW_ADMIN; a session of either implementation is valid at the other. |
+| ✅ | GET `/admin` | src/api/admin.rs:286 | 3 | Compared with Vaultwarden in tests/Differential/AdminTest, the cookies by their attributes. The session is an admin JWT in VW_ADMIN; a session of either implementation is valid at the other. |
+| ✅ | GET `/admin` | src/api/admin.rs:291 | 2 | Compared with Vaultwarden in tests/Differential/AdminTest, the cookies by their attributes. The session is an admin JWT in VW_ADMIN; a session of either implementation is valid at the other. |
+| ✅ | POST `/admin/invite` | src/api/admin.rs:310 | 3 | Compared with Vaultwarden in tests/Differential/AdminTest, with and without mail; the mails as well. |
+| ✅ | GET `/admin/logout` | src/api/admin.rs:351 | 2 | Compared with Vaultwarden in tests/Differential/AdminTest, the cookies by their attributes. The session is an admin JWT in VW_ADMIN; a session of either implementation is valid at the other. |
+| ✅ | POST `/admin/users/{user_id}/delete` | src/api/admin.rs:421 | 3 | Compared with Vaultwarden in tests/Differential/AdminTest. |
+| ✅ | DELETE `/admin/users/{user_id}/sso` | src/api/admin.rs:445 | 2 | Compared with Vaultwarden in tests/Differential/AdminTest. |
+| 🟨 | POST `/admin/users/{user_id}/deauth` | src/api/admin.rs:466 | 1 | Compared with Vaultwarden in tests/Differential/AdminTest. The logout is not pushed to the clients: WebSocket and push notifications are not ported yet. |
+| 🟨 | POST `/admin/users/{user_id}/disable` | src/api/admin.rs:487 | 1 | Compared with Vaultwarden in tests/Differential/AdminTest. The logout is not pushed to the clients: WebSocket and push notifications are not ported yet. |
+| ✅ | POST `/admin/users/{user_id}/enable` | src/api/admin.rs:502 | 1 | Compared with Vaultwarden in tests/Differential/AdminTest. |
+| ✅ | POST `/admin/users/{user_id}/remove-2fa` | src/api/admin.rs:510 | 2 | Compared with Vaultwarden in tests/Differential/AdminTest, with and without mail; the mails as well. |
+| ✅ | POST `/admin/users/org_type` | src/api/admin.rs:551 | 2 | Compared with Vaultwarden in tests/Differential/AdminTest. |
+| ✅ | POST `/admin/users/update_revision` | src/api/admin.rs:591 | 1 | Compared with Vaultwarden in tests/Differential/AdminTest. |
+| ✅ | POST `/admin/config` | src/api/admin.rs:836 | 2 | Writes config.json like Vaultwarden (the editable settings, pretty-printed in their order) after the stricter checks of a save; compared in tests/Differential/AdminTest. Unlike serde, a key given twice is not refused: the last one wins. |
+| ✅ | POST `/admin/config/delete` | src/api/admin.rs:845 | 2 | Compared with Vaultwarden in tests/Differential/AdminTest. |
+| ✅ | POST `/admin/config/backup_db` | src/api/admin.rs:853 | 2 | VACUUM INTO next to the SQLite database, named like Vaultwarden names it; compared in tests/Differential/AdminTest. |
+| ✅ | POST `/admin/test/smtp` | src/api/admin.rs:340 | 2 | Compared with Vaultwarden in tests/Differential/AdminTest, with and without mail; the mails as well. |
+| ✅ | GET `/admin/users/overview` | src/api/admin.rs:375 | 1 | Compared with Vaultwarden in tests/Differential/AdminTest. |
+| ✅ | GET `/admin/organizations/overview` | src/api/admin.rs:596 | 1 | Compared with Vaultwarden in tests/Differential/AdminTest. |
+| ✅ | POST `/admin/organizations/{org_id}/delete` | src/api/admin.rs:616 | 1 | Compared with Vaultwarden in tests/Differential/AdminTest. |
+| ✅ | GET `/admin/diagnostics` | src/api/admin.rs:753 | 2 | Agreed deviation (AGENTS.md): names Vaultwarphpen with the Vaultwarden release it mirrors, looks for newer versions in Vaultwarphpen's repository and shows PHP's runtime; DNS resolves IPv4 only. Compared with Vaultwarden by structure in tests/Differential/AdminTest. |
+| ✅ | GET `/admin/diagnostics/config` | src/api/admin.rs:825 | 2 | Compared with Vaultwarden in tests/Differential/AdminTest. |
+| ✅ | POST `/admin/users/{user_id}/invite/resend` | src/api/admin.rs:520 | 3 | Compared with Vaultwarden in tests/Differential/AdminTest, with and without mail; the mails as well. |
+| ✅ | GET `/admin/diagnostics/http` | src/api/admin.rs:831 | 2 | Compared with Vaultwarden in tests/Differential/AdminTest. |
 | ✅ | POST `/events/collect` | src/api/core/events.rs:158 | 1 | Compared with Vaultwarden in tests/Differential/EventTest, with ORG_EVENTS_ENABLED on and off. |
 | 🟨 | POST `/identity/connect/token` | src/api/identity.rs:57 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Password (with KDF upgrade and the 2FA organization policy), refresh token, user and organization API key, Send access (send_access) and login with a device (auth requests); two-factor login with authenticator, email, YubiKey, Duo, WebAuthn, remembered device and recovery code; accounts, tokens and two-factor methods work across Vaultwarden and us on one database. Not yet: SSO. |
 | ✅ | POST `/identity/accounts/prelogin` | src/api/identity.rs:1019 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
@@ -370,8 +370,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | `PASSWORD_ITERATIONS` | src/config.rs:660 | 2 | Read like Vaultwarden and used by registration and login. |
 | 🟨 | `PASSWORD_HINTS_ALLOWED` | src/config.rs:662 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `SHOW_PASSWORD_HINT` | src/config.rs:666 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `ADMIN_TOKEN` | src/config.rs:669 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `INVITATION_ORG_NAME` | src/config.rs:672 | 1 | Used when accepting invitations of the admin panel, which is not ported. |
+| ✅ | `ADMIN_TOKEN` | src/config.rs:669 | 4 | A plain token or an Argon2 PHC string (password_verify, else libsodium; argon2d is not supported by PHP). Compared with Vaultwarden in tests/Differential/AdminTest. |
+| ✅ | `INVITATION_ORG_NAME` | src/config.rs:672 | 3 | Names the organization in the invitations of the admin panel; compared with Vaultwarden in tests/Differential/AdminTest. |
 | ✅ | `EVENTS_DAYS_RETAIN` | src/config.rs:675 | 2 | Event::cleanEvents, run by the event_cleanup job, which needs a retention other than 0. Tested in tests/Feature/Scheduler. |
 | 🟨 | `CLIENT_SUPPRESS_ONBOARDING` | src/config.rs:680 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | ✅ | `IP_HEADER` | src/config.rs:687 | 2 | Read like Vaultwarden and used: DOMAIN for mount path, origin, CORS, Host and token issuers; the IP settings for the client IP; the CSP sources in the security headers. |
@@ -405,16 +405,16 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `DATABASE_MAX_CONNS` | src/config.rs:777 | 1 | Read and validated like Vaultwarden; PHP opens one connection per request, so there is no pool to size yet. |
 | 🟨 | `DATABASE_MIN_CONNS` | src/config.rs:780 | 1 | Read and validated like Vaultwarden; PHP opens one connection per request, so there is no pool to size yet. |
 | ✅ | `DATABASE_CONN_INIT` | src/config.rs:783 | 3 | Read like Vaultwarden (environment, *_FILE, config.json, default) and used: DATABASE_URL drives the default connection, the templates folder and reload drive the renderer. |
-| 🟨 | `DISABLE_ADMIN_TOKEN` | src/config.rs:786 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `DISABLE_ADMIN_TOKEN` | src/config.rs:786 | 2 | The panel needs no session; tested in tests/Feature/Api/AdminTest. |
 | ✅ | `ALLOWED_IFRAME_ANCESTORS` | src/config.rs:789 | 2 | Read like Vaultwarden and used: DOMAIN for mount path, origin, CORS, Host and token issuers; the IP settings for the client IP; the CSP sources in the security headers. |
 | ✅ | `ALLOWED_CONNECT_SRC` | src/config.rs:792 | 2 | Read like Vaultwarden and used: DOMAIN for mount path, origin, CORS, Host and token issuers; the IP settings for the client IP; the CSP sources in the security headers. |
 | ✅ | `LOGIN_RATELIMIT_SECONDS` | src/config.rs:795 | 2 | Read like Vaultwarden and used by registration and login. |
 | ✅ | `LOGIN_RATELIMIT_MAX_BURST` | src/config.rs:797 | 2 | Read like Vaultwarden and used by registration and login. |
 | ✅ | `UNAUTHENTICATED_RATELIMIT_SECONDS` | src/config.rs:800 | 2 | Read like Vaultwarden and used by registration and login. |
 | ✅ | `UNAUTHENTICATED_RATELIMIT_MAX_BURST` | src/config.rs:802 | 2 | Read like Vaultwarden and used by registration and login. |
-| 🟨 | `ADMIN_RATELIMIT_SECONDS` | src/config.rs:805 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `ADMIN_RATELIMIT_MAX_BURST` | src/config.rs:807 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `ADMIN_SESSION_LIFETIME` | src/config.rs:810 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `ADMIN_RATELIMIT_SECONDS` | src/config.rs:805 | 2 | Limits the admin logins per IP with App\Support\RateLimiter; tested in tests/Feature/Api/AdminTest. |
+| ✅ | `ADMIN_RATELIMIT_MAX_BURST` | src/config.rs:807 | 2 | Limits the admin logins per IP with App\Support\RateLimiter; tested in tests/Feature/Api/AdminTest. |
+| ✅ | `ADMIN_SESSION_LIFETIME` | src/config.rs:810 | 3 | Lifetime of the session token and its cookie; tested in tests/Feature/Api/AdminTest and compared in tests/Differential/AdminTest. |
 | ✅ | `ORG_GROUPS_ENABLED` | src/config.rs:813 | 2 | Compared with Vaultwarden in tests/Differential/GroupTest, with ORG_GROUPS_ENABLED on and off. |
 | 🟨 | `INCREASE_NOTE_SIZE_LIMIT` | src/config.rs:817 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `_MAX_NOTE_SIZE` | src/config.rs:819 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
@@ -524,12 +524,12 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | | Item | Source | Tests | Notes |
 |---|---|---|--:|---|
 | 🟨 | `404` | src/static/templates/404.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `admin/base` | src/static/templates/admin/base.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `admin/diagnostics` | src/static/templates/admin/diagnostics.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `admin/login` | src/static/templates/admin/login.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `admin/organizations` | src/static/templates/admin/organizations.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `admin/settings` | src/static/templates/admin/settings.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `admin/users` | src/static/templates/admin/users.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
+| ✅ | `admin/base` | src/static/templates/admin/base.hbs | 2 | Rendered with the data Vaultwarden passes and compared to its output in tests/Differential/AdminTest. |
+| ✅ | `admin/diagnostics` | src/static/templates/admin/diagnostics.hbs | 2 | Rendered unchanged with the deviating data of the diagnostics (AGENTS.md); compared by structure in tests/Differential/AdminTest. |
+| ✅ | `admin/login` | src/static/templates/admin/login.hbs | 2 | Rendered with the data Vaultwarden passes and compared to its output in tests/Differential/AdminTest. |
+| ✅ | `admin/organizations` | src/static/templates/admin/organizations.hbs | 2 | Rendered with the data Vaultwarden passes and compared to its output in tests/Differential/AdminTest. |
+| ✅ | `admin/settings` | src/static/templates/admin/settings.hbs | 3 | Rendered with the data Vaultwarden passes and compared to its output in tests/Differential/AdminTest. |
+| ✅ | `admin/users` | src/static/templates/admin/users.hbs | 2 | Rendered with the data Vaultwarden passes and compared to its output in tests/Differential/AdminTest. |
 | ✅ | `email/admin_account_recovery` | src/static/templates/email/admin_account_recovery.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
 | ✅ | `email/admin_account_recovery.html` | src/static/templates/email/admin_account_recovery.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
 | ✅ | `email/change_email` | src/static/templates/email/change_email.hbs | 2 | Compared with Vaultwarden in tests/Differential/AccountManagementTest: subject, text and HTML of the mail. |
@@ -583,8 +583,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | `email/send_org_invite.html` | src/static/templates/email/send_org_invite.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
 | 🟨 | `email/send_single_org_removed_from_org` | src/static/templates/email/send_single_org_removed_from_org.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
 | 🟨 | `email/send_single_org_removed_from_org.html` | src/static/templates/email/send_single_org_removed_from_org.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/smtp_test` | src/static/templates/email/smtp_test.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/smtp_test.html` | src/static/templates/email/smtp_test.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| ✅ | `email/smtp_test` | src/static/templates/email/smtp_test.hbs | 2 | Sent by POST /admin/test/smtp; compared with Vaultwarden in tests/Differential/AdminTest. |
+| ✅ | `email/smtp_test.html` | src/static/templates/email/smtp_test.html.hbs | 2 | Sent by POST /admin/test/smtp; compared with Vaultwarden in tests/Differential/AdminTest. |
 | 🟨 | `email/sso_change_email` | src/static/templates/email/sso_change_email.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
 | 🟨 | `email/sso_change_email.html` | src/static/templates/email/sso_change_email.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
 | ✅ | `email/twofactor_email` | src/static/templates/email/twofactor_email.hbs | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest: subject, text and HTML of the mail. |
@@ -603,23 +603,23 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | | Item | Source | Tests | Notes |
 |---|---|---|--:|---|
 | ⬜ | `global_domains.json` | src/static/global_domains.json | 0 |  |
-| ⬜ | `images/404.png` | src/static/images/404.png | 0 |  |
-| ⬜ | `images/error-x.svg` | src/static/images/error-x.svg | 0 |  |
-| ⬜ | `images/fallback-icon.png` | src/static/images/fallback-icon.png | 0 |  |
-| ⬜ | `images/hibp.png` | src/static/images/hibp.png | 0 |  |
-| ⬜ | `images/logo-gray.png` | src/static/images/logo-gray.png | 0 |  |
-| ⬜ | `images/mail-github.png` | src/static/images/mail-github.png | 0 |  |
-| ⬜ | `images/vaultwarden-favicon.png` | src/static/images/vaultwarden-favicon.png | 0 |  |
-| ⬜ | `images/vaultwarden-icon.png` | src/static/images/vaultwarden-icon.png | 0 |  |
-| ⬜ | `scripts/404.css` | src/static/scripts/404.css | 0 |  |
-| ⬜ | `scripts/admin.css` | src/static/scripts/admin.css | 0 |  |
-| ⬜ | `scripts/admin.js` | src/static/scripts/admin.js | 0 |  |
-| ⬜ | `scripts/admin_diagnostics.js` | src/static/scripts/admin_diagnostics.js | 0 |  |
-| ⬜ | `scripts/admin_organizations.js` | src/static/scripts/admin_organizations.js | 0 |  |
-| ⬜ | `scripts/admin_settings.js` | src/static/scripts/admin_settings.js | 0 |  |
-| ⬜ | `scripts/admin_users.js` | src/static/scripts/admin_users.js | 0 |  |
-| ⬜ | `scripts/bootstrap.bundle.js` | src/static/scripts/bootstrap.bundle.js | 0 |  |
-| ⬜ | `scripts/bootstrap.css` | src/static/scripts/bootstrap.css | 0 |  |
-| ⬜ | `scripts/datatables.css` | src/static/scripts/datatables.css | 0 |  |
-| ⬜ | `scripts/datatables.js` | src/static/scripts/datatables.js | 0 |  |
-| ⬜ | `scripts/jdenticon-3.3.0.js` | src/static/scripts/jdenticon-3.3.0.js | 0 |  |
+| ✅ | `images/404.png` | src/static/images/404.png | 1 | Copied by parity:sync and served at /vw_static; compared byte for byte in tests/Differential/AdminTest. |
+| ✅ | `images/error-x.svg` | src/static/images/error-x.svg | 1 | Copied by parity:sync and served at /vw_static; compared byte for byte in tests/Differential/AdminTest. |
+| ✅ | `images/fallback-icon.png` | src/static/images/fallback-icon.png | 1 | Copied by parity:sync and served at /vw_static; compared byte for byte in tests/Differential/AdminTest. |
+| ✅ | `images/hibp.png` | src/static/images/hibp.png | 1 | Copied by parity:sync and served at /vw_static; compared byte for byte in tests/Differential/AdminTest. |
+| ✅ | `images/logo-gray.png` | src/static/images/logo-gray.png | 1 | Copied by parity:sync and served at /vw_static; compared byte for byte in tests/Differential/AdminTest. |
+| ✅ | `images/mail-github.png` | src/static/images/mail-github.png | 1 | Copied by parity:sync and served at /vw_static; compared byte for byte in tests/Differential/AdminTest. |
+| ✅ | `images/vaultwarden-favicon.png` | src/static/images/vaultwarden-favicon.png | 1 | Copied by parity:sync and served at /vw_static; compared byte for byte in tests/Differential/AdminTest. |
+| ✅ | `images/vaultwarden-icon.png` | src/static/images/vaultwarden-icon.png | 1 | Copied by parity:sync and served at /vw_static; compared byte for byte in tests/Differential/AdminTest. |
+| ✅ | `scripts/404.css` | src/static/scripts/404.css | 1 | Copied by parity:sync and served at /vw_static; compared byte for byte in tests/Differential/AdminTest. |
+| ✅ | `scripts/admin.css` | src/static/scripts/admin.css | 1 | Copied by parity:sync and served at /vw_static; compared byte for byte in tests/Differential/AdminTest. |
+| ✅ | `scripts/admin.js` | src/static/scripts/admin.js | 1 | Copied by parity:sync and served at /vw_static; compared byte for byte in tests/Differential/AdminTest. |
+| ✅ | `scripts/admin_diagnostics.js` | src/static/scripts/admin_diagnostics.js | 1 | Copied by parity:sync and served at /vw_static; compared byte for byte in tests/Differential/AdminTest. |
+| ✅ | `scripts/admin_organizations.js` | src/static/scripts/admin_organizations.js | 1 | Copied by parity:sync and served at /vw_static; compared byte for byte in tests/Differential/AdminTest. |
+| ✅ | `scripts/admin_settings.js` | src/static/scripts/admin_settings.js | 1 | Copied by parity:sync and served at /vw_static; compared byte for byte in tests/Differential/AdminTest. |
+| ✅ | `scripts/admin_users.js` | src/static/scripts/admin_users.js | 1 | Copied by parity:sync and served at /vw_static; compared byte for byte in tests/Differential/AdminTest. |
+| ✅ | `scripts/bootstrap.bundle.js` | src/static/scripts/bootstrap.bundle.js | 1 | Copied by parity:sync and served at /vw_static; compared byte for byte in tests/Differential/AdminTest. |
+| ✅ | `scripts/bootstrap.css` | src/static/scripts/bootstrap.css | 1 | Copied by parity:sync and served at /vw_static; compared byte for byte in tests/Differential/AdminTest. |
+| ✅ | `scripts/datatables.css` | src/static/scripts/datatables.css | 1 | Copied by parity:sync and served at /vw_static; compared byte for byte in tests/Differential/AdminTest. |
+| ✅ | `scripts/datatables.js` | src/static/scripts/datatables.js | 1 | Copied by parity:sync and served at /vw_static; compared byte for byte in tests/Differential/AdminTest. |
+| ✅ | `scripts/jdenticon-3.3.0.js` | src/static/scripts/jdenticon-3.3.0.js | 1 | Copied by parity:sync and served at /vw_static; compared byte for byte in tests/Differential/AdminTest. |
