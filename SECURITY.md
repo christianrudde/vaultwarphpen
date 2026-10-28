@@ -5,7 +5,8 @@ believe you have found one, please tell us privately first. Thank you!
 
 ## Status
 
-Vaultwarphpen is in early development and has not been audited. There are no releases yet; only the
+Vaultwarphpen is in early development and has not been independently audited; the findings of an
+internal review are in [docs/security-review.md](docs/security-review.md). There are no releases yet; only the
 latest commit on `main` is supported.
 
 ## Reporting a vulnerability

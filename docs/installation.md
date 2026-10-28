@@ -6,8 +6,9 @@ hosting package that gives you PHP 8.5 and a shell, with Composer or from a
 [release archive](#installing-from-a-release-archive) that needs no Composer.
 
 > [!WARNING]
-> Vaultwarphpen is in early development and has not been audited. See the status in the
-> [README](../README.md#status) before you put real data into it.
+> Vaultwarphpen is in early development and has not been independently audited (see the
+> [security review](security-review.md)). See the status in the [README](../README.md#status) before
+> you put real data into it.
 
 ## Requirements
 

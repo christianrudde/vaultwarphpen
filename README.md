@@ -11,8 +11,10 @@ Vaultwarden: the same HTTP API for the official Bitwarden clients, the same data
 environment variables, so an installation can move from Vaultwarden to Vaultwarphpen and back.
 
 > [!WARNING]
-> Vaultwarphpen is in early development and has not been audited. Do not trust it with real passwords
-> yet; try it with test accounts or with a copy of your data.
+> Vaultwarphpen is in early development and has not been independently audited. An internal review
+> against Vaultwarden ([security review](docs/security-review.md)) found and fixed vulnerabilities, so
+> more may remain. Do not trust it with real passwords yet; try it with test accounts or with a copy of
+> your data.
 
 ## Why a PHP port
 
