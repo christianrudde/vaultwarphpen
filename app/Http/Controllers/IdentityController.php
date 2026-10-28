@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Auth\AuthMethod;
 use App\Auth\AuthTokens;
 use App\Auth\ClientIp;
+use App\Auth\DuoOidc;
 use App\Auth\Jwt;
 use App\Auth\JwtIssuer;
 use App\Auth\LoginClaims;
@@ -15,6 +16,7 @@ use App\Http\ApiError;
 use App\Http\Controllers\TwoFactor\AuthenticatorController;
 use App\Http\Controllers\TwoFactor\EmailController;
 use App\Http\Controllers\TwoFactor\TwoFactorController;
+use App\Http\Controllers\TwoFactor\YubikeyController;
 use App\Http\Data\Body;
 use App\Http\Data\RegisterData;
 use App\Http\EmptyResponse;
@@ -324,7 +326,7 @@ final readonly class IdentityController
         }
 
         $loginDevice = $this->getDevice($user, ...$device);
-        $twofactorToken = $this->twofactorAuth($user, $loginDevice, $twoFactor, $ip);
+        $twofactorToken = $this->twofactorAuth($user, $loginDevice, $twoFactor, $clientId, $ip);
 
         return $this->authenticatedResponse($user, $loginDevice, AuthTokens::new($loginDevice, $user, AuthMethod::Password, $clientId, $this->jwt), $ip, $twofactorToken);
     }
@@ -453,7 +455,7 @@ final readonly class IdentityController
      *
      * @throws ApiError
      */
-    private function twofactorAuth(User $user, Device $device, array $data, string $ip): ?string
+    private function twofactorAuth(User $user, Device $device, array $data, string $clientId, string $ip): ?string
     {
         $methods = TwoFactor::findByUser($user->uuid);
         if ($methods->isEmpty()) {
@@ -477,12 +479,12 @@ final readonly class IdentityController
         $selected = $data['provider'] ?? $providers[0];
         // Remember and the recovery code are no methods of their own.
         if (! in_array($selected, [TwoFactor::TYPE_REMEMBER, TwoFactor::TYPE_RECOVERY_CODE], true) && ! in_array($selected, $providers, true)) {
-            throw ApiError::json($this->twofactorRequired($providers, $user), 'Invalid two factor provider');
+            throw ApiError::json($this->twofactorRequired($providers, $user, $clientId, $device->uuid), 'Invalid two factor provider');
         }
         // A blank code counts as none.
         $code = $data['token'];
         if ($code === null || trim($code) === '') {
-            throw ApiError::json($this->twofactorRequired($providers, $user), '2FA token not provided');
+            throw ApiError::json($this->twofactorRequired($providers, $user, $clientId, $device->uuid), '2FA token not provided');
         }
 
         $method = $methods->first(static fn (TwoFactor $method): bool => $method->atype === $selected && $method->enabled);
@@ -490,8 +492,10 @@ final readonly class IdentityController
 
         match ($selected) {
             TwoFactor::TYPE_AUTHENTICATOR => AuthenticatorController::validateTotpCodeStr($user->uuid, $code, $methodData(), $ip),
+            TwoFactor::TYPE_YUBIKEY => YubikeyController::validateYubikeyLogin($code, $methodData()),
+            TwoFactor::TYPE_DUO => DuoOidc::validateLogin($user->email, $code, $clientId, $device->uuid),
             TwoFactor::TYPE_EMAIL => EmailController::validateEmailCodeStr($user->uuid, $code, $methodData(), $ip),
-            TwoFactor::TYPE_REMEMBER => $this->checkRemembered($user, $device, $code, $providers),
+            TwoFactor::TYPE_REMEMBER => $this->checkRemembered($user, $device, $code, $providers, $clientId),
             TwoFactor::TYPE_RECOVERY_CODE => $this->recoverTwofactor($user, $device, $code, $ip),
             default => throw ApiError::message('Invalid two factor provider', event: Event::USER_FAILED_LOG_IN_2FA),
         };
@@ -508,7 +512,7 @@ final readonly class IdentityController
      *
      * @throws ApiError
      */
-    private function checkRemembered(User $user, Device $device, string $code, array $providers): void
+    private function checkRemembered(User $user, Device $device, string $code, array $providers, string $clientId): void
     {
         $token = $device->twofactor_remember;
         if ($token !== null && ! $this->config->bool('disable_2fa_remember') && hash_equals($token, $code)) {
@@ -528,7 +532,7 @@ final readonly class IdentityController
             $device->save();
         }
 
-        throw ApiError::json($this->twofactorRequired($providers, $user), '2FA Remember token not provided or expired');
+        throw ApiError::json($this->twofactorRequired($providers, $user, $clientId, $device->uuid), '2FA Remember token not provided or expired');
     }
 
     /**
@@ -572,7 +576,7 @@ final readonly class IdentityController
      *
      * @throws ApiError
      */
-    private function twofactorRequired(array $providers, User $user): array
+    private function twofactorRequired(array $providers, User $user, string $clientId, string $deviceIdentifier): array
     {
         $details = [];
         foreach ($providers as $provider) {
@@ -580,6 +584,10 @@ final readonly class IdentityController
                 TwoFactor::TYPE_EMAIL => Json::sorted(['Email' => EmailController::obscureEmail(EmailController::methodEmail(
                     (TwoFactor::findByUserAndType($user->uuid, TwoFactor::TYPE_EMAIL) ?? throw ApiError::message('No twofactor email registered'))->data,
                 ))]),
+                TwoFactor::TYPE_DUO => ['AuthUrl' => DuoOidc::authUrl($user->email, $clientId, $deviceIdentifier)],
+                TwoFactor::TYPE_YUBIKEY => ['Nfc' => YubikeyController::nfc(
+                    (TwoFactor::findByUserAndType($user->uuid, TwoFactor::TYPE_YUBIKEY) ?? throw ApiError::message('No YubiKey devices registered'))->data,
+                )],
                 default => null,
             };
         }

@@ -19,11 +19,14 @@ environment variables, so the official Bitwarden clients and existing Vaultwarde
   one for every route you implement. The script raises the login and unauthenticated rate limits,
   since every flow logs in; `Exchange::jsonString()` throws, so a broken setup fails loudly.
   Besides the default pair it starts one on a shared database (`VW_SHARED_*`), one with groups
-  and events enabled (`VW_FEATURES_*`, used with `assertSameFlowsOn()`) and one that sends mail
-  to SMTP sinks (`VW_MAIL_*`, `.github/scripts/smtp-sink.php`; use `assertSameMailFlows()`, and
-  `Server::mail()` to compare a mail or take its token). The mail pair also sets up email 2FA for
-  verified sign-ups and as fallback (`EMAIL_2FA_*`); accounts registered by the tests are
-  unverified unless their token says otherwise. `signedToken()` signs tokens with the key all
+  and events enabled (`VW_FEATURES_*`, used with `assertSameFlowsOn()`; it also talks to fake
+  Yubico and Duo services over HTTPS, `.github/scripts/fake-services.php`, whose certificate
+  authority it trusts through `SSL_CERT_FILE`; tests get `VW_SERVICES_CA` and
+  `VW_SERVICES_HOST`) and one that sends mail to SMTP sinks (`VW_MAIL_*`,
+  `.github/scripts/smtp-sink.php`; use `assertSameMailFlows()`, and `Server::mail()` to compare a
+  mail or take its token). The mail pair also sets up email 2FA for verified sign-ups and as
+  fallback (`EMAIL_2FA_*`); accounts registered by the tests are unverified unless their token
+  says otherwise. `signedToken()` signs tokens with the key all
   servers share (`VW_RSA_KEY`). Responses are compared as JSON with objects kept apart from
   lists, after placeholders replace random values (`DifferentialTestCase::PLACEHOLDERS`).
 - Mail: `App\Mail\Mail` ports `src/mail.rs`; the transport (`App\Mail\Transport`) is SMTP or

@@ -5,7 +5,8 @@
 # test suite against both.
 #
 # Usage: differential.sh <vaultwarden binary> [phpunit arguments...]
-# Ports 8000-8003 (Vaultwarden), 8080-8083 (PHP) and 2501-2502 (SMTP sinks) must be free.
+# Ports 8000-8003 (Vaultwarden), 8080-8083 (PHP), 2501-2502 (SMTP sinks) and 2503 (fake Yubico
+# and Duo services) must be free.
 
 set -euo pipefail
 
@@ -36,8 +37,24 @@ pids+=($!)
 # A second pair on one database: Vaultwarden creates it, we use it too.
 DATA_FOLDER="${work}/shared" ROCKET_PORT=8001 "${binary}" > "${work}/shared-reference.log" 2>&1 &
 pids+=($!)
-# A third pair with the optional features groups and events, which change what the clients see.
-DATA_FOLDER="${work}/features-reference" ORG_GROUPS_ENABLED=true ORG_EVENTS_ENABLED=true ROCKET_PORT=8002 "${binary}" > "${work}/features-reference.log" 2>&1 &
+# A third pair with the optional features groups and events, which change what the clients see,
+# and YubiKey and Duo two-factor login against fake services over HTTPS. Their certificate
+# authority is the only one these servers trust.
+openssl req -x509 -newkey rsa:2048 -nodes -days 2 -subj '/CN=Differential CA' -addext 'basicConstraints=critical,CA:TRUE' \
+    -addext 'keyUsage=critical,keyCertSign' -keyout "${work}/ca.key" -out "${work}/ca.pem" 2> /dev/null
+openssl req -newkey rsa:2048 -nodes -subj '/CN=127.0.0.1' -keyout "${work}/services.key" -out "${work}/services.csr" 2> /dev/null
+printf 'subjectAltName=IP:127.0.0.1\nbasicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\n' \
+    > "${work}/services.ext"
+openssl x509 -req -in "${work}/services.csr" -CA "${work}/ca.pem" -CAkey "${work}/ca.key" -CAcreateserial -days 2 \
+    -extfile "${work}/services.ext" -out "${work}/services.pem" 2> /dev/null
+duo_ikey=DIDIFFERENTIALGLOBAL
+features_env=(ORG_GROUPS_ENABLED=true ORG_EVENTS_ENABLED=true SSL_CERT_FILE="${work}/ca.pem" HTTP_REQUEST_BLOCK_NON_GLOBAL_IPS=false
+    YUBICO_CLIENT_ID=1 YUBICO_SECRET_KEY=MDEyMzQ1Njc4OWFiY2RlZmdoaWo= YUBICO_SERVER=https://127.0.0.1:2503/wsapi/2.0/verify
+    DUO_IKEY="${duo_ikey}" DUO_SKEY="$(php -r "echo substr(hash('sha256', 'duo:${duo_ikey}'), 0, 40);")" DUO_HOST=127.0.0.1:2503)
+env YUBICO_SECRET_KEY=MDEyMzQ1Njc4OWFiY2RlZmdoaWo= php .github/scripts/fake-services.php 2503 "${work}/services.pem" "${work}/services.key" \
+    "${work}/services-state" > "${work}/services.log" 2>&1 &
+pids+=($!)
+env DATA_FOLDER="${work}/features-reference" "${features_env[@]}" ROCKET_PORT=8002 "${binary}" > "${work}/features-reference.log" 2>&1 &
 pids+=($!)
 # A fourth pair sends mail, each server to an SMTP sink of its own that keeps the messages.
 php .github/scripts/smtp-sink.php 2501 "${work}/mail-reference-inbox" > "${work}/sink-reference.log" 2>&1 &
@@ -62,7 +79,8 @@ pids+=($!)
 (cd public && DATA_FOLDER="${work}/shared" CACHE_PATH="${work}/shared-cache" exec php -d upload_max_filesize=525M -d post_max_size=0 -S 127.0.0.1:8081 ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php) \
     > "${work}/shared-subject.log" 2>&1 &
 pids+=($!)
-(cd public && DATA_FOLDER="${work}/features-subject" ORG_GROUPS_ENABLED=true ORG_EVENTS_ENABLED=true CACHE_PATH="${work}/features-cache" exec php -d upload_max_filesize=525M -d post_max_size=0 -S 127.0.0.1:8082 ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php) \
+(cd public && exec env DATA_FOLDER="${work}/features-subject" "${features_env[@]}" CACHE_PATH="${work}/features-cache" \
+    php -d upload_max_filesize=525M -d post_max_size=0 -S 127.0.0.1:8082 ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php) \
     > "${work}/features-subject.log" 2>&1 &
 pids+=($!)
 (cd public && exec env DATA_FOLDER="${work}/mail-subject" "${mail_env[@]}" SMTP_PORT=2502 CACHE_PATH="${work}/mail-cache" \
@@ -70,6 +88,10 @@ pids+=($!)
     > "${work}/mail-subject.log" 2>&1 &
 pids+=($!)
 
+for attempt in $(seq 30); do
+    curl -sS --cacert "${work}/ca.pem" -o /dev/null https://127.0.0.1:2503/ 2> /dev/null && break
+    sleep 0.5
+done
 for url in http://127.0.0.1:{8000,8001,8002,8003,8080,8081,8082,8083}/alive; do
     for attempt in $(seq 60); do
         curl -fsS "${url}" > /dev/null 2>&1 && break
@@ -88,7 +110,7 @@ VW_REFERENCE_URL=http://127.0.0.1:8000 VW_SUBJECT_URL=http://127.0.0.1:8080 \
     VW_FEATURES_REFERENCE_URL=http://127.0.0.1:8002 VW_FEATURES_SUBJECT_URL=http://127.0.0.1:8082 \
     VW_MAIL_REFERENCE_URL=http://127.0.0.1:8003 VW_MAIL_SUBJECT_URL=http://127.0.0.1:8083 \
     VW_MAIL_REFERENCE_DIR="${work}/mail-reference-inbox" VW_MAIL_SUBJECT_DIR="${work}/mail-subject-inbox" \
-    VW_RSA_KEY="${work}/subject/rsa_key.pem" \
+    VW_RSA_KEY="${work}/subject/rsa_key.pem" VW_SERVICES_CA="${work}/ca.pem" VW_SERVICES_HOST=127.0.0.1:2503 \
     vendor/bin/phpunit --testsuite Differential "$@" || status=$?
 if [[ "${status}" != 0 ]]; then
     for log in "${work}"/*.log; do

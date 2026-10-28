@@ -10,9 +10,11 @@ use App\Http\Controllers\OrganizationsController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\SendsController;
 use App\Http\Controllers\TwoFactor\AuthenticatorController;
+use App\Http\Controllers\TwoFactor\DuoController;
 use App\Http\Controllers\TwoFactor\EmailController;
 use App\Http\Controllers\TwoFactor\ProtectedActionsController;
 use App\Http\Controllers\TwoFactor\TwoFactorController;
+use App\Http\Controllers\TwoFactor\YubikeyController;
 use App\Http\Controllers\WebController;
 use Illuminate\Support\Facades\Route;
 
@@ -217,11 +219,19 @@ Route::prefix('/api')->group(function (): void {
     Route::post('/two-factor/authenticator', [AuthenticatorController::class, 'activateAuthenticator'])->name('core::two_factor::authenticator::activate_authenticator');
     Route::put('/two-factor/authenticator', [AuthenticatorController::class, 'activateAuthenticator'])->name('core::two_factor::authenticator::activate_authenticator_put');
     Route::delete('/two-factor/authenticator', [AuthenticatorController::class, 'disableAuthenticator'])->name('core::two_factor::authenticator::disable_authenticator');
+    Route::post('/two-factor/get-duo', [DuoController::class, 'getDuo'])->name('core::two_factor::duo::get_duo');
+    Route::post('/two-factor/duo', [DuoController::class, 'activateDuo'])->name('core::two_factor::duo::activate_duo');
+    Route::put('/two-factor/duo', [DuoController::class, 'activateDuo'])->name('core::two_factor::duo::activate_duo_put');
+    Route::delete('/two-factor/duo', [DuoController::class, 'disableDuo'])->name('core::two_factor::duo::disable_duo');
     Route::post('/two-factor/send-email-login', [EmailController::class, 'sendEmailLogin'])->name('core::two_factor::email::send_email_login');
     Route::post('/two-factor/get-email', [EmailController::class, 'getEmail'])->name('core::two_factor::email::get_email');
     Route::post('/two-factor/send-email', [EmailController::class, 'sendEmail'])->name('core::two_factor::email::send_email');
     Route::put('/two-factor/email', [EmailController::class, 'email'])->name('core::two_factor::email::email');
     Route::delete('/two-factor/email', [EmailController::class, 'disableEmail'])->name('core::two_factor::email::disable_email');
+    Route::post('/two-factor/get-yubikey', [YubikeyController::class, 'generateYubikey'])->name('core::two_factor::yubikey::generate_yubikey');
+    Route::post('/two-factor/yubikey', [YubikeyController::class, 'activateYubikey'])->name('core::two_factor::yubikey::activate_yubikey');
+    Route::put('/two-factor/yubikey', [YubikeyController::class, 'activateYubikey'])->name('core::two_factor::yubikey::activate_yubikey_put');
+    Route::delete('/two-factor/yubikey', [YubikeyController::class, 'deleteYubikeys'])->name('core::two_factor::yubikey::delete_yubikeys');
     Route::post('/accounts/request-otp', [ProtectedActionsController::class, 'requestOtp'])->name('core::two_factor::protected_actions::request_otp');
     Route::post('/accounts/verify-otp', [ProtectedActionsController::class, 'verifyOtp'])->name('core::two_factor::protected_actions::verify_otp');
 

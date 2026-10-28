@@ -100,9 +100,11 @@ byte for byte. No code is copied from them. Versions are those locked in Vaultwa
 | [jsonwebtoken](https://github.com/Keats/jsonwebtoken) | 11.1.0 | MIT | token validation and its error messages | `app/Auth/Jwt.php` |
 | [governor](https://github.com/boinkor-net/governor) | 0.10.4 | MIT | the GCRA rate limiter | `app/Support/RateLimiter.php` |
 | [data-encoding](https://github.com/ia0/data-encoding) | 2.11.1 | MIT | strict base64 decoding | `app/Models/Send.php` |
-| [url](https://github.com/servo/rust-url) | 2.5.8 | MIT or Apache-2.0 | WHATWG URL parsing of the settings, the form encoding of mailed links | `app/Config/Url.php`, `app/Mail/Mail.php` |
+| [url](https://github.com/servo/rust-url) | 2.5.8 | MIT or Apache-2.0 | WHATWG URL parsing of the settings, form encoding of links and requests | `app/Config/Url.php`, `app/Support/FormUrlencoded.php` |
 | [lettre](https://github.com/lettre/lettre) | 0.11.23 | MIT | how mails are built (alternative text and HTML, related inline images) and sent by SMTP or sendmail | `app/Mail` |
 | [handlebars-rust](https://github.com/sunng87/handlebars-rust) | 6.4.4 | MIT | strict rendering, HTML escaping and the helpers of the templates | `app/Templates` |
+| [yubico_ng](https://github.com/BlackDex/yubico-rs) | 1.0.0 | MIT or Apache-2.0 | the Yubico Validation Protocol 2.0 client: signed requests, checked answers | `app/Support/Yubico.php` |
+| [reqwest](https://github.com/seanmonstar/reqwest), [rustls-native-certs](https://github.com/rustls/rustls-native-certs) | 0.13.5, 0.8.5 | MIT or Apache-2.0; Apache-2.0, ISC or MIT | outgoing requests: user agent, timeout, redirects, trusted roots from `SSL_CERT_FILE` | `app/Support/HttpClient.php` |
 
 ## Laravel
 

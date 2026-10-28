@@ -4,6 +4,7 @@ namespace Tests\Differential;
 
 use App\Http\Controllers\TwoFactor\AuthenticatorController;
 use App\Support\Base32;
+use GuzzleHttp\Client;
 use Tests\Attributes\Parity;
 
 /**
@@ -80,6 +81,8 @@ class TwoFactorTest extends DifferentialTestCase
                 'userVerificationToken' => $server->json('POST', '/api/two-factor/get-email', $password, $auth)->jsonString('userVerificationToken')], $auth);
             $steps['send email login'] = $server->json('POST', '/api/two-factor/send-email-login', ['email' => '2fa-totp@example.com', 'masterPasswordHash' => 'client-hash']);
             $steps['request otp'] = $server->send('POST', '/api/accounts/request-otp', $auth);
+            $steps['get yubikey without credentials'] = $server->json('POST', '/api/two-factor/get-yubikey', $password, $auth);
+            $steps['get duo without global keys'] = $server->json('POST', '/api/two-factor/get-duo', $password, $auth);
             $steps['verify otp'] = $server->json('POST', '/api/accounts/verify-otp', ['otp' => '123456'], $auth);
 
             return $steps;
@@ -179,6 +182,122 @@ class TwoFactorTest extends DifferentialTestCase
             $steps['get authenticator with a wrong code'] = $server->json('POST', '/api/two-factor/get-authenticator', ['otp' => 'nope'], $auth);
             $steps['verify'] = $server->json('POST', '/api/accounts/verify-otp', ['OTP' => $code], $auth);
             $steps['verify again'] = $server->json('POST', '/api/accounts/verify-otp', ['OTP' => $code], $auth);
+
+            return $steps;
+        });
+    }
+
+    /**
+     * On the features pair, whose Yubico server is a fake (.github/scripts/fake-services.php).
+     */
+    #[Parity('route:POST /api/two-factor/get-yubikey')]
+    #[Parity('route:POST /api/two-factor/yubikey')]
+    #[Parity('route:PUT /api/two-factor/yubikey')]
+    #[Parity('route:DELETE /api/two-factor/yubikey')]
+    #[Parity('config:_ENABLE_YUBICO')]
+    #[Parity('config:YUBICO_CLIENT_ID')]
+    #[Parity('config:YUBICO_SECRET_KEY')]
+    #[Parity('config:YUBICO_SERVER')]
+    public function test_yubikeys(): void
+    {
+        $this->assertSameFlowsOn((string) getenv('VW_FEATURES_REFERENCE_URL'), (string) getenv('VW_FEATURES_SUBJECT_URL'), function (Server $server): array {
+            [$auth] = CipherTest::session($server, '2fa-yubi@example.com');
+            $login = LoginTest::loginFields('2fa-yubi@example.com');
+            $password = ['masterPasswordHash' => 'client-hash'];
+            $key = 'ccccccbcgujh';
+            $steps = [];
+
+            $steps['get yubikey with a wrong password'] = $server->json('POST', '/api/two-factor/get-yubikey', ['masterPasswordHash' => 'wrong'], $auth);
+            $steps['get yubikey'] = $setup = $server->json('POST', '/api/two-factor/get-yubikey', $password, $auth);
+            $token = ['nfc' => true, 'userVerificationToken' => $setup->jsonString('userVerificationToken')];
+
+            $steps['activate without keys'] = self::activateYubikey($server, $auth, $token, ['key1' => '', 'key2' => null]);
+            $steps['activate without nfc'] = $server->json('POST', '/api/two-factor/yubikey', ['key1' => self::otp($key),
+                'userVerificationToken' => $token['userVerificationToken']], $auth);
+            $steps['activate with a bad token'] = self::activateYubikey($server, $auth, $token, ['key1' => self::otp($key), 'userVerificationToken' => 'nope']);
+            $steps['activate with a short key'] = self::activateYubikey($server, $auth, $token, ['key1' => 'cccccc']);
+            $steps['activate with a rejected OTP'] = self::activateYubikey($server, $auth, $token, ['key1' => self::otp($key, 'vvvv')]);
+            $steps['activate with a replayed OTP'] = self::activateYubikey($server, $auth, $token, ['key1' => self::otp($key, 'rrrr')]);
+            $steps['activate with another nonce'] = self::activateYubikey($server, $auth, $token, ['key1' => self::otp($key, 'nnnn')]);
+            $steps['activate with a wrong signature'] = self::activateYubikey($server, $auth, $token, ['key1' => self::otp($key, 'ssss')]);
+            // A key id of 12 characters is not checked.
+            $steps['activate'] = self::activateYubikey($server, $auth, $token, ['key1' => self::otp($key), 'key2' => null, 'key3' => 'ccccccdddddd', 'key4' => '']);
+            $steps['get yubikey again'] = $enabled = $server->json('POST', '/api/two-factor/get-yubikey', $password, $auth);
+            $steps['methods'] = $server->send('GET', '/api/two-factor', $auth);
+
+            $steps['login without code'] = $server->form('/identity/connect/token', $login);
+            $steps['login with a short OTP'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '3', 'two_factor_token' => 'abc']);
+            $steps['login with an unknown key'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '3', 'two_factor_token' => self::otp('cccccceeeeee')]);
+            $steps['login with a rejected OTP'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '3', 'two_factor_token' => self::otp($key, 'vvvv')]);
+            $steps['login with a wrong signature'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '3', 'two_factor_token' => self::otp($key, 'ssss')]);
+            $steps['login'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '3', 'two_factor_token' => self::otp($key)]);
+            $steps['login with the other key'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '3', 'two_factor_token' => self::otp('ccccccdddddd')]);
+
+            $steps['activate with the old token'] = self::activateYubikey($server, $auth, $token, ['key1' => self::otp($key)]);
+            $replace = ['key1' => 'ccccccffffff', 'nfc' => false, 'userVerificationToken' => $enabled->jsonString('userVerificationToken')];
+            $steps['replace the keys'] = $server->json('PUT', '/api/two-factor/yubikey', $replace, $auth);
+            $steps['get yubikey after replacing'] = $replaced = $server->json('POST', '/api/two-factor/get-yubikey', $password, $auth);
+            $steps['login after replacing'] = $server->form('/identity/connect/token', $login);
+            $steps['delete with the old token'] = $server->json('DELETE', '/api/two-factor/yubikey', ['userVerificationToken' => $enabled->jsonString('userVerificationToken')], $auth);
+            $steps['delete'] = $server->json('DELETE', '/api/two-factor/yubikey', ['userVerificationToken' => $replaced->jsonString('userVerificationToken')], $auth);
+            $steps['methods at last'] = $server->send('GET', '/api/two-factor', $auth);
+
+            return $steps;
+        });
+    }
+
+    /**
+     * On the features pair, whose Duo is a fake (.github/scripts/fake-services.php)
+     * with global keys. The test plays the client: it follows the AuthUrl,
+     * which redirects back at once with a code.
+     */
+    #[Parity('route:POST /api/two-factor/get-duo')]
+    #[Parity('route:POST /api/two-factor/duo')]
+    #[Parity('route:PUT /api/two-factor/duo')]
+    #[Parity('route:DELETE /api/two-factor/duo')]
+    #[Parity('config:_ENABLE_DUO')]
+    #[Parity('config:DUO_IKEY')]
+    #[Parity('config:DUO_SKEY')]
+    #[Parity('config:DUO_HOST')]
+    #[Parity('config:HTTP_REQUEST_BLOCK_NON_GLOBAL_IPS')]
+    public function test_duo(): void
+    {
+        $this->assertSameFlowsOn((string) getenv('VW_FEATURES_REFERENCE_URL'), (string) getenv('VW_FEATURES_SUBJECT_URL'), function (Server $server): array {
+            [$auth] = CipherTest::session($server, '2fa-duo@example.com');
+            $login = LoginTest::loginFields('2fa-duo@example.com');
+            $password = ['masterPasswordHash' => 'client-hash'];
+            $default = '<To use the global Duo keys, please leave these fields untouched>';
+            $userKeys = ['host' => (string) getenv('VW_SERVICES_HOST'), 'clientId' => 'DIDIFFERENTIALUSER00', 'clientSecret' => self::duoSecret('DIDIFFERENTIALUSER00')];
+            $steps = [];
+
+            $steps['get duo'] = $setup = $server->json('POST', '/api/two-factor/get-duo', $password, $auth);
+            $token = ['userVerificationToken' => $setup->jsonString('userVerificationToken')];
+            $steps['activate with a bad token'] = $server->json('POST', '/api/two-factor/duo', [...$userKeys, 'userVerificationToken' => 'nope'], $auth);
+            $steps['activate without client id'] = $server->json('POST', '/api/two-factor/duo', ['host' => $default, 'clientSecret' => $default, ...$token], $auth);
+            $steps['activate with a wrong secret'] = $server->json('POST', '/api/two-factor/duo', [...$userKeys, 'clientSecret' => 'wrong', ...$token], $auth);
+            $steps['activate with the global keys'] = $server->json('POST', '/api/two-factor/duo', ['host' => $default, 'clientId' => $default, 'clientSecret' => ' ', ...$token], $auth);
+            $steps['get duo with the global keys'] = $global = $server->json('POST', '/api/two-factor/get-duo', $password, $auth);
+            $steps['methods'] = $server->send('GET', '/api/two-factor', $auth);
+
+            $steps['login without code'] = $prompt = $server->form('/identity/connect/token', $login);
+            [$code, $state] = self::duoCode($prompt);
+            $steps['login with a bare code'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '2', 'two_factor_token' => $code]);
+            $steps['login with an unknown state'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '2', 'two_factor_token' => "{$code}|nope"]);
+            $steps['login'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '2', 'two_factor_token' => "{$code}|{$state}"]);
+            $steps['login with the used state'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '2', 'two_factor_token' => "{$code}|{$state}"]);
+            [, $state] = self::duoCode($server->form('/identity/connect/token', $login));
+            $steps['login with a wrong code'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '2', 'two_factor_token' => "nope|{$state}"]);
+
+            // The token from before the first activation still says "disabled".
+            $steps['activate with user keys'] = $server->json('PUT', '/api/two-factor/duo', [...$userKeys, ...$token], $auth);
+            $steps['get duo with user keys'] = $user = $server->json('POST', '/api/two-factor/get-duo', $password, $auth);
+            $steps['login without code for user keys'] = $prompt = $server->form('/identity/connect/token', $login);
+            [$code, $state] = self::duoCode($prompt);
+            $steps['login with user keys'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '2', 'two_factor_token' => "{$code}|{$state}"]);
+
+            $steps['disable with the token of the global keys'] = $server->json('DELETE', '/api/two-factor/duo', ['userVerificationToken' => $global->jsonString('userVerificationToken')], $auth);
+            $steps['disable'] = $server->json('DELETE', '/api/two-factor/duo', ['userVerificationToken' => $user->jsonString('userVerificationToken')], $auth);
+            $steps['methods at last'] = $server->send('GET', '/api/two-factor', $auth);
 
             return $steps;
         });
@@ -285,6 +404,52 @@ class TwoFactorTest extends DifferentialTestCase
         for ($code = 0; in_array(sprintf('%06d', $code), $near, true); $code++);
 
         return sprintf('%06d', $code);
+    }
+
+    /**
+     * POST /api/two-factor/yubikey with the keys, nfc and the token.
+     *
+     * @param  array<string, string>  $auth
+     * @param  array{nfc: bool, userVerificationToken: string}  $token
+     * @param  array<string, ?string>  $keys
+     */
+    private static function activateYubikey(Server $server, array $auth, array $token, array $keys): Exchange
+    {
+        return $server->json('POST', '/api/two-factor/yubikey', [...$token, ...$keys], $auth);
+    }
+
+    /**
+     * Follows the AuthUrl of a login prompt to the fake Duo, which sends the
+     * client back with a code and the state.
+     *
+     * @return array{string, string}
+     */
+    private static function duoCode(Exchange $prompt): array
+    {
+        $client = new Client(['verify' => (string) getenv('VW_SERVICES_CA'), 'allow_redirects' => false, 'http_errors' => false, 'timeout' => 10]);
+        $location = $client->get($prompt->jsonString('TwoFactorProviders2.2.AuthUrl'))->getHeaderLine('Location');
+        parse_str((string) parse_url($location, PHP_URL_QUERY), $query);
+        $code = $query['duo_code'] ?? null;
+        $state = $query['state'] ?? null;
+
+        return is_string($code) && is_string($state) ? [$code, $state] : throw new \RuntimeException("No code in the redirect to {$location}.");
+    }
+
+    /**
+     * The secret the fake Duo issued with a client id.
+     */
+    private static function duoSecret(string $clientId): string
+    {
+        return substr(hash('sha256', "duo:{$clientId}"), 0, 40);
+    }
+
+    /**
+     * A YubiKey OTP of the key: its id and 32 characters, which the fake
+     * Yubico server judges by their end.
+     */
+    private static function otp(string $id, string $ending = 'dddd'): string
+    {
+        return $id.str_repeat('t', 28).$ending;
     }
 
     /**

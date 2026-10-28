@@ -8,8 +8,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 
 | Area | Total | ✅ | 🟨 | ⬜ | ➖ | With tests |
 |---|--:|--:|--:|--:|--:|--:|
-| Routes | 294 | 115 | 62 | 116 | 1 | 177 |
-| Settings | 153 | 43 | 110 | 0 | 0 | 153 |
+| Routes | 294 | 123 | 62 | 108 | 1 | 185 |
+| Settings | 153 | 51 | 102 | 0 | 0 | 153 |
 | Scheduled jobs | 8 | 0 | 0 | 8 | 0 | 0 |
 | Database tables | 28 | 28 | 0 | 0 | 0 | 28 |
 | Templates | 74 | 21 | 53 | 0 | 0 | 74 |
@@ -238,10 +238,10 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | POST `/api/two-factor/authenticator` | src/api/core/two_factor/authenticator.rs:51 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest (the test computes the codes), with logins that need the code. |
 | ✅ | PUT `/api/two-factor/authenticator` | src/api/core/two_factor/authenticator.rs:87 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest (the test computes the codes), with logins that need the code. |
 | ✅ | DELETE `/api/two-factor/authenticator` | src/api/core/two_factor/authenticator.rs:180 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest (the test computes the codes), with logins that need the code. |
-| ⬜ | POST `/api/two-factor/get-duo` | src/api/core/two_factor/duo.rs:43 | 0 |  |
-| ⬜ | POST `/api/two-factor/duo` | src/api/core/two_factor/duo.rs:107 | 0 |  |
-| ⬜ | PUT `/api/two-factor/duo` | src/api/core/two_factor/duo.rs:141 | 0 |  |
-| ⬜ | DELETE `/api/two-factor/duo` | src/api/core/two_factor/duo.rs:146 | 0 |  |
+| ✅ | POST `/api/two-factor/get-duo` | src/api/core/two_factor/duo.rs:43 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest against a fake Duo over HTTPS (.github/scripts/fake-services.php): global and own keys, the Universal Prompt login; also tests/Feature/Api/TwoFactorServicesTest. |
+| ✅ | POST `/api/two-factor/duo` | src/api/core/two_factor/duo.rs:107 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest against a fake Duo over HTTPS (.github/scripts/fake-services.php): global and own keys, the Universal Prompt login; also tests/Feature/Api/TwoFactorServicesTest. |
+| ✅ | PUT `/api/two-factor/duo` | src/api/core/two_factor/duo.rs:141 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest against a fake Duo over HTTPS (.github/scripts/fake-services.php): global and own keys, the Universal Prompt login; also tests/Feature/Api/TwoFactorServicesTest. |
+| ✅ | DELETE `/api/two-factor/duo` | src/api/core/two_factor/duo.rs:146 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest against a fake Duo over HTTPS (.github/scripts/fake-services.php): global and own keys, the Universal Prompt login; also tests/Feature/Api/TwoFactorServicesTest. |
 | ✅ | POST `/api/two-factor/get-email` | src/api/core/two_factor/email.rs:155 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest on the servers with mail (codes read from the mails) and without; expiry and attempt limits in tests/Feature/Api/TwoFactorTest. |
 | ✅ | POST `/api/two-factor/send-email-login` | src/api/core/two_factor/email.rs:45 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest on the servers with mail (codes read from the mails) and without; expiry and attempt limits in tests/Feature/Api/TwoFactorTest. |
 | ✅ | POST `/api/two-factor/send-email` | src/api/core/two_factor/email.rs:188 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest on the servers with mail (codes read from the mails) and without; expiry and attempt limits in tests/Feature/Api/TwoFactorTest. |
@@ -253,10 +253,10 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ⬜ | PUT `/api/two-factor/webauthn` | src/api/core/two_factor/webauthn.rs:316 | 0 |  |
 | ⬜ | DELETE `/api/two-factor/webauthn` | src/api/core/two_factor/webauthn.rs:328 | 0 |  |
 | ⬜ | DELETE `/api/two-factor/webauthn/all` | src/api/core/two_factor/webauthn.rs:333 | 0 |  |
-| ⬜ | POST `/api/two-factor/get-yubikey` | src/api/core/two_factor/yubikey.rs:119 | 0 |  |
-| ⬜ | POST `/api/two-factor/yubikey` | src/api/core/two_factor/yubikey.rs:148 | 0 |  |
-| ⬜ | PUT `/api/two-factor/yubikey` | src/api/core/two_factor/yubikey.rs:200 | 0 |  |
-| ⬜ | DELETE `/api/two-factor/yubikey` | src/api/core/two_factor/yubikey.rs:205 | 0 |  |
+| ✅ | POST `/api/two-factor/get-yubikey` | src/api/core/two_factor/yubikey.rs:119 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest against a fake Yubico server over HTTPS (.github/scripts/fake-services.php), with logins; also tests/Feature/Api/TwoFactorServicesTest. |
+| ✅ | POST `/api/two-factor/yubikey` | src/api/core/two_factor/yubikey.rs:148 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest against a fake Yubico server over HTTPS (.github/scripts/fake-services.php), with logins; also tests/Feature/Api/TwoFactorServicesTest. |
+| ✅ | PUT `/api/two-factor/yubikey` | src/api/core/two_factor/yubikey.rs:200 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest against a fake Yubico server over HTTPS (.github/scripts/fake-services.php), with logins; also tests/Feature/Api/TwoFactorServicesTest. |
+| ✅ | DELETE `/api/two-factor/yubikey` | src/api/core/two_factor/yubikey.rs:205 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest against a fake Yubico server over HTTPS (.github/scripts/fake-services.php), with logins; also tests/Feature/Api/TwoFactorServicesTest. |
 | ✅ | POST `/api/accounts/request-otp` | src/api/core/two_factor/protected_actions.rs:64 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest on the servers with mail (codes read from the mails) and without; expiry and attempt limits in tests/Feature/Api/TwoFactorTest. |
 | ✅ | POST `/api/accounts/verify-otp` | src/api/core/two_factor/protected_actions.rs:105 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest on the servers with mail (codes read from the mails) and without; expiry and attempt limits in tests/Feature/Api/TwoFactorTest. |
 | ✅ | GET `/api/sends` | src/api/core/sends.rs:172 | 1 | Compared with Vaultwarden in tests/Differential/SendTest; the organization policies (Disable Send, Send Options) are covered by tests/Feature/Api/SendTest. No live notifications yet. |
@@ -300,7 +300,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ⬜ | POST `/admin/users/{user_id}/invite/resend` | src/api/admin.rs:520 | 0 |  |
 | ⬜ | GET `/admin/diagnostics/http` | src/api/admin.rs:831 | 0 |  |
 | ✅ | POST `/events/collect` | src/api/core/events.rs:158 | 1 | Compared with Vaultwarden in tests/Differential/EventTest, with ORG_EVENTS_ENABLED on and off. |
-| 🟨 | POST `/identity/connect/token` | src/api/identity.rs:57 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Password (with KDF upgrade and the 2FA organization policy), refresh token, user API key and Send access (send_access) logins, two-factor login with authenticator, email, remembered device and recovery code; accounts and tokens work across Vaultwarden and us on one database. Not yet: WebAuthn, YubiKey and Duo, login with a device, SSO, organization API keys. |
+| 🟨 | POST `/identity/connect/token` | src/api/identity.rs:57 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Password (with KDF upgrade and the 2FA organization policy), refresh token, user API key and Send access (send_access) logins, two-factor login with authenticator, email, YubiKey, Duo, remembered device and recovery code; accounts and tokens work across Vaultwarden and us on one database. Not yet: WebAuthn, login with a device, SSO, organization API keys. |
 | ✅ | POST `/identity/accounts/prelogin` | src/api/identity.rs:1019 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
 | ✅ | POST `/identity/accounts/prelogin/password` | src/api/identity.rs:1024 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
 | 🟨 | POST `/identity/accounts/register/send-verification-email` | src/api/identity.rs:1050 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Not yet: sending the verification mail (SMTP is not ported). |
@@ -341,7 +341,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `EMERGENCY_REQUEST_TIMEOUT_SCHEDULE` | src/config.rs:573 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `EVENT_CLEANUP_SCHEDULE` | src/config.rs:576 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `AUTH_REQUEST_PURGE_SCHEDULE` | src/config.rs:579 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `DUO_CONTEXT_PURGE_SCHEDULE` | src/config.rs:582 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `DUO_CONTEXT_PURGE_SCHEDULE` | src/config.rs:582 | 1 | Expired Duo contexts can be purged (TwoFactorDuoContext::purgeExpired); the scheduled job is not ported yet. |
 | 🟨 | `PURGE_INCOMPLETE_SSO_AUTH` | src/config.rs:585 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | ✅ | `DOMAIN` | src/config.rs:592 | 3 | Read like Vaultwarden and used: DOMAIN for mount path, origin, CORS, Host and token issuers; the IP settings for the client IP; the CSP sources in the security headers. |
 | 🟨 | `DOMAIN_SET` | src/config.rs:594 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
@@ -386,8 +386,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `ICON_DOWNLOAD_TIMEOUT` | src/config.rs:719 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `ICON_BLACKLIST_REGEX` | src/config.rs:722 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `ICON_BLACKLIST_NON_GLOBAL_IPS` | src/config.rs:724 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `HTTP_REQUEST_BLOCK_REGEX` | src/config.rs:728 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `HTTP_REQUEST_BLOCK_NON_GLOBAL_IPS` | src/config.rs:731 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `HTTP_REQUEST_BLOCK_REGEX` | src/config.rs:728 | 1 | App\Support\HttpClient applies it to the requests Vaultwarden makes with make_http_request (Duo so far); the icon service is not ported yet. |
+| 🟨 | `HTTP_REQUEST_BLOCK_NON_GLOBAL_IPS` | src/config.rs:731 | 2 | App\Support\HttpClient applies it to the requests Vaultwarden makes with make_http_request (Duo so far); the icon service is not ported yet. |
 | ✅ | `DISABLE_2FA_REMEMBER` | src/config.rs:735 | 2 | Ported (TwoFactorController and friends); tested with non-default values in tests/Feature/Api/TwoFactorTest. |
 | ✅ | `AUTHENTICATOR_DISABLE_TIME_DRIFT` | src/config.rs:739 | 2 | Ported (TwoFactorController and friends); tested with non-default values in tests/Feature/Api/TwoFactorTest. |
 | 🟨 | `EXPERIMENTAL_CLIENT_FEATURE_FLAGS` | src/config.rs:742 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
@@ -437,14 +437,14 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `SSO_AUTH_ONLY_NOT_SESSION` | src/config.rs:862 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `SSO_CLIENT_CACHE_EXPIRATION` | src/config.rs:864 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `SSO_DEBUG_TOKENS` | src/config.rs:866 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `_ENABLE_YUBICO` | src/config.rs:872 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `YUBICO_CLIENT_ID` | src/config.rs:874 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `YUBICO_SECRET_KEY` | src/config.rs:876 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `YUBICO_SERVER` | src/config.rs:878 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `_ENABLE_DUO` | src/config.rs:884 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `DUO_IKEY` | src/config.rs:886 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `DUO_SKEY` | src/config.rs:888 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `DUO_HOST` | src/config.rs:890 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `_ENABLE_YUBICO` | src/config.rs:872 | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest against a fake Yubico server over HTTPS (.github/scripts/fake-services.php), with logins; also tests/Feature/Api/TwoFactorServicesTest. |
+| ✅ | `YUBICO_CLIENT_ID` | src/config.rs:874 | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest against a fake Yubico server over HTTPS (.github/scripts/fake-services.php), with logins; also tests/Feature/Api/TwoFactorServicesTest. |
+| ✅ | `YUBICO_SECRET_KEY` | src/config.rs:876 | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest against a fake Yubico server over HTTPS (.github/scripts/fake-services.php), with logins; also tests/Feature/Api/TwoFactorServicesTest. |
+| ✅ | `YUBICO_SERVER` | src/config.rs:878 | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest against a fake Yubico server over HTTPS (.github/scripts/fake-services.php), with logins; also tests/Feature/Api/TwoFactorServicesTest. |
+| ✅ | `_ENABLE_DUO` | src/config.rs:884 | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest against a fake Duo over HTTPS (.github/scripts/fake-services.php): global and own keys, the Universal Prompt login; also tests/Feature/Api/TwoFactorServicesTest. |
+| ✅ | `DUO_IKEY` | src/config.rs:886 | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest against a fake Duo over HTTPS (.github/scripts/fake-services.php): global and own keys, the Universal Prompt login; also tests/Feature/Api/TwoFactorServicesTest. |
+| ✅ | `DUO_SKEY` | src/config.rs:888 | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest against a fake Duo over HTTPS (.github/scripts/fake-services.php): global and own keys, the Universal Prompt login; also tests/Feature/Api/TwoFactorServicesTest. |
+| ✅ | `DUO_HOST` | src/config.rs:890 | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest against a fake Duo over HTTPS (.github/scripts/fake-services.php): global and own keys, the Universal Prompt login; also tests/Feature/Api/TwoFactorServicesTest. |
 | ✅ | `_ENABLE_SMTP` | src/config.rs:896 | 2 | Used by App\Mail\SmtpTransport; compared with Vaultwarden in tests/Differential/MailTest, which sends through SMTP sinks. |
 | 🟨 | `USE_SENDMAIL` | src/config.rs:898 | 1 | Ported in App\Mail (SmtpTransport, SendmailTransport) like lettre; not compared with Vaultwarden, whose error texts come from lettre. |
 | 🟨 | `SENDMAIL_COMMAND` | src/config.rs:900 | 1 | Ported in App\Mail (SmtpTransport, SendmailTransport) like lettre; not compared with Vaultwarden, whose error texts come from lettre. |

@@ -9,6 +9,7 @@ use App\Http\ApiError;
 use App\Models\Device;
 use App\Models\DeviceType;
 use App\Models\User;
+use App\Support\FormUrlencoded;
 use App\Support\Random;
 use App\Templates\TemplateRenderer;
 use DateTimeImmutable;
@@ -502,17 +503,7 @@ final class Mail
      */
     private static function query(array $pairs): string
     {
-        $encode = static fn (string $value): string => (string) preg_replace_callback(
-            '/[^A-Za-z0-9*\-._ ]/',
-            static fn (array $match): string => strtoupper(implode('', array_map(static fn (string $byte): string => '%'.bin2hex($byte), str_split($match[0])))),
-            $value,
-        );
-
-        return implode('&', array_map(
-            static fn (string $key, string $value): string => str_replace(' ', '+', $encode($key)).'='.str_replace(' ', '+', $encode($value)),
-            array_keys($pairs),
-            $pairs,
-        ));
+        return FormUrlencoded::encode($pairs);
     }
 
     /**
