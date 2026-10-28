@@ -6,11 +6,14 @@ use App\Auth\AuthMethod;
 use App\Auth\Jwt;
 use App\Auth\LoginClaims;
 use App\Models\Device;
+use App\Models\Membership;
+use App\Models\OrgPolicy;
 use App\Models\Send;
 use App\Models\User;
 use App\Support\Dates;
 use App\Support\Random;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\TestResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Attributes\Parity;
@@ -215,6 +218,27 @@ class SendTest extends TestCase
         $this->postJson('/api/sends', $this->text(), $this->auth)->assertStatus(400)->assertJsonPath('message', $message);
         $this->putJson("/api/sends/{$send->uuid}", $this->text(), $this->auth)->assertStatus(400)->assertJsonPath('message', $message);
         $this->delete("/api/sends/{$send->uuid}", [], $this->auth)->assertStatus(200);
+    }
+
+    public function test_organization_policies(): void
+    {
+        $org = Random::uuid();
+        DB::table('users_organizations')->insert(['uuid' => Random::uuid(), 'user_uuid' => $this->user->uuid, 'org_uuid' => $org,
+            'access_all' => false, 'akey' => '2.k', 'status' => Membership::STATUS_CONFIRMED, 'atype' => Membership::TYPE_USER]);
+        DB::table('org_policies')->insert(['uuid' => Random::uuid(), 'org_uuid' => $org, 'atype' => OrgPolicy::TYPE_SEND_OPTIONS,
+            'enabled' => true, 'data' => '{"disableHideEmail":true}']);
+
+        $this->postJson('/api/sends', $this->text(['hideEmail' => true]), $this->auth)->assertStatus(400)
+            ->assertJsonPath('message', 'Due to an Enterprise Policy, you are not allowed to hide your email address from recipients when creating or editing a Send.');
+        $this->postJson('/api/sends', $this->text(['hideEmail' => false]), $this->auth)->assertStatus(200);
+
+        DB::table('org_policies')->insert(['uuid' => Random::uuid(), 'org_uuid' => $org, 'atype' => OrgPolicy::TYPE_DISABLE_SEND, 'enabled' => true, 'data' => '{}']);
+        $this->postJson('/api/sends', $this->text(), $this->auth)->assertStatus(400)
+            ->assertJsonPath('message', 'Due to an Enterprise Policy, you are only able to delete an existing Send.');
+
+        // Admins are exempt.
+        DB::table('users_organizations')->where('org_uuid', $org)->update(['atype' => Membership::TYPE_ADMIN]);
+        $this->postJson('/api/sends', $this->text(['hideEmail' => true]), $this->auth)->assertStatus(200);
     }
 
     /**

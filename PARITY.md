@@ -8,8 +8,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 
 | Area | Total | ✅ | 🟨 | ⬜ | ➖ | With tests |
 |---|--:|--:|--:|--:|--:|--:|
-| Routes | 294 | 24 | 54 | 215 | 1 | 77 |
-| Settings | 153 | 20 | 133 | 0 | 0 | 153 |
+| Routes | 294 | 35 | 54 | 204 | 1 | 88 |
+| Settings | 153 | 23 | 130 | 0 | 0 | 153 |
 | Scheduled jobs | 8 | 0 | 0 | 8 | 0 | 0 |
 | Database tables | 28 | 28 | 0 | 0 | 0 | 28 |
 | Templates | 74 | 0 | 74 | 0 | 0 | 74 |
@@ -259,17 +259,17 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ⬜ | DELETE `/api/two-factor/yubikey` | src/api/core/two_factor/yubikey.rs:205 | 0 |  |
 | ⬜ | POST `/api/accounts/request-otp` | src/api/core/two_factor/protected_actions.rs:64 | 0 |  |
 | ⬜ | POST `/api/accounts/verify-otp` | src/api/core/two_factor/protected_actions.rs:105 | 0 |  |
-| ⬜ | GET `/api/sends` | src/api/core/sends.rs:172 | 0 |  |
-| ⬜ | GET `/api/sends/{send_id}` | src/api/core/sends.rs:184 | 0 |  |
-| ⬜ | POST `/api/sends` | src/api/core/sends.rs:193 | 0 |  |
-| ⬜ | POST `/api/sends/access` | src/api/core/sends.rs:366 | 0 |  |
-| ⬜ | POST `/api/sends/access/file/{file_id}` | src/api/core/sends.rs:394 | 0 |  |
-| ⬜ | PUT `/api/sends/{send_id}` | src/api/core/sends.rs:465 | 0 |  |
-| ⬜ | DELETE `/api/sends/{send_id}` | src/api/core/sends.rs:543 | 0 |  |
-| ⬜ | PUT `/api/sends/{send_id}/remove-password` | src/api/core/sends.rs:562 | 0 |  |
-| ⬜ | GET `/api/sends/{send_id}/{file_id}` | src/api/core/sends.rs:455 | 0 |  |
-| ⬜ | POST `/api/sends/file/v2` | src/api/core/sends.rs:224 | 0 |  |
-| ⬜ | POST `/api/sends/{send_id}/file/{file_id}` | src/api/core/sends.rs:296 | 0 |  |
+| ✅ | GET `/api/sends` | src/api/core/sends.rs:172 | 1 | Compared with Vaultwarden in tests/Differential/SendTest; the organization policies (Disable Send, Send Options) are covered by tests/Feature/Api/SendTest. No live notifications yet. |
+| ✅ | GET `/api/sends/{send_id}` | src/api/core/sends.rs:184 | 1 | Compared with Vaultwarden in tests/Differential/SendTest; the organization policies (Disable Send, Send Options) are covered by tests/Feature/Api/SendTest. No live notifications yet. |
+| ✅ | POST `/api/sends` | src/api/core/sends.rs:193 | 1 | Compared with Vaultwarden in tests/Differential/SendTest; the organization policies (Disable Send, Send Options) are covered by tests/Feature/Api/SendTest. No live notifications yet. |
+| ✅ | POST `/api/sends/access` | src/api/core/sends.rs:366 | 1 | Compared with Vaultwarden in tests/Differential/SendTest; the organization policies (Disable Send, Send Options) are covered by tests/Feature/Api/SendTest. No live notifications yet. |
+| ✅ | POST `/api/sends/access/file/{file_id}` | src/api/core/sends.rs:394 | 1 | Compared with Vaultwarden in tests/Differential/SendTest; the organization policies (Disable Send, Send Options) are covered by tests/Feature/Api/SendTest. No live notifications yet. |
+| ✅ | PUT `/api/sends/{send_id}` | src/api/core/sends.rs:465 | 1 | Compared with Vaultwarden in tests/Differential/SendTest; the organization policies (Disable Send, Send Options) are covered by tests/Feature/Api/SendTest. No live notifications yet. |
+| ✅ | DELETE `/api/sends/{send_id}` | src/api/core/sends.rs:543 | 1 | Compared with Vaultwarden in tests/Differential/SendTest; the organization policies (Disable Send, Send Options) are covered by tests/Feature/Api/SendTest. No live notifications yet. |
+| ✅ | PUT `/api/sends/{send_id}/remove-password` | src/api/core/sends.rs:562 | 1 | Compared with Vaultwarden in tests/Differential/SendTest; the organization policies (Disable Send, Send Options) are covered by tests/Feature/Api/SendTest. No live notifications yet. |
+| ✅ | GET `/api/sends/{send_id}/{file_id}` | src/api/core/sends.rs:455 | 1 | Compared with Vaultwarden in tests/Differential/SendTest; the organization policies (Disable Send, Send Options) are covered by tests/Feature/Api/SendTest. No live notifications yet. |
+| ✅ | POST `/api/sends/file/v2` | src/api/core/sends.rs:224 | 1 | Compared with Vaultwarden in tests/Differential/SendTest; the organization policies (Disable Send, Send Options) are covered by tests/Feature/Api/SendTest. No live notifications yet. |
+| ✅ | POST `/api/sends/{send_id}/file/{file_id}` | src/api/core/sends.rs:296 | 1 | Compared with Vaultwarden in tests/Differential/SendTest; the organization policies (Disable Send, Send Options) are covered by tests/Feature/Api/SendTest. No live notifications yet. |
 | ⬜ | POST `/api/public/organization/import` | src/api/core/public.rs:53 | 0 |  |
 | ⬜ | GET `/admin` | src/api/admin.rs:100 | 0 |  |
 | ⬜ | GET `/admin/users` | src/api/admin.rs:357 | 0 |  |
@@ -300,7 +300,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ⬜ | POST `/admin/users/{user_id}/invite/resend` | src/api/admin.rs:520 | 0 |  |
 | ⬜ | GET `/admin/diagnostics/http` | src/api/admin.rs:831 | 0 |  |
 | ⬜ | POST `/events/collect` | src/api/core/events.rs:158 | 0 |  |
-| 🟨 | POST `/identity/connect/token` | src/api/identity.rs:57 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Password (with KDF upgrade and the 2FA organization policy), refresh token and user API key logins; accounts and tokens work across Vaultwarden and us on one database. Not yet: two-factor login, login with a device, SSO, organization API keys, Send access. |
+| 🟨 | POST `/identity/connect/token` | src/api/identity.rs:57 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Password (with KDF upgrade and the 2FA organization policy), refresh token, user API key and Send access (send_access) logins; accounts and tokens work across Vaultwarden and us on one database. Not yet: two-factor login, login with a device, SSO, organization API keys. |
 | ✅ | POST `/identity/accounts/prelogin` | src/api/identity.rs:1019 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
 | ✅ | POST `/identity/accounts/prelogin/password` | src/api/identity.rs:1024 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
 | 🟨 | POST `/identity/accounts/register/send-verification-email` | src/api/identity.rs:1050 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Not yet: sending the verification mail (SMTP is not ported). |
@@ -322,7 +322,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | `DATABASE_URL` | src/config.rs:523 | 3 | Read like Vaultwarden (environment, *_FILE, config.json, default) and used: DATABASE_URL drives the default connection, the templates folder and reload drive the renderer. |
 | 🟨 | `ICON_CACHE_FOLDER` | src/config.rs:525 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | ✅ | `ATTACHMENTS_FOLDER` | src/config.rs:527 | 2 | Attachments are stored and served from <ATTACHMENTS_FOLDER>/<cipher>/<id>, like the filesystem backend. |
-| 🟨 | `SENDS_FOLDER` | src/config.rs:529 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `SENDS_FOLDER` | src/config.rs:529 | 2 | Send files are stored and served from <SENDS_FOLDER>/<send>/<file id>, like the filesystem backend. |
 | 🟨 | `TMP_FOLDER` | src/config.rs:531 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | ✅ | `TEMPLATES_FOLDER` | src/config.rs:533 | 3 | Read like Vaultwarden (environment, *_FILE, config.json, default) and used: DATABASE_URL drives the default connection, the templates folder and reload drive the renderer. |
 | 🟨 | `RSA_KEY_FILENAME` | src/config.rs:535 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
@@ -348,11 +348,11 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `DOMAIN_ORIGIN` | src/config.rs:596 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `DOMAIN_PATH` | src/config.rs:598 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `WEB_VAULT_ENABLED` | src/config.rs:600 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SENDS_ALLOWED` | src/config.rs:604 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `SENDS_ALLOWED` | src/config.rs:604 | 2 | Creating and changing Sends is refused without it; deleting stays possible (tests/Feature/Api/SendTest). |
 | 🟨 | `HIBP_API_KEY` | src/config.rs:607 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | ✅ | `USER_ATTACHMENT_LIMIT` | src/config.rs:610 | 3 | Enforced on uploads like save_attachment (tests/Feature/Api/AttachmentTest). |
 | 🟨 | `ORG_ATTACHMENT_LIMIT` | src/config.rs:612 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `USER_SEND_LIMIT` | src/config.rs:614 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `USER_SEND_LIMIT` | src/config.rs:614 | 2 | Enforced on file Sends like post_send_file_v2 (tests/Feature/Api/SendTest). |
 | 🟨 | `TRASH_AUTO_DELETE_DAYS` | src/config.rs:619 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `INCOMPLETE_2FA_TIME_LIMIT` | src/config.rs:626 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `DISABLE_ICON_DOWNLOAD` | src/config.rs:632 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
