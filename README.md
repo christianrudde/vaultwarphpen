@@ -14,6 +14,12 @@ environment variables, so an installation can move from Vaultwarden to Vaultwarp
 > Vaultwarphpen is in early development and has not been audited. Do not trust it with real passwords
 > yet; try it with test accounts or with a copy of your data.
 
+## Why a PHP port
+
+At Lumundi, we run our company software exclusively in PHP, on managed servers. We liked Vaultwarden's
+approach so much, a lean self-hosted server for the official Bitwarden clients, that we decided to port
+it to PHP with the help of AI (see [Credits](#credits)).
+
 ## Status
 
 [PARITY.md](PARITY.md) lists every route, setting, scheduled job, table, template and static asset of the
