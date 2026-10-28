@@ -1,0 +1,345 @@
+<?php
+
+namespace Tests\Differential;
+
+use App\Http\Controllers\TwoFactor\AuthenticatorController;
+use App\Support\Base32;
+use Tests\Attributes\Parity;
+
+/**
+ * Two-factor methods and the logins that need them. The test computes the
+ * authenticator codes itself and reads the mailed ones from the SMTP sinks.
+ */
+class TwoFactorTest extends DifferentialTestCase
+{
+    #[Parity('route:GET /api/two-factor')]
+    #[Parity('route:GET /api/two-factor/get-device-verification-settings')]
+    #[Parity('route:POST /api/two-factor/get-authenticator')]
+    #[Parity('route:POST /api/two-factor/authenticator')]
+    #[Parity('route:PUT /api/two-factor/authenticator')]
+    #[Parity('route:DELETE /api/two-factor/authenticator')]
+    public function test_authenticator_and_remembered_devices(): void
+    {
+        $this->assertSameFlows(function (Server $server): array {
+            [$auth, $userId] = CipherTest::session($server, '2fa-totp@example.com');
+            $login = LoginTest::loginFields('2fa-totp@example.com');
+            $password = ['masterPasswordHash' => 'client-hash'];
+            $steps = [];
+
+            $steps['methods'] = $server->send('GET', '/api/two-factor', $auth);
+            $steps['device verification settings'] = $server->send('GET', '/api/two-factor/get-device-verification-settings', $auth);
+            $steps['get authenticator with a wrong password'] = $server->json('POST', '/api/two-factor/get-authenticator', ['masterPasswordHash' => 'wrong'], $auth);
+            $steps['get authenticator without validation'] = $server->json('POST', '/api/two-factor/get-authenticator', [], $auth);
+            $steps['get authenticator'] = $setup = $server->json('POST', '/api/two-factor/get-authenticator', $password, $auth);
+            $key = $setup->jsonString('authenticator.key');
+            $secret = Base32::decode($key) ?? '';
+            $activate = ['key' => $key, 'userVerificationToken' => $setup->jsonString('userVerificationToken')];
+            $code = AuthenticatorController::totp($secret, time());
+
+            $steps['activate with a wrong code'] = $server->json('POST', '/api/two-factor/authenticator', [...$activate, 'token' => self::otherCode($secret)], $auth);
+            $steps['activate with another key'] = $server->json('POST', '/api/two-factor/authenticator', [...$activate, 'key' => 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP', 'token' => $code], $auth);
+            $steps['activate with a bad token'] = $server->json('POST', '/api/two-factor/authenticator', [...$activate, 'userVerificationToken' => 'nope', 'token' => $code], $auth);
+            $steps['activate without code'] = $server->json('POST', '/api/two-factor/authenticator', $activate, $auth);
+            $steps['activate a short key'] = $server->json('POST', '/api/two-factor/authenticator', ['key' => 'AAAAAAAA', 'token' => $code,
+                'userVerificationToken' => $this->verificationToken($userId, ['authenticator_key' => 'AAAAAAAA'])], $auth);
+            $steps['activate a key without padding'] = $server->json('POST', '/api/two-factor/authenticator', ['key' => 'AAAA', 'token' => $code,
+                'userVerificationToken' => $this->verificationToken($userId, ['authenticator_key' => 'AAAA'])], $auth);
+            $steps['activate a key that is no base32'] = $server->json('POST', '/api/two-factor/authenticator', ['key' => 'A1', 'token' => $code,
+                'userVerificationToken' => $this->verificationToken($userId, ['authenticator_key' => 'A1'])], $auth);
+            $steps['activate with another method\'s token'] = $server->json('POST', '/api/two-factor/authenticator', [...$activate, 'token' => $code,
+                'userVerificationToken' => $this->verificationToken($userId, ['email' => null])], $auth);
+            // A number works as well, unless it loses a leading zero.
+            $steps['activate'] = $server->json('POST', '/api/two-factor/authenticator', [...$activate, 'token' => $code[0] === '0' ? $code : (int) $code], $auth);
+            $steps['activate again with the code'] = $server->json('PUT', '/api/two-factor/authenticator', [...$activate, 'token' => $code], $auth);
+            $steps['methods with the authenticator'] = $server->send('GET', '/api/two-factor', $auth);
+            $steps['profile'] = $server->send('GET', '/api/accounts/profile', $auth);
+
+            $steps['login without code'] = $server->form('/identity/connect/token', $login);
+            $steps['login with a method not set up'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '1', 'two_factor_token' => '123456']);
+            $steps['login with a blank code'] = $server->form('/identity/connect/token', [...$login, 'two_factor_token' => ' ']);
+            $steps['login with letters'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '0', 'two_factor_token' => 'abc']);
+            $steps['login with a provider that is no number'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => 'x', 'two_factor_token' => 'abc']);
+            $steps['login with the used code'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '0', 'two_factor_token' => $code]);
+            $steps['login remembering the device'] = $remembered = $server->form('/identity/connect/token', [...$login, 'twofactorprovider' => '0',
+                'twofactortoken' => AuthenticatorController::totp($secret, time() + 30), 'twofactorremember' => '1']);
+            $rememberToken = $remembered->jsonString('TwoFactorToken');
+            $steps['login with the remember token'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '5', 'two_factor_token' => $rememberToken]);
+            $steps['login with a wrong remember token'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '5', 'two_factor_token' => 'nope']);
+            $steps['login with the dropped remember token'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '5', 'two_factor_token' => $rememberToken]);
+
+            $steps['get authenticator again'] = $enabled = $server->json('POST', '/api/two-factor/get-authenticator', $password, $auth);
+            $steps['disable with the old token'] = $server->json('DELETE', '/api/two-factor/authenticator', $activate, $auth);
+            $steps['disable with another key'] = $server->json('DELETE', '/api/two-factor/authenticator', ['key' => 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP',
+                'userVerificationToken' => $enabled->jsonString('userVerificationToken')], $auth);
+            $steps['disable'] = $server->json('DELETE', '/api/two-factor/authenticator', [...$activate, 'userVerificationToken' => $enabled->jsonString('userVerificationToken')], $auth);
+            $steps['methods at last'] = $server->send('GET', '/api/two-factor', $auth);
+            $steps['login at last'] = $server->form('/identity/connect/token', $login);
+
+            // Without mail neither codes by mail nor protected actions work.
+            $steps['send email'] = $server->json('POST', '/api/two-factor/send-email', ['email' => '2fa-totp@example.com',
+                'userVerificationToken' => $server->json('POST', '/api/two-factor/get-email', $password, $auth)->jsonString('userVerificationToken')], $auth);
+            $steps['send email login'] = $server->json('POST', '/api/two-factor/send-email-login', ['email' => '2fa-totp@example.com', 'masterPasswordHash' => 'client-hash']);
+            $steps['request otp'] = $server->send('POST', '/api/accounts/request-otp', $auth);
+            $steps['verify otp'] = $server->json('POST', '/api/accounts/verify-otp', ['otp' => '123456'], $auth);
+
+            return $steps;
+        });
+    }
+
+    #[Parity('route:POST /api/two-factor/get-email')]
+    #[Parity('route:POST /api/two-factor/send-email')]
+    #[Parity('route:PUT /api/two-factor/email')]
+    #[Parity('route:DELETE /api/two-factor/email')]
+    #[Parity('route:POST /api/two-factor/send-email-login')]
+    #[Parity('route:POST /api/two-factor/get-recover')]
+    #[Parity('template:email/twofactor_email*')]
+    #[Parity('template:email/recover_twofactor*')]
+    #[Parity('config:_ENABLE_EMAIL_2FA')]
+    public function test_email_codes_and_the_recovery_code(): void
+    {
+        $this->assertSameMailFlows(function (Server $server): array {
+            [$auth] = CipherTest::session($server, '2fa-mail@example.com');
+            $login = LoginTest::loginFields('2fa-mail@example.com');
+            $password = ['masterPasswordHash' => 'client-hash'];
+            $steps = [];
+
+            $steps['get email'] = $setup = $server->json('POST', '/api/two-factor/get-email', $password, $auth);
+            $verification = $setup->jsonString('userVerificationToken');
+            $address = ['email' => '2fa-other@example.com', 'userVerificationToken' => $verification];
+            $steps['send email with a bad token'] = $server->json('POST', '/api/two-factor/send-email', [...$address, 'userVerificationToken' => 'nope'], $auth);
+            $steps['send email'] = $server->json('POST', '/api/two-factor/send-email', $address, $auth);
+            [$steps['code mail'], $code] = self::codeMail($server, '2fa-other@example.com');
+            $steps['activate with a wrong code'] = $server->json('PUT', '/api/two-factor/email', [...$address, 'token' => 'nope'], $auth);
+            $steps['activate without code'] = $server->json('PUT', '/api/two-factor/email', $address, $auth);
+            // The address comes from the challenge, whatever the request names.
+            $steps['activate naming another address'] = $server->json('PUT', '/api/two-factor/email', [...$address, 'email' => '2fa-mail@example.com', 'token' => $code], $auth);
+            $steps['activate again'] = $server->json('PUT', '/api/two-factor/email', [...$address, 'token' => $code], $auth);
+            $steps['get email again'] = $server->json('POST', '/api/two-factor/get-email', $password, $auth);
+            $steps['methods'] = $server->send('GET', '/api/two-factor', $auth);
+
+            $steps['login without code'] = $server->form('/identity/connect/token', $login);
+            $steps['send login code with a wrong password'] = $server->json('POST', '/api/two-factor/send-email-login', ['email' => '2fa-mail@example.com', 'masterPasswordHash' => 'wrong']);
+            $steps['send login code for an unknown user'] = $server->json('POST', '/api/two-factor/send-email-login', ['email' => '2fa-nobody@example.com', 'masterPasswordHash' => 'client-hash']);
+            $steps['send login code without password'] = $server->json('POST', '/api/two-factor/send-email-login', ['email' => '2fa-mail@example.com']);
+            $steps['send login code with a list'] = $server->json('POST', '/api/two-factor/send-email-login', []);
+            $steps['send login code without anything'] = $server->send('POST', '/api/two-factor/send-email-login', ['Content-Type' => 'application/json'], '{}');
+            $steps['send login code for an unknown device'] = $server->json('POST', '/api/two-factor/send-email-login', ['deviceIdentifier' => '6d1c5b2e-0000-4000-8000-000000000000']);
+            $steps['send login code for the pending login'] = $server->json('POST', '/api/two-factor/send-email-login', ['DeviceIdentifier' => LoginTest::DEVICE]);
+            [$steps['login code mail'], $code] = self::codeMail($server, '2fa-other@example.com');
+            $steps['login with a wrong code'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '1', 'two_factor_token' => 'nope']);
+            $steps['login'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '1', 'two_factor_token' => $code]);
+            $steps['login with the used code'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '1', 'two_factor_token' => $code]);
+            $steps['send login code with the password'] = $server->json('POST', '/api/two-factor/send-email-login', ['email' => '2fa-mail@example.com', 'masterPasswordHash' => 'client-hash']);
+            [$steps['second login code mail']] = self::codeMail($server, '2fa-other@example.com');
+
+            $steps['recovery code with a wrong password'] = $server->json('POST', '/api/two-factor/get-recover', ['masterPasswordHash' => 'wrong'], $auth);
+            $steps['recovery code'] = $recover = $server->json('POST', '/api/two-factor/get-recover', $password, $auth);
+            $steps['login with a wrong recovery code'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '8', 'two_factor_token' => 'nope']);
+            $spaced = strtoupper(implode(' ', str_split($recover->jsonString('code'), 4)));
+            $steps['login with the recovery code'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '8', 'two_factor_token' => $spaced]);
+            $steps['recovery mail'] = $server->mail('2fa-mail@example.com')->exchange();
+            $steps['methods after the recovery'] = $server->send('GET', '/api/two-factor', $auth);
+            $steps['recovery code after the recovery'] = $server->json('POST', '/api/two-factor/get-recover', $password, $auth);
+            $steps['login after the recovery'] = $server->form('/identity/connect/token', $login);
+
+            // Set up again, then switched off.
+            $setup = $server->json('POST', '/api/two-factor/get-email', $password, $auth);
+            $server->json('POST', '/api/two-factor/send-email', ['email' => '2fa-mail@example.com', 'userVerificationToken' => $setup->jsonString('userVerificationToken')], $auth);
+            [, $code] = self::codeMail($server, '2fa-mail@example.com');
+            $server->json('PUT', '/api/two-factor/email', ['email' => '2fa-mail@example.com', 'token' => $code, 'userVerificationToken' => $setup->jsonString('userVerificationToken')], $auth);
+            $steps['login code for the account address'] = $server->form('/identity/connect/token', $login);
+            $enabled = $server->json('POST', '/api/two-factor/get-email', $password, $auth);
+            $steps['disable with the old token'] = $server->json('DELETE', '/api/two-factor/email', ['userVerificationToken' => $verification], $auth);
+            $steps['disable'] = $server->json('DELETE', '/api/two-factor/email', ['userVerificationToken' => $enabled->jsonString('userVerificationToken')], $auth);
+            $steps['disable again'] = $server->json('DELETE', '/api/two-factor/email', ['userVerificationToken' => 'nope'], $auth);
+            $steps['methods at last'] = $server->send('GET', '/api/two-factor', $auth);
+
+            return $steps;
+        });
+    }
+
+    #[Parity('route:POST /api/accounts/request-otp')]
+    #[Parity('route:POST /api/accounts/verify-otp')]
+    #[Parity('template:email/protected_action*')]
+    public function test_protected_actions(): void
+    {
+        $this->assertSameMailFlows(function (Server $server): array {
+            [$auth] = CipherTest::session($server, '2fa-otp@example.com');
+            $steps = [];
+
+            $steps['verify without a code'] = $server->json('POST', '/api/accounts/verify-otp', ['otp' => '123456'], $auth);
+            $steps['request'] = $server->send('POST', '/api/accounts/request-otp', $auth);
+            [$steps['mail'], $code] = self::codeMail($server, '2fa-otp@example.com');
+            $again = $server->send('POST', '/api/accounts/request-otp', $auth);
+            $steps['request again'] = $again->withBody((string) preg_replace('/wait \d+ seconds/', 'wait <n> seconds', $again->body));
+            $steps['verify with a wrong code'] = $server->json('POST', '/api/accounts/verify-otp', ['otp' => 'nope'], $auth);
+            $steps['verify without otp'] = $server->json('POST', '/api/accounts/verify-otp', [], $auth);
+            // The code also stands in for the password, without being used up.
+            $steps['get authenticator with the code'] = $server->json('POST', '/api/two-factor/get-authenticator', ['otp' => $code], $auth);
+            $steps['get authenticator with a wrong code'] = $server->json('POST', '/api/two-factor/get-authenticator', ['otp' => 'nope'], $auth);
+            $steps['verify'] = $server->json('POST', '/api/accounts/verify-otp', ['OTP' => $code], $auth);
+            $steps['verify again'] = $server->json('POST', '/api/accounts/verify-otp', ['OTP' => $code], $auth);
+
+            return $steps;
+        });
+    }
+
+    /**
+     * The mail pair sets up email 2FA for verified sign-ups
+     * (EMAIL_2FA_ENFORCE_ON_VERIFIED_INVITE). A new user's method is stored
+     * before the user, so only invited users, who exist already, get one.
+     */
+    #[Parity('config:EMAIL_2FA_ENFORCE_ON_VERIFIED_INVITE')]
+    public function test_email_two_factor_at_sign_up(): void
+    {
+        $this->assertSameMailFlows(function (Server $server): array {
+            [$owner] = CipherTest::session($server, 'signup-owner@example.com');
+            $org = $server->json('POST', '/api/organizations', OrganizationTest::org(), $owner)->jsonString('id');
+            $steps = [];
+
+            $steps['invite'] = $server->json('POST', "/api/organizations/{$org}/users/invite", ['emails' => ['signup-invited@example.com'], 'groups' => [], 'type' => 2], $owner);
+            $memberId = OrganizationTest::memberIds($server->send('GET', "/api/organizations/{$org}/users", $owner))['signup-invited@example.com'];
+            $steps['register with the invitation'] = $server->json('POST', '/identity/accounts/register/finish', [...self::registration('signup-invited@example.com'),
+                'orgInviteToken' => $server->mailedToken('signup-invited@example.com'), 'organizationUserId' => $memberId]);
+            $steps['login of the invited'] = $server->form('/identity/connect/token', LoginTest::loginFields('signup-invited@example.com'));
+            $steps['send login code'] = $server->json('POST', '/api/two-factor/send-email-login', ['email' => 'signup-invited@example.com', 'masterPasswordHash' => 'client-hash']);
+            [$steps['login code mail'], $code] = self::codeMail($server, 'signup-invited@example.com');
+            $steps['login with the code'] = $login = $server->form('/identity/connect/token', [...LoginTest::loginFields('signup-invited@example.com'),
+                'two_factor_provider' => '1', 'two_factor_token' => $code]);
+            $steps['methods of the invited'] = $server->send('GET', '/api/two-factor', ['Authorization' => 'Bearer '.$login->jsonString('access_token')]);
+
+            $steps['register verified'] = $server->json('POST', '/identity/accounts/register/finish', [...self::registration('signup-new@example.com'),
+                'emailVerificationToken' => $this->registerToken('signup-new@example.com')]);
+            $steps['login of the new user'] = $server->form('/identity/connect/token', LoginTest::loginFields('signup-new@example.com'));
+
+            return $steps;
+        });
+    }
+
+    /**
+     * The mail pair sets up email 2FA where verified members would lose
+     * their second factor (EMAIL_2FA_AUTO_FALLBACK).
+     */
+    #[Parity('config:EMAIL_2FA_AUTO_FALLBACK')]
+    #[Parity('route:PUT /api/organizations/{org_id}/users/{member_id}/recover-account')]
+    public function test_email_two_factor_as_fallback(): void
+    {
+        $this->assertSameMailFlows(function (Server $server): array {
+            [$owner] = CipherTest::session($server, 'fallback-owner@example.com');
+            $org = $server->json('POST', '/api/organizations', OrganizationTest::org(), $owner)->jsonString('id');
+            $users = "/api/organizations/{$org}/users";
+            [$member, $memberUserId] = $this->verifiedSession($server, 'fallback-member@example.com');
+            $memberId = self::join($server, $owner, $member, $org, 'fallback-member@example.com');
+            $steps = [];
+
+            $server->json('POST', "{$users}/{$memberId}/confirm", ['key' => '4.member-key'], $owner);
+            $server->json('PUT', "/api/organizations/{$org}/policies/8", ['policy' => ['enabled' => true, 'data' => ['autoEnrollEnabled' => false]]], $owner);
+            $steps['enroll'] = $server->json('PUT', "{$users}/{$memberUserId}/reset-password-enrollment", ['resetPasswordKey' => '4.reset', 'masterPasswordHash' => 'client-hash'], $member);
+            $setup = $server->json('POST', '/api/two-factor/get-authenticator', ['masterPasswordHash' => 'client-hash'], $member);
+            $steps['authenticator'] = $server->json('POST', '/api/two-factor/authenticator', ['key' => $setup->jsonString('authenticator.key'),
+                'userVerificationToken' => $setup->jsonString('userVerificationToken'),
+                'token' => AuthenticatorController::totp(Base32::decode($setup->jsonString('authenticator.key')) ?? '', time())], $member);
+            $steps['reset two-factor login'] = $server->json('PUT', "{$users}/{$memberId}/recover-account", ['resetTwoFactor' => true], $owner);
+            $steps['recovery mail'] = $server->mail('fallback-member@example.com')->exchange();
+            $steps['methods after the reset'] = $server->send('GET', '/api/two-factor', $member);
+            $steps['login after the reset'] = $server->form('/identity/connect/token', LoginTest::loginFields('fallback-member@example.com'));
+
+            $steps['two-factor policy'] = $server->json('PUT', "/api/organizations/{$org}/policies/0", ['policy' => ['enabled' => true, 'data' => null]], $owner);
+            [$late] = $this->verifiedSession($server, 'fallback-late@example.com');
+            $lateId = self::join($server, $owner, $late, $org, 'fallback-late@example.com');
+            $steps['confirm a verified member without 2FA'] = $server->json('POST', "{$users}/{$lateId}/confirm", ['key' => '4.member-key'], $owner);
+            $steps['methods of the confirmed'] = $server->send('GET', '/api/two-factor', $late);
+            [$plain] = CipherTest::session($server, 'fallback-plain@example.com');
+            $server->json('POST', "{$users}/invite", ['emails' => ['fallback-plain@example.com'], 'groups' => [], 'type' => 2], $owner);
+            $plainId = OrganizationTest::memberIds($server->send('GET', $users, $owner))['fallback-plain@example.com'];
+            $steps['accept of an unverified member'] = $server->json('POST', "{$users}/{$plainId}/accept", ['token' => $server->mailedToken('fallback-plain@example.com')], $plain);
+            $steps['confirm an unverified member'] = $server->json('POST', "{$users}/{$plainId}/confirm", ['key' => '4.member-key'], $owner);
+            $steps['members'] = $server->send('GET', $users, $owner);
+
+            return $steps;
+        });
+    }
+
+    /**
+     * The last mail to the address with its code, which is replaced by a placeholder.
+     *
+     * @return array{Exchange, string}
+     */
+    private static function codeMail(Server $server, string $to): array
+    {
+        $mail = $server->mail($to);
+        if (preg_match('/\b(\d{6})\b/', $mail->text, $match) !== 1) {
+            throw new \RuntimeException("No code in the mail to {$to}.");
+        }
+        $exchange = $mail->exchange();
+
+        return [$exchange->withBody(str_replace($match[1], '<code>', $exchange->body)), $match[1]];
+    }
+
+    /**
+     * A code that belongs to no step near now.
+     */
+    private static function otherCode(string $secret): string
+    {
+        $near = array_map(static fn (int $step): string => AuthenticatorController::totp($secret, time() + $step * 30), [-2, -1, 0, 1, 2]);
+        for ($code = 0; in_array(sprintf('%06d', $code), $near, true); $code++);
+
+        return sprintf('%06d', $code);
+    }
+
+    /**
+     * Invites by mail and accepts with the mailed token; returns the membership id.
+     *
+     * @param  array<string, string>  $owner
+     * @param  array<string, string>  $member
+     */
+    private static function join(Server $server, array $owner, array $member, string $org, string $email): string
+    {
+        $server->json('POST', "/api/organizations/{$org}/users/invite", ['emails' => [$email], 'groups' => [], 'type' => 2], $owner);
+        $memberId = OrganizationTest::memberIds($server->send('GET', "/api/organizations/{$org}/users", $owner))[$email];
+        $server->json('POST', "/api/organizations/{$org}/users/{$memberId}/accept", ['token' => $server->mailedToken($email)], $member);
+
+        return $memberId;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function registration(string $email): array
+    {
+        return ['email' => $email, 'kdf' => 0, 'kdfIterations' => 600000, 'masterPasswordHash' => 'client-hash', 'key' => 'user-key',
+            'keys' => ['encryptedPrivateKey' => 'private-key', 'publicKey' => 'public-key']];
+    }
+
+    /**
+     * A sign-up whose address counts as verified, as when the server mailed the link.
+     */
+    private function registerToken(string $email): string
+    {
+        return $this->signedToken('register_verify', ['nbf' => time(), 'exp' => time() + 1800, 'iss' => '', 'sub' => $email, 'name' => null, 'verified' => true]);
+    }
+
+    /**
+     * A user with a verified address, logged in; with the user id.
+     *
+     * @return array{array<string, string>, string}
+     */
+    private function verifiedSession(Server $server, string $email): array
+    {
+        $server->json('POST', '/identity/accounts/register/finish', [...self::registration($email), 'emailVerificationToken' => $this->registerToken($email)]);
+        $auth = ['Authorization' => 'Bearer '.$server->form('/identity/connect/token', LoginTest::loginFields($email))->jsonString('access_token'), 'Accept' => 'application/json'];
+
+        return [$auth, $server->send('GET', '/api/accounts/profile', $auth)->jsonString('id')];
+    }
+
+    /**
+     * A user verification token for the claims of one method, which the
+     * servers only issue for the keys they made.
+     *
+     * @param  array<string, mixed>  $claims
+     */
+    private function verificationToken(string $userId, array $claims): string
+    {
+        return $this->signedToken('api.2fa', ['nbf' => time(), 'exp' => time() + 300, 'iss' => '', 'sub' => $userId, 'enabled' => false, 'claims' => $claims]);
+    }
+}

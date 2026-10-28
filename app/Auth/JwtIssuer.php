@@ -18,4 +18,6 @@ enum JwtIssuer: string
     case FileDownload = 'file_download';
     case RegisterVerify = 'register_verify';
     case TwoFactorRemember = '2faremember';
+    // The user verification tokens of the two-factor settings.
+    case TwoFactorAuth = 'api.2fa';
 }

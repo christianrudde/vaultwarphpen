@@ -52,6 +52,10 @@ abstract class DifferentialTestCase extends TestCase
         '/^[A-Za-z0-9_-]{43}$/' => '<hash>',
         // Organization API keys.
         '/^[A-Za-z0-9]{30}$/' => '<api key>',
+        // Authenticator keys and recovery codes.
+        '/^[A-Z2-7]{32}$/' => '<base32>',
+        // The server time in TOTP errors.
+        '/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} UTC/' => '<server time>',
         // Dates in mails, in the server's time zone.
         '/[A-Z][a-z]+day, [A-Z][a-z]+ [ \d]\d, \d{4} at \d{2}:\d{2}:\d{2} [AP]M \S+/' => '<datetime>',
         // Each server builds URLs with its own address.
@@ -185,13 +189,14 @@ abstract class DifferentialTestCase extends TestCase
     }
 
     /**
-     * JSON is decoded and encoded again, so that key order still counts but
-     * formatting does not; other bodies are compared as text.
+     * JSON is decoded and encoded again, so that key order and the
+     * difference between objects and lists still count but formatting does
+     * not; other bodies are compared as text.
      */
     private static function normalizedBody(Exchange $exchange): string
     {
         if ($exchange->isJson() && $exchange->body !== '') {
-            $decoded = json_decode($exchange->body, true);
+            $decoded = json_decode($exchange->body);
             if (json_last_error() === JSON_ERROR_NONE) {
                 return (string) json_encode(self::normalize($decoded), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
             }
@@ -204,6 +209,7 @@ abstract class DifferentialTestCase extends TestCase
     {
         return match (true) {
             is_array($value) => array_combine(array_keys($value), array_map(self::normalize(...), $value, array_keys($value))),
+            $value instanceof \stdClass => (object) self::normalize(get_object_vars($value)),
             is_string($value) => self::normalizeString($value),
             // Computed after the token was made, so a second boundary may lie in between.
             $key === 'expires_in' && is_int($value) => '<seconds>',

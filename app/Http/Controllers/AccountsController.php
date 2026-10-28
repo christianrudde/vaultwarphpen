@@ -8,6 +8,7 @@ use App\Auth\JwtIssuer;
 use App\Auth\RsaKeys;
 use App\Config\Config;
 use App\Http\ApiError;
+use App\Http\Controllers\TwoFactor\EmailController;
 use App\Http\Data\Body;
 use App\Http\Data\KdfData;
 use App\Http\Data\RegisterData;
@@ -16,6 +17,7 @@ use App\Mail\Mail;
 use App\Models\EmergencyAccess;
 use App\Models\Invitation;
 use App\Models\Membership;
+use App\Models\OrgPolicy;
 use App\Models\User;
 use App\Support\Dates;
 use App\Support\RateLimiter;
@@ -203,6 +205,15 @@ final readonly class AccountsController
                 }
             } catch (Throwable $error) {
                 logger()->error("Error sending welcome email: {$error->getMessage()}");
+            }
+
+            // Before the user is saved: a new user's row does not exist yet, and the error is ignored.
+            if ($emailVerified && $this->isEmail2faRequired($data->organizationUserId)) {
+                try {
+                    EmailController::activateEmail2fa($user);
+                } catch (ApiError) {
+                    // Ignored like upstream.
+                }
             }
         }
 
@@ -424,5 +435,22 @@ final readonly class AccountsController
         if ($hint !== null && ! $this->config->bool('password_hints_allowed')) {
             throw ApiError::message('Password hints have been disabled by the administrator. Remove the hint and try again.');
         }
+    }
+
+    /**
+     * is_email_2fa_required: for everyone, or for the members of an
+     * organization with the 2FA policy.
+     */
+    private function isEmail2faRequired(?string $memberId): bool
+    {
+        if (! $this->config->bool('_enable_email_2fa')) {
+            return false;
+        }
+        if ($this->config->bool('email_2fa_enforce_on_verified_invite')) {
+            return true;
+        }
+        $member = $memberId === null ? null : Membership::findByUuid($memberId);
+
+        return $member !== null && (OrgPolicy::findByOrgAndType($member->org_uuid, OrgPolicy::TYPE_TWO_FACTOR_AUTHENTICATION)->enabled ?? false);
     }
 }

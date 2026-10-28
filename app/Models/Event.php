@@ -41,6 +41,12 @@ final class Event extends Model
 
     public const int USER_CHANGED_PASSWORD = 1001;
 
+    public const int USER_UPDATED_2FA = 1002;
+
+    public const int USER_DISABLED_2FA = 1003;
+
+    public const int USER_RECOVERED_2FA = 1004;
+
     public const int USER_FAILED_LOG_IN = 1005;
 
     public const int USER_FAILED_LOG_IN_2FA = 1006;

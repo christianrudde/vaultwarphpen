@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Config\Config;
 use App\Http\ApiError;
+use App\Http\Controllers\TwoFactor\EmailController;
 use App\Http\Json;
 use App\Mail\Mail;
 use App\Support\Dates;
@@ -267,10 +268,10 @@ final class OrgPolicy extends Model
 
         $twoFactor = self::findByOrgAndType($member->org_uuid, self::TYPE_TWO_FACTOR_AUTHENTICATION);
         if ($twoFactor !== null && $twoFactor->enabled && TwoFactor::findByUser($member->user_uuid)->isEmpty()) {
-            if (app(Config::class)->bool('email_2fa_auto_fallback')) {
-                throw ApiError::message('Email two-factor authentication is not implemented yet');
+            if (! app(Config::class)->bool('email_2fa_auto_fallback')) {
+                throw ApiError::message("Cannot {$action} because 2FA is required (membership {$member->uuid})");
             }
-            throw ApiError::message("Cannot {$action} because 2FA is required (membership {$member->uuid})");
+            EmailController::findAndActivateEmail2fa($member->user_uuid);
         }
 
         if (self::isApplicableToUser($member->user_uuid, self::TYPE_SINGLE_ORG, $member->org_uuid)) {

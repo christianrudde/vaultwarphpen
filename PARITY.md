@@ -8,11 +8,11 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 
 | Area | Total | ✅ | 🟨 | ⬜ | ➖ | With tests |
 |---|--:|--:|--:|--:|--:|--:|
-| Routes | 294 | 100 | 63 | 130 | 1 | 163 |
-| Settings | 153 | 35 | 118 | 0 | 0 | 153 |
+| Routes | 294 | 115 | 62 | 116 | 1 | 177 |
+| Settings | 153 | 43 | 110 | 0 | 0 | 153 |
 | Scheduled jobs | 8 | 0 | 0 | 8 | 0 | 0 |
 | Database tables | 28 | 28 | 0 | 0 | 0 | 28 |
-| Templates | 74 | 15 | 59 | 0 | 0 | 74 |
+| Templates | 74 | 21 | 53 | 0 | 0 | 74 |
 | Static assets | 21 | 0 | 0 | 21 | 0 | 0 |
 
 ## Routes
@@ -224,29 +224,29 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | GET `/api/organizations/{org_id}/groups/{group_id}/users` | src/api/core/organizations.rs:2718 | 1 | Compared with Vaultwarden in tests/Differential/GroupTest, with ORG_GROUPS_ENABLED on and off. |
 | ✅ | PUT `/api/organizations/{org_id}/users/{user_id}/reset-password-enrollment` | src/api/core/organizations.rs:2988 | 1 | Compared with Vaultwarden in tests/Differential/MailTest (with mail, mails included) and AccountRecoveryTest (without). |
 | ✅ | GET `/api/organizations/{org_id}/users/{member_id}/reset-password-details` | src/api/core/organizations.rs:2914 | 1 | Compared with Vaultwarden in tests/Differential/MailTest (with mail, mails included) and AccountRecoveryTest (without). |
-| 🟨 | PUT `/api/organizations/{org_id}/users/{member_id}/recover-account` | src/api/core/organizations.rs:2797 | 1 | Compared with Vaultwarden in tests/Differential/MailTest (with mail, mails included) and AccountRecoveryTest (without). With EMAIL_2FA_AUTO_FALLBACK, resetting two-factor login would activate email 2FA, which is not ported. |
+| ✅ | PUT `/api/organizations/{org_id}/users/{member_id}/recover-account` | src/api/core/organizations.rs:2797 | 2 | Compared with Vaultwarden in tests/Differential/MailTest (with mail, mails included), AccountRecoveryTest (without) and TwoFactorTest (email 2FA as fallback). |
 | ✅ | GET `/api/organizations/{org_id}/export` | src/api/core/organizations.rs:3046 | 1 | Compared with Vaultwarden in tests/Differential/ImportExportTest. |
 | ✅ | POST `/api/organizations/{org_id}/api-key` | src/api/core/organizations.rs:3095 | 1 | Compared with Vaultwarden in tests/Differential/ApiKeyTest, with the login of the key. |
 | ✅ | POST `/api/organizations/{org_id}/rotate-api-key` | src/api/core/organizations.rs:3105 | 1 | Compared with Vaultwarden in tests/Differential/ApiKeyTest, with the login of the key. |
 | ⬜ | GET `/api/organizations/{_org_id}/billing/vnext/warnings` | src/api/core/organizations.rs:2172 | 0 |  |
 | ⬜ | GET `/api/organizations/{identifier}/auto-enroll-status` | src/api/core/organizations.rs:330 | 0 |  |
 | ⬜ | GET `/api/organizations/{_org_id}/billing/vnext/self-host/metadata` | src/api/core/organizations.rs:2182 | 0 |  |
-| ⬜ | GET `/api/two-factor` | src/api/core/two_factor/mod.rs:86 | 0 |  |
-| ⬜ | POST `/api/two-factor/get-recover` | src/api/core/two_factor/mod.rs:104 | 0 |  |
-| ⬜ | GET `/api/two-factor/get-device-verification-settings` | src/api/core/two_factor/mod.rs:258 | 0 |  |
-| ⬜ | POST `/api/two-factor/get-authenticator` | src/api/core/two_factor/authenticator.rs:21 | 0 |  |
-| ⬜ | POST `/api/two-factor/authenticator` | src/api/core/two_factor/authenticator.rs:51 | 0 |  |
-| ⬜ | PUT `/api/two-factor/authenticator` | src/api/core/two_factor/authenticator.rs:87 | 0 |  |
-| ⬜ | DELETE `/api/two-factor/authenticator` | src/api/core/two_factor/authenticator.rs:180 | 0 |  |
+| ✅ | GET `/api/two-factor` | src/api/core/two_factor/mod.rs:86 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest (the test computes the codes), with logins that need the code. |
+| ✅ | POST `/api/two-factor/get-recover` | src/api/core/two_factor/mod.rs:104 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest on the servers with mail (codes read from the mails) and without; expiry and attempt limits in tests/Feature/Api/TwoFactorTest. |
+| ✅ | GET `/api/two-factor/get-device-verification-settings` | src/api/core/two_factor/mod.rs:258 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest (the test computes the codes), with logins that need the code. |
+| ✅ | POST `/api/two-factor/get-authenticator` | src/api/core/two_factor/authenticator.rs:21 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest (the test computes the codes), with logins that need the code. |
+| ✅ | POST `/api/two-factor/authenticator` | src/api/core/two_factor/authenticator.rs:51 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest (the test computes the codes), with logins that need the code. |
+| ✅ | PUT `/api/two-factor/authenticator` | src/api/core/two_factor/authenticator.rs:87 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest (the test computes the codes), with logins that need the code. |
+| ✅ | DELETE `/api/two-factor/authenticator` | src/api/core/two_factor/authenticator.rs:180 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest (the test computes the codes), with logins that need the code. |
 | ⬜ | POST `/api/two-factor/get-duo` | src/api/core/two_factor/duo.rs:43 | 0 |  |
 | ⬜ | POST `/api/two-factor/duo` | src/api/core/two_factor/duo.rs:107 | 0 |  |
 | ⬜ | PUT `/api/two-factor/duo` | src/api/core/two_factor/duo.rs:141 | 0 |  |
 | ⬜ | DELETE `/api/two-factor/duo` | src/api/core/two_factor/duo.rs:146 | 0 |  |
-| ⬜ | POST `/api/two-factor/get-email` | src/api/core/two_factor/email.rs:155 | 0 |  |
-| ⬜ | POST `/api/two-factor/send-email-login` | src/api/core/two_factor/email.rs:45 | 0 |  |
-| ⬜ | POST `/api/two-factor/send-email` | src/api/core/two_factor/email.rs:188 | 0 |  |
-| ⬜ | PUT `/api/two-factor/email` | src/api/core/two_factor/email.rs:225 | 0 |  |
-| ⬜ | DELETE `/api/two-factor/email` | src/api/core/two_factor/email.rs:258 | 0 |  |
+| ✅ | POST `/api/two-factor/get-email` | src/api/core/two_factor/email.rs:155 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest on the servers with mail (codes read from the mails) and without; expiry and attempt limits in tests/Feature/Api/TwoFactorTest. |
+| ✅ | POST `/api/two-factor/send-email-login` | src/api/core/two_factor/email.rs:45 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest on the servers with mail (codes read from the mails) and without; expiry and attempt limits in tests/Feature/Api/TwoFactorTest. |
+| ✅ | POST `/api/two-factor/send-email` | src/api/core/two_factor/email.rs:188 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest on the servers with mail (codes read from the mails) and without; expiry and attempt limits in tests/Feature/Api/TwoFactorTest. |
+| ✅ | PUT `/api/two-factor/email` | src/api/core/two_factor/email.rs:225 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest on the servers with mail (codes read from the mails) and without; expiry and attempt limits in tests/Feature/Api/TwoFactorTest. |
+| ✅ | DELETE `/api/two-factor/email` | src/api/core/two_factor/email.rs:258 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest on the servers with mail (codes read from the mails) and without; expiry and attempt limits in tests/Feature/Api/TwoFactorTest. |
 | ⬜ | POST `/api/two-factor/get-webauthn` | src/api/core/two_factor/webauthn.rs:119 | 0 |  |
 | ⬜ | POST `/api/two-factor/get-webauthn-challenge` | src/api/core/two_factor/webauthn.rs:143 | 0 |  |
 | ⬜ | POST `/api/two-factor/webauthn` | src/api/core/two_factor/webauthn.rs:268 | 0 |  |
@@ -257,8 +257,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ⬜ | POST `/api/two-factor/yubikey` | src/api/core/two_factor/yubikey.rs:148 | 0 |  |
 | ⬜ | PUT `/api/two-factor/yubikey` | src/api/core/two_factor/yubikey.rs:200 | 0 |  |
 | ⬜ | DELETE `/api/two-factor/yubikey` | src/api/core/two_factor/yubikey.rs:205 | 0 |  |
-| ⬜ | POST `/api/accounts/request-otp` | src/api/core/two_factor/protected_actions.rs:64 | 0 |  |
-| ⬜ | POST `/api/accounts/verify-otp` | src/api/core/two_factor/protected_actions.rs:105 | 0 |  |
+| ✅ | POST `/api/accounts/request-otp` | src/api/core/two_factor/protected_actions.rs:64 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest on the servers with mail (codes read from the mails) and without; expiry and attempt limits in tests/Feature/Api/TwoFactorTest. |
+| ✅ | POST `/api/accounts/verify-otp` | src/api/core/two_factor/protected_actions.rs:105 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest on the servers with mail (codes read from the mails) and without; expiry and attempt limits in tests/Feature/Api/TwoFactorTest. |
 | ✅ | GET `/api/sends` | src/api/core/sends.rs:172 | 1 | Compared with Vaultwarden in tests/Differential/SendTest; the organization policies (Disable Send, Send Options) are covered by tests/Feature/Api/SendTest. No live notifications yet. |
 | ✅ | GET `/api/sends/{send_id}` | src/api/core/sends.rs:184 | 1 | Compared with Vaultwarden in tests/Differential/SendTest; the organization policies (Disable Send, Send Options) are covered by tests/Feature/Api/SendTest. No live notifications yet. |
 | ✅ | POST `/api/sends` | src/api/core/sends.rs:193 | 1 | Compared with Vaultwarden in tests/Differential/SendTest; the organization policies (Disable Send, Send Options) are covered by tests/Feature/Api/SendTest. No live notifications yet. |
@@ -300,7 +300,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ⬜ | POST `/admin/users/{user_id}/invite/resend` | src/api/admin.rs:520 | 0 |  |
 | ⬜ | GET `/admin/diagnostics/http` | src/api/admin.rs:831 | 0 |  |
 | ✅ | POST `/events/collect` | src/api/core/events.rs:158 | 1 | Compared with Vaultwarden in tests/Differential/EventTest, with ORG_EVENTS_ENABLED on and off. |
-| 🟨 | POST `/identity/connect/token` | src/api/identity.rs:57 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Password (with KDF upgrade and the 2FA organization policy), refresh token, user API key and Send access (send_access) logins; accounts and tokens work across Vaultwarden and us on one database. Not yet: two-factor login, login with a device, SSO, organization API keys. |
+| 🟨 | POST `/identity/connect/token` | src/api/identity.rs:57 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Password (with KDF upgrade and the 2FA organization policy), refresh token, user API key and Send access (send_access) logins, two-factor login with authenticator, email, remembered device and recovery code; accounts and tokens work across Vaultwarden and us on one database. Not yet: WebAuthn, YubiKey and Duo, login with a device, SSO, organization API keys. |
 | ✅ | POST `/identity/accounts/prelogin` | src/api/identity.rs:1019 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
 | ✅ | POST `/identity/accounts/prelogin/password` | src/api/identity.rs:1024 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
 | 🟨 | POST `/identity/accounts/register/send-verification-email` | src/api/identity.rs:1050 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Not yet: sending the verification mail (SMTP is not ported). |
@@ -354,7 +354,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `ORG_ATTACHMENT_LIMIT` | src/config.rs:612 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | ✅ | `USER_SEND_LIMIT` | src/config.rs:614 | 2 | Enforced on file Sends like post_send_file_v2 (tests/Feature/Api/SendTest). |
 | 🟨 | `TRASH_AUTO_DELETE_DAYS` | src/config.rs:619 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `INCOMPLETE_2FA_TIME_LIMIT` | src/config.rs:626 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `INCOMPLETE_2FA_TIME_LIMIT` | src/config.rs:626 | 1 | Logins waiting for their second factor are recorded (TwoFactorIncomplete); the job that mails about them is not ported yet. |
 | 🟨 | `DISABLE_ICON_DOWNLOAD` | src/config.rs:632 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | ✅ | `SIGNUPS_ALLOWED` | src/config.rs:634 | 2 | Read like Vaultwarden and used by registration and login. |
 | 🟨 | `SIGNUPS_VERIFY` | src/config.rs:637 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
@@ -388,8 +388,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `ICON_BLACKLIST_NON_GLOBAL_IPS` | src/config.rs:724 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `HTTP_REQUEST_BLOCK_REGEX` | src/config.rs:728 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `HTTP_REQUEST_BLOCK_NON_GLOBAL_IPS` | src/config.rs:731 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `DISABLE_2FA_REMEMBER` | src/config.rs:735 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `AUTHENTICATOR_DISABLE_TIME_DRIFT` | src/config.rs:739 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `DISABLE_2FA_REMEMBER` | src/config.rs:735 | 2 | Ported (TwoFactorController and friends); tested with non-default values in tests/Feature/Api/TwoFactorTest. |
+| ✅ | `AUTHENTICATOR_DISABLE_TIME_DRIFT` | src/config.rs:739 | 2 | Ported (TwoFactorController and friends); tested with non-default values in tests/Feature/Api/TwoFactorTest. |
 | 🟨 | `EXPERIMENTAL_CLIENT_FEATURE_FLAGS` | src/config.rs:742 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `REQUIRE_DEVICE_EMAIL` | src/config.rs:746 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | ✅ | `RELOAD_TEMPLATES` | src/config.rs:750 | 2 | Read like Vaultwarden (environment, *_FILE, config.json, default) and used: DATABASE_URL drives the default connection, the templates folder and reload drive the renderer. |
@@ -465,12 +465,12 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `SMTP_DEBUG` | src/config.rs:930 | 1 | lettre logs the SMTP conversation with it; not ported. |
 | 🟨 | `SMTP_ACCEPT_INVALID_CERTS` | src/config.rs:932 | 1 | Ported in App\Mail (SmtpTransport, SendmailTransport) like lettre; not compared with Vaultwarden, whose error texts come from lettre. |
 | 🟨 | `SMTP_ACCEPT_INVALID_HOSTNAMES` | src/config.rs:934 | 1 | Ported in App\Mail (SmtpTransport, SendmailTransport) like lettre; not compared with Vaultwarden, whose error texts come from lettre. |
-| 🟨 | `_ENABLE_EMAIL_2FA` | src/config.rs:940 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `EMAIL_TOKEN_SIZE` | src/config.rs:942 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `EMAIL_EXPIRATION_TIME` | src/config.rs:944 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `EMAIL_ATTEMPTS_LIMIT` | src/config.rs:946 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `EMAIL_2FA_ENFORCE_ON_VERIFIED_INVITE` | src/config.rs:948 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `EMAIL_2FA_AUTO_FALLBACK` | src/config.rs:950 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `_ENABLE_EMAIL_2FA` | src/config.rs:940 | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest: off without SMTP, on with it. |
+| ✅ | `EMAIL_TOKEN_SIZE` | src/config.rs:942 | 2 | Ported (TwoFactorController and friends); tested with non-default values in tests/Feature/Api/TwoFactorTest. |
+| ✅ | `EMAIL_EXPIRATION_TIME` | src/config.rs:944 | 2 | Ported (TwoFactorController and friends); tested with non-default values in tests/Feature/Api/TwoFactorTest. |
+| ✅ | `EMAIL_ATTEMPTS_LIMIT` | src/config.rs:946 | 2 | Ported (TwoFactorController and friends); tested with non-default values in tests/Feature/Api/TwoFactorTest. |
+| ✅ | `EMAIL_2FA_ENFORCE_ON_VERIFIED_INVITE` | src/config.rs:948 | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest (on for the servers with mail): invited users get email 2FA at sign-up; for new users the method is stored before the user and fails, like upstream. |
+| ✅ | `EMAIL_2FA_AUTO_FALLBACK` | src/config.rs:950 | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest (on for the servers with mail): account recovery and joining under the 2FA policy. |
 
 ## Scheduled jobs
 
@@ -564,14 +564,14 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | `email/invite_confirmed.html` | src/static/templates/email/invite_confirmed.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
 | ✅ | `email/new_device_logged_in` | src/static/templates/email/new_device_logged_in.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
 | ✅ | `email/new_device_logged_in.html` | src/static/templates/email/new_device_logged_in.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
-| 🟨 | `email/protected_action` | src/static/templates/email/protected_action.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/protected_action.html` | src/static/templates/email/protected_action.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| ✅ | `email/protected_action` | src/static/templates/email/protected_action.hbs | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest: subject, text and HTML of the mail. |
+| ✅ | `email/protected_action.html` | src/static/templates/email/protected_action.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest: subject, text and HTML of the mail. |
 | 🟨 | `email/pw_hint_none` | src/static/templates/email/pw_hint_none.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
 | 🟨 | `email/pw_hint_none.html` | src/static/templates/email/pw_hint_none.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
 | 🟨 | `email/pw_hint_some` | src/static/templates/email/pw_hint_some.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
 | 🟨 | `email/pw_hint_some.html` | src/static/templates/email/pw_hint_some.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/recover_twofactor` | src/static/templates/email/recover_twofactor.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/recover_twofactor.html` | src/static/templates/email/recover_twofactor.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| ✅ | `email/recover_twofactor` | src/static/templates/email/recover_twofactor.hbs | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest: subject, text and HTML of the mail. |
+| ✅ | `email/recover_twofactor.html` | src/static/templates/email/recover_twofactor.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest: subject, text and HTML of the mail. |
 | 🟨 | `email/register_verify_email` | src/static/templates/email/register_verify_email.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
 | 🟨 | `email/register_verify_email.html` | src/static/templates/email/register_verify_email.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
 | ✅ | `email/send_2fa_removed_from_org` | src/static/templates/email/send_2fa_removed_from_org.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
@@ -586,8 +586,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `email/smtp_test.html` | src/static/templates/email/smtp_test.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
 | 🟨 | `email/sso_change_email` | src/static/templates/email/sso_change_email.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
 | 🟨 | `email/sso_change_email.html` | src/static/templates/email/sso_change_email.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/twofactor_email` | src/static/templates/email/twofactor_email.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/twofactor_email.html` | src/static/templates/email/twofactor_email.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| ✅ | `email/twofactor_email` | src/static/templates/email/twofactor_email.hbs | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest: subject, text and HTML of the mail. |
+| ✅ | `email/twofactor_email.html` | src/static/templates/email/twofactor_email.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest: subject, text and HTML of the mail. |
 | 🟨 | `email/verify_email` | src/static/templates/email/verify_email.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
 | 🟨 | `email/verify_email.html` | src/static/templates/email/verify_email.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
 | 🟨 | `email/welcome` | src/static/templates/email/welcome.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |

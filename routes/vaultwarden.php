@@ -9,6 +9,10 @@ use App\Http\Controllers\IdentityController;
 use App\Http\Controllers\OrganizationsController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\SendsController;
+use App\Http\Controllers\TwoFactor\AuthenticatorController;
+use App\Http\Controllers\TwoFactor\EmailController;
+use App\Http\Controllers\TwoFactor\ProtectedActionsController;
+use App\Http\Controllers\TwoFactor\TwoFactorController;
 use App\Http\Controllers\WebController;
 use Illuminate\Support\Facades\Route;
 
@@ -203,6 +207,23 @@ Route::prefix('/api')->group(function (): void {
     Route::get('/organizations/{orgId}/events', [EventsController::class, 'getOrgEvents'])->name('core::events::get_org_events');
     Route::get('/ciphers/{cipherId}/events', [EventsController::class, 'getCipherEvents'])->name('core::events::get_cipher_events');
     Route::get('/organizations/{orgId}/users/{memberId}/events', [EventsController::class, 'getUserEvents'])->name('core::events::get_user_events');
+
+    // core::two_factor
+    Route::get('/two-factor', [TwoFactorController::class, 'getTwofactor'])->name('core::two_factor::get_twofactor');
+    Route::post('/two-factor/get-recover', [TwoFactorController::class, 'getRecover'])->name('core::two_factor::get_recover');
+    Route::get('/two-factor/get-device-verification-settings', [TwoFactorController::class, 'getDeviceVerificationSettings'])
+        ->name('core::two_factor::get_device_verification_settings');
+    Route::post('/two-factor/get-authenticator', [AuthenticatorController::class, 'generateAuthenticator'])->name('core::two_factor::authenticator::generate_authenticator');
+    Route::post('/two-factor/authenticator', [AuthenticatorController::class, 'activateAuthenticator'])->name('core::two_factor::authenticator::activate_authenticator');
+    Route::put('/two-factor/authenticator', [AuthenticatorController::class, 'activateAuthenticator'])->name('core::two_factor::authenticator::activate_authenticator_put');
+    Route::delete('/two-factor/authenticator', [AuthenticatorController::class, 'disableAuthenticator'])->name('core::two_factor::authenticator::disable_authenticator');
+    Route::post('/two-factor/send-email-login', [EmailController::class, 'sendEmailLogin'])->name('core::two_factor::email::send_email_login');
+    Route::post('/two-factor/get-email', [EmailController::class, 'getEmail'])->name('core::two_factor::email::get_email');
+    Route::post('/two-factor/send-email', [EmailController::class, 'sendEmail'])->name('core::two_factor::email::send_email');
+    Route::put('/two-factor/email', [EmailController::class, 'email'])->name('core::two_factor::email::email');
+    Route::delete('/two-factor/email', [EmailController::class, 'disableEmail'])->name('core::two_factor::email::disable_email');
+    Route::post('/accounts/request-otp', [ProtectedActionsController::class, 'requestOtp'])->name('core::two_factor::protected_actions::request_otp');
+    Route::post('/accounts/verify-otp', [ProtectedActionsController::class, 'verifyOtp'])->name('core::two_factor::protected_actions::verify_otp');
 
     // core::public
     Route::post('/public/organization/import', [PublicController::class, 'ldapImport'])->name('core::public::ldap_import');

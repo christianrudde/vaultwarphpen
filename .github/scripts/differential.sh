@@ -44,7 +44,8 @@ php .github/scripts/smtp-sink.php 2501 "${work}/mail-reference-inbox" > "${work}
 pids+=($!)
 php .github/scripts/smtp-sink.php 2502 "${work}/mail-subject-inbox" > "${work}/sink-subject.log" 2>&1 &
 pids+=($!)
-mail_env=(SMTP_HOST=127.0.0.1 SMTP_SECURITY=off SMTP_FROM=vaultwarden@example.com SMTP_TIMEOUT=5)
+mail_env=(SMTP_HOST=127.0.0.1 SMTP_SECURITY=off SMTP_FROM=vaultwarden@example.com SMTP_TIMEOUT=5
+    EMAIL_2FA_ENFORCE_ON_VERIFIED_INVITE=true EMAIL_2FA_AUTO_FALLBACK=true)
 env DATA_FOLDER="${work}/mail-reference" "${mail_env[@]}" SMTP_PORT=2501 ROCKET_PORT=8003 "${binary}" > "${work}/mail-reference.log" 2>&1 &
 pids+=($!)
 

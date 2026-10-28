@@ -46,6 +46,31 @@ final class Random
     }
 
     /**
+     * crypto::get_random_string_numeric: decimal digits, like the mailed codes.
+     *
+     * @param  int<1, max>  $chars
+     */
+    public static function numeric(int $chars): string
+    {
+        $string = '';
+        for ($i = 0; $i < $chars; $i++) {
+            $string .= (string) random_int(0, 9);
+        }
+
+        return $string;
+    }
+
+    /**
+     * crypto::encode_random_bytes::<N>(&BASE32)
+     *
+     * @param  int<1, max>  $bytes
+     */
+    public static function base32(int $bytes): string
+    {
+        return Base32::encode(random_bytes($bytes));
+    }
+
+    /**
      * crypto::generate_id::<N>(): lower-case hex.
      *
      * @param  int<1, max>  $bytes

@@ -21,8 +21,11 @@ environment variables, so the official Bitwarden clients and existing Vaultwarde
   Besides the default pair it starts one on a shared database (`VW_SHARED_*`), one with groups
   and events enabled (`VW_FEATURES_*`, used with `assertSameFlowsOn()`) and one that sends mail
   to SMTP sinks (`VW_MAIL_*`, `.github/scripts/smtp-sink.php`; use `assertSameMailFlows()`, and
-  `Server::mail()` to compare a mail or take its token); `signedToken()` signs tokens with the
-  key all servers share (`VW_RSA_KEY`).
+  `Server::mail()` to compare a mail or take its token). The mail pair also sets up email 2FA for
+  verified sign-ups and as fallback (`EMAIL_2FA_*`); accounts registered by the tests are
+  unverified unless their token says otherwise. `signedToken()` signs tokens with the key all
+  servers share (`VW_RSA_KEY`). Responses are compared as JSON with objects kept apart from
+  lists, after placeholders replace random values (`DifferentialTestCase::PLACEHOLDERS`).
 - Mail: `App\Mail\Mail` ports `src/mail.rs`; the transport (`App\Mail\Transport`) is SMTP or
   sendmail. Tests put `Tests\Fakes\MailTransportFake` in the container. Locally, Herd Pro's mail
   service catches SMTP on 127.0.0.1:2525 (`SMTP_SECURITY=off`).

@@ -10,7 +10,7 @@ use Tests\Attributes\Parity;
 #[Parity('route:POST /identity/connect/token')]
 class LoginTest extends DifferentialTestCase
 {
-    private const string DEVICE = '6a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d';
+    public const string DEVICE = '6a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d';
 
     public function test_password_and_refresh_logins(): void
     {

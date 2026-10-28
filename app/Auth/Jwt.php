@@ -52,13 +52,15 @@ final readonly class Jwt
         'org_id' => 'string', 'member_id' => 'string', 'invited_by_email' => '?string'];
 
     /**
-     * @param  array<string, 'int'|'string'|'?string'>  $fields  The claims struct, in field order: jsonwebtoken
-     *                                                           deserializes it before it validates the token
+     * @param  array<string, 'int'|'string'|'?string'|'bool'>  $fields  The claims struct, in field order: jsonwebtoken
+     *                                                                  deserializes it before it validates the token
+     * @param  array{string, string, bool}|null  $nested  A field holding a struct that denies unknown fields:
+     *                                                    its name, the one field of that struct and whether it is required
      * @return array<string, mixed> The claims
      *
      * @throws ApiError
      */
-    public function decode(string $token, JwtIssuer $issuer, ?int $now = null, array $fields = []): array
+    public function decode(string $token, JwtIssuer $issuer, ?int $now = null, array $fields = [], ?array $nested = null): array
     {
         $token = (string) preg_replace('/\s+/u', '', $token);
 
@@ -81,7 +83,11 @@ final readonly class Jwt
 
         $payload = substr($token, $payloadStart + 1, $signatureStart - $payloadStart - 1);
         $claims = self::decodePart($payload);
-        self::deserialize($claims, $fields, self::base64UrlDecode($payload));
+        $json = self::base64UrlDecode($payload);
+        if ($nested !== null) {
+            self::deserializeNested($claims, $nested, $json);
+        }
+        self::deserialize($claims, $fields, $json);
         $this->validate($claims, $this->issuer($issuer), $now ?? time());
 
         return $claims;
@@ -92,7 +98,7 @@ final readonly class Jwt
      * is reported where the object ends. Wrong types are reported less exactly.
      *
      * @param  array<string, mixed>  $claims
-     * @param  array<string, 'int'|'string'|'?string'>  $fields
+     * @param  array<string, 'int'|'string'|'?string'|'bool'>  $fields
      */
     private static function deserialize(array $claims, array $fields, string $json): void
     {
@@ -102,23 +108,103 @@ final readonly class Jwt
                     continue;
                 }
                 $end = strrpos($json, '}');
-                $before = $end === false ? $json : substr($json, 0, $end + 1);
-                $newline = strrpos($before, "\n");
-                $line = substr_count($before, "\n") + 1;
-                $column = $newline === false ? strlen($before) : strlen($before) - $newline - 1;
 
-                throw self::error("Json(Error(\"missing field `{$name}`\", line: {$line}, column: {$column}))");
+                throw self::serdeError("missing field `{$name}`", $json, $end === false ? strlen($json) - 1 : $end);
             }
             $value = $claims[$name];
             $valid = match ($type) {
                 'int' => is_int($value),
                 'string' => is_string($value),
                 '?string' => $value === null || is_string($value),
+                'bool' => is_bool($value),
             };
             if (! $valid) {
                 throw self::error('Json');
             }
         }
+    }
+
+    /**
+     * The struct in one field of the claims, which denies unknown fields:
+     * serde reports an unknown or repeated field right after its name and a
+     * missing one where the inner object ends.
+     *
+     * @param  array<string, mixed>  $claims
+     * @param  array{string, string, bool}  $nested
+     */
+    private static function deserializeNested(array $claims, array $nested, string $json): void
+    {
+        [$outer, $field, $required] = $nested;
+        if (! array_key_exists($outer, $claims)) {
+            return;
+        }
+        $start = preg_match('/"'.preg_quote($outer, '/').'"\s*:\s*\{/', $json, $match, PREG_OFFSET_CAPTURE) === 1
+            ? $match[0][1] + strlen($match[0][0]) - 1
+            : null;
+        if (! is_array($claims[$outer]) || $start === null) {
+            throw self::error('Json');
+        }
+
+        $seen = false;
+        $depth = 0;
+        $inString = false;
+        $keyStart = null;
+        $expectKey = true;
+        for ($i = $start + 1, $length = strlen($json); $i < $length; $i++) {
+            $char = $json[$i];
+            if ($inString) {
+                if ($char === '\\') {
+                    $i++;
+                } elseif ($char === '"') {
+                    $inString = false;
+                    if ($keyStart !== null) {
+                        $key = json_decode(substr($json, $keyStart, $i - $keyStart + 1));
+                        $keyStart = null;
+                        if ($key !== $field) {
+                            throw self::serdeError('unknown field `'.(is_string($key) ? $key : '')."`, expected `{$field}`", $json, $i);
+                        }
+                        if ($seen) {
+                            throw self::serdeError("duplicate field `{$field}`", $json, $i);
+                        }
+                        $seen = true;
+                    }
+                }
+
+                continue;
+            }
+            if ($char === '"') {
+                $inString = true;
+                if ($depth === 0 && $expectKey) {
+                    $keyStart = $i;
+                    $expectKey = false;
+                }
+            } elseif ($char === '{' || $char === '[') {
+                $depth++;
+            } elseif ($char === ']' || ($char === '}' && $depth > 0)) {
+                $depth--;
+            } elseif ($char === ',' && $depth === 0) {
+                $expectKey = true;
+            } elseif ($char === '}') {
+                if ($required && ! $seen) {
+                    throw self::serdeError("missing field `{$field}`", $json, $i);
+                }
+
+                return;
+            }
+        }
+    }
+
+    /**
+     * A serde_json error at the character with the index, in Debug format.
+     */
+    private static function serdeError(string $message, string $json, int $index): ApiError
+    {
+        $before = substr($json, 0, $index + 1);
+        $newline = strrpos($before, "\n");
+        $line = substr_count($before, "\n") + 1;
+        $column = $newline === false ? strlen($before) : strlen($before) - $newline - 1;
+
+        return self::error('Json(Error('.json_encode($message, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE).", line: {$line}, column: {$column}))");
     }
 
     /**

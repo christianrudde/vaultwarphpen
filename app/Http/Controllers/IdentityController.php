@@ -12,6 +12,9 @@ use App\Auth\MasterPasswordPolicy;
 use App\Config\Config;
 use App\Http\Accept;
 use App\Http\ApiError;
+use App\Http\Controllers\TwoFactor\AuthenticatorController;
+use App\Http\Controllers\TwoFactor\EmailController;
+use App\Http\Controllers\TwoFactor\TwoFactorController;
 use App\Http\Data\Body;
 use App\Http\Data\RegisterData;
 use App\Http\EmptyResponse;
@@ -25,12 +28,14 @@ use App\Models\OrganizationApiKey;
 use App\Models\OrgPolicy;
 use App\Models\Send;
 use App\Models\TwoFactor;
+use App\Models\TwoFactorIncomplete;
 use App\Models\User;
 use App\Support\CheckedInt;
 use App\Support\Dates;
 use App\Support\RateLimiter;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use stdClass;
 
 /**
  * src/api/identity.rs
@@ -101,6 +106,11 @@ final readonly class IdentityController
                     $required('device_type', 'device_type cannot be blank'),
                 ],
                 authRequest: $field('authrequest'),
+                twoFactor: [
+                    'provider' => CheckedInt::parseI32((string) $field('two_factor_provider')),
+                    'token' => $field('two_factor_token'),
+                    'remember' => CheckedInt::parseI32((string) $field('two_factor_remember')),
+                ],
                 ip: $ip,
                 userId: $userId,
             ),
@@ -278,11 +288,12 @@ final readonly class IdentityController
 
     /**
      * @param  array{string, string, string}  $device  Identifier, name and type
+     * @param  array{provider: ?int, token: ?string, remember: ?int}  $twoFactor  The second factor the client sends
      * @param  ?string  $userId  Set once the user is known
      *
      * @param-out string $userId
      */
-    private function passwordLogin(string $clientId, string $password, string $scope, string $username, array $device, ?string $authRequest, string $ip, ?string &$userId): Response
+    private function passwordLogin(string $clientId, string $password, string $scope, string $username, array $device, ?string $authRequest, array $twoFactor, string $ip, ?string &$userId): Response
     {
         AuthMethod::Password->checkScope($scope);
         $this->limiter->check('login', $ip);
@@ -313,9 +324,9 @@ final readonly class IdentityController
         }
 
         $loginDevice = $this->getDevice($user, ...$device);
-        $this->twofactorAuth($user, $loginDevice, $ip);
+        $twofactorToken = $this->twofactorAuth($user, $loginDevice, $twoFactor, $ip);
 
-        return $this->authenticatedResponse($user, $loginDevice, AuthTokens::new($loginDevice, $user, AuthMethod::Password, $clientId, $this->jwt), $ip);
+        return $this->authenticatedResponse($user, $loginDevice, AuthTokens::new($loginDevice, $user, AuthMethod::Password, $clientId, $this->jwt), $ip, $twofactorToken);
     }
 
     /**
@@ -433,18 +444,159 @@ final readonly class IdentityController
     }
 
     /**
-     * Without two-factor methods the organization policy may revoke memberships;
-     * the two-factor login itself is not ported yet.
+     * identity::twofactor_auth: without methods the 2FA policy applies;
+     * otherwise the client names a usable method (or the first) and sends
+     * its code. A remembered device or the recovery code count as well. The
+     * answer may carry a new token that remembers the device.
+     *
+     * @param  array{provider: ?int, token: ?string, remember: ?int}  $data
+     *
+     * @throws ApiError
      */
-    private function twofactorAuth(User $user, Device $device, string $ip): void
+    private function twofactorAuth(User $user, Device $device, array $data, string $ip): ?string
     {
-        if (TwoFactor::findByUser($user->uuid)->isEmpty()) {
+        $methods = TwoFactor::findByUser($user->uuid);
+        if ($methods->isEmpty()) {
             OrgPolicy::enforceTwoFactorForUser($user, $user->uuid, $device->atype, $ip);
 
-            return;
+            return null;
         }
 
-        throw ApiError::message('Two-factor login is not implemented yet');
+        TwoFactorIncomplete::markIncomplete($user->uuid, $device->uuid, $device->name, $device->atype, $ip);
+
+        $providers = [];
+        foreach ($methods as $method) {
+            if ($method->enabled && TwoFactorController::isProviderUsable($method->atype, $method->data)) {
+                $providers[] = $method->atype;
+            }
+        }
+        if ($providers === []) {
+            throw ApiError::message('No enabled and usable two factor providers are available for this account');
+        }
+
+        $selected = $data['provider'] ?? $providers[0];
+        // Remember and the recovery code are no methods of their own.
+        if (! in_array($selected, [TwoFactor::TYPE_REMEMBER, TwoFactor::TYPE_RECOVERY_CODE], true) && ! in_array($selected, $providers, true)) {
+            throw ApiError::json($this->twofactorRequired($providers, $user), 'Invalid two factor provider');
+        }
+        // A blank code counts as none.
+        $code = $data['token'];
+        if ($code === null || trim($code) === '') {
+            throw ApiError::json($this->twofactorRequired($providers, $user), '2FA token not provided');
+        }
+
+        $method = $methods->first(static fn (TwoFactor $method): bool => $method->atype === $selected && $method->enabled);
+        $methodData = static fn (): string => ($method ?? throw ApiError::message("Two factor doesn't exist"))->data;
+
+        match ($selected) {
+            TwoFactor::TYPE_AUTHENTICATOR => AuthenticatorController::validateTotpCodeStr($user->uuid, $code, $methodData(), $ip),
+            TwoFactor::TYPE_EMAIL => EmailController::validateEmailCodeStr($user->uuid, $code, $methodData(), $ip),
+            TwoFactor::TYPE_REMEMBER => $this->checkRemembered($user, $device, $code, $providers),
+            TwoFactor::TYPE_RECOVERY_CODE => $this->recoverTwofactor($user, $device, $code, $ip),
+            default => throw ApiError::message('Invalid two factor provider', event: Event::USER_FAILED_LOG_IN_2FA),
+        };
+
+        TwoFactorIncomplete::markComplete($user->uuid, $device->uuid);
+
+        return ! $this->config->bool('disable_2fa_remember') && ($data['remember'] ?? 0) === 1 ? $device->refreshTwofactorRemember() : null;
+    }
+
+    /**
+     * A remembered device logs in with its token; any other drops the token.
+     *
+     * @param  list<int>  $providers
+     *
+     * @throws ApiError
+     */
+    private function checkRemembered(User $user, Device $device, string $code, array $providers): void
+    {
+        $token = $device->twofactor_remember;
+        if ($token !== null && ! $this->config->bool('disable_2fa_remember') && hash_equals($token, $code)) {
+            try {
+                $claims = $this->jwt->decode($code, JwtIssuer::TwoFactorRemember, fields: ['nbf' => 'int', 'exp' => 'int', 'iss' => 'string', 'sub' => 'string', 'user_uuid' => 'string']);
+                if ($claims['sub'] === $device->uuid && $claims['user_uuid'] === $user->uuid) {
+                    return;
+                }
+            } catch (ApiError) {
+                // Expired or invalid: the prompt follows.
+            }
+        }
+
+        if ($device->twofactor_remember !== null) {
+            $device->deleteTwofactorRemember();
+            // The error below would skip saving it later.
+            $device->save();
+        }
+
+        throw ApiError::json($this->twofactorRequired($providers, $user), '2FA Remember token not provided or expired');
+    }
+
+    /**
+     * The recovery code removes every method; spaces and case do not matter.
+     *
+     * @throws ApiError
+     */
+    private function recoverTwofactor(User $user, Device $device, string $code, string $ip): void
+    {
+        if (! $user->checkValidRecoveryCode(strtolower(trim(str_replace(' ', '', $code))))) {
+            throw ApiError::message('Two-step token is invalid. Try again.', event: Event::USER_FAILED_LOG_IN_2FA);
+        }
+
+        TwoFactor::deleteAllByUser($user->uuid);
+        // No device may keep skipping 2FA; this one would get its token back when saved.
+        Device::clearTwofactorRememberByUser($user->uuid);
+        $device->deleteTwofactorRemember();
+
+        OrgPolicy::enforceTwoFactorForUser($user, $user->uuid, $device->atype, $ip);
+        Event::logUser(Event::USER_RECOVERED_2FA, $user->uuid, $device->atype, $ip);
+
+        if ($this->config->mailEnabled()) {
+            try {
+                Mail::sendRecoverTwofactor($user->email, $ip, Dates::now());
+            } catch (ApiError $error) {
+                logger()->error("Error sending two-step login recovered email: {$error->debugText()}");
+            }
+        }
+
+        // Not needed without methods.
+        $user->totp_recover = null;
+        $user->save();
+    }
+
+    /**
+     * json_err_twofactor: what a login without its second factor gets; some
+     * methods add what the client needs for the prompt.
+     *
+     * @param  list<int>  $providers
+     * @return array<string, mixed>
+     *
+     * @throws ApiError
+     */
+    private function twofactorRequired(array $providers, User $user): array
+    {
+        $details = [];
+        foreach ($providers as $provider) {
+            $details[(string) $provider] = match ($provider) {
+                TwoFactor::TYPE_EMAIL => Json::sorted(['Email' => EmailController::obscureEmail(EmailController::methodEmail(
+                    (TwoFactor::findByUserAndType($user->uuid, TwoFactor::TYPE_EMAIL) ?? throw ApiError::message('No twofactor email registered'))->data,
+                ))]),
+                default => null,
+            };
+        }
+        // Sorted as strings, and an object even with keys from 0 on.
+        ksort($details, SORT_STRING);
+        $object = new stdClass;
+        foreach ($details as $key => $value) {
+            $object->{(string) $key} = $value;
+        }
+
+        return [
+            'MasterPasswordPolicy' => MasterPasswordPolicy::forIdentity($user, $this->config),
+            'TwoFactorProviders' => array_map(strval(...), $providers),
+            'TwoFactorProviders2' => $object,
+            'error' => 'invalid_grant',
+            'error_description' => 'Two factor required.',
+        ];
     }
 
     /**

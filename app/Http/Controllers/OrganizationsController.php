@@ -13,6 +13,7 @@ use App\Auth\OrgMemberHeaders;
 use App\Auth\OwnerHeaders;
 use App\Config\Config;
 use App\Http\ApiError;
+use App\Http\Controllers\TwoFactor\EmailController;
 use App\Http\Data\AuthenticationData;
 use App\Http\Data\Body;
 use App\Http\Data\CipherData;
@@ -972,8 +973,9 @@ final readonly class OrganizationsController
         if ($resetTwoFactor) {
             TwoFactor::deleteAllByUser($user->uuid);
             Device::clearTwofactorRememberByUser($user->uuid);
-            // Email two-factor login is not ported, so the fallback cannot be activated.
-            OrgPolicy::enforceTwoFactorForUser($user, $headers->user->uuid, $headers->device->atype, $headers->ip);
+            if (! $fallbackEmail || ! self::activatesEmail2fa($user->uuid)) {
+                OrgPolicy::enforceTwoFactorForUser($user, $headers->user->uuid, $headers->device->atype, $headers->ip);
+            }
         }
         $user->save();
 
@@ -1477,6 +1479,20 @@ final readonly class OrganizationsController
         }
 
         return Json::response(Json::sorted(['apiKey' => $apiKey->api_key, 'revisionDate' => Dates::format($apiKey->revision_date), 'object' => 'apiKey']));
+    }
+
+    /**
+     * The email method instead of the removed ones; false when that fails.
+     */
+    private static function activatesEmail2fa(string $userUuid): bool
+    {
+        try {
+            EmailController::findAndActivateEmail2fa($userUuid);
+
+            return true;
+        } catch (ApiError) {
+            return false;
+        }
     }
 
     /**

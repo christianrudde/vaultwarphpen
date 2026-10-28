@@ -42,7 +42,7 @@ final readonly class PasswordOrOtpData
         match (true) {
             $this->masterPasswordHash !== null && $this->otp === null => $user->checkValidPassword($this->masterPasswordHash)
                 ?: throw ApiError::message('Invalid password'),
-            $this->masterPasswordHash === null && $this->otp !== null => self::validateOtp($this->otp, $user->uuid, $deleteIfValid, $config),
+            $this->masterPasswordHash === null && $this->otp !== null => self::validateProtectedActionOtp($this->otp, $user->uuid, $deleteIfValid, $config),
             default => throw ApiError::message('No validation provided'),
         };
     }
@@ -52,20 +52,11 @@ final readonly class PasswordOrOtpData
      *
      * @throws ApiError
      */
-    private static function validateOtp(string $otp, string $userUuid, bool $deleteIfValid, Config $config): bool
+    public static function validateProtectedActionOtp(string $otp, string $userUuid, bool $deleteIfValid, Config $config): bool
     {
         $action = TwoFactor::findByUserAndType($userUuid, TwoFactor::TYPE_PROTECTED_ACTIONS)
             ?? throw ApiError::message('Protected action token not found, try sending the code again or restart the process');
-
-        // ProtectedActionData: the code, when it was sent (UNIX seconds) and the failed attempts.
-        [$ok, $data] = JsonValue::decode($action->data);
-        $data = $ok && JsonValue::isObject($data) ? (array) $data : [];
-        $token = $data['token'] ?? null;
-        $sent = $data['token_sent'] ?? null;
-        $attempts = $data['attempts'] ?? null;
-        if (! is_string($token) || ! is_int($sent) || ! is_int($attempts) || $attempts < 0) {
-            throw ApiError::message('Could not decode ProtectedActionData from string');
-        }
+        ['token' => $token, 'token_sent' => $sent, 'attempts' => $attempts] = self::protectedActionData($action->data);
 
         // Too many attempts; the record stays to keep count.
         if ($attempts >= $config->int('email_attempts_limit')) {
@@ -78,7 +69,7 @@ final readonly class PasswordOrOtpData
         }
 
         if (! hash_equals($token, $otp)) {
-            $action->data = json_encode(['token' => $token, 'token_sent' => $sent, 'attempts' => $attempts + 1], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+            $action->data = self::encodeProtectedActionData($token, $sent, $attempts + 1);
             $action->save();
             throw ApiError::message('Token is invalid');
         }
@@ -88,5 +79,31 @@ final readonly class PasswordOrOtpData
         }
 
         return true;
+    }
+
+    /**
+     * ProtectedActionData: the code, when it was sent (UNIX seconds) and the failed attempts.
+     *
+     * @return array{token: string, token_sent: int, attempts: int}
+     *
+     * @throws ApiError
+     */
+    public static function protectedActionData(string $json): array
+    {
+        [$ok, $data] = JsonValue::decode($json);
+        $data = $ok && JsonValue::isObject($data) ? (array) $data : [];
+        $token = $data['token'] ?? null;
+        $sent = $data['token_sent'] ?? null;
+        $attempts = $data['attempts'] ?? null;
+        if (! is_string($token) || ! is_int($sent) || ! is_int($attempts) || $attempts < 0) {
+            throw ApiError::message('Could not decode ProtectedActionData from string');
+        }
+
+        return ['token' => $token, 'token_sent' => $sent, 'attempts' => $attempts];
+    }
+
+    public static function encodeProtectedActionData(string $token, int $sent, int $attempts): string
+    {
+        return json_encode(['token' => $token, 'token_sent' => $sent, 'attempts' => $attempts], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
     }
 }
