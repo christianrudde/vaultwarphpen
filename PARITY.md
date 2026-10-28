@@ -8,8 +8,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 
 | Area | Total | ✅ | 🟨 | ⬜ | ➖ | With tests |
 |---|--:|--:|--:|--:|--:|--:|
-| Routes | 294 | 60 | 75 | 158 | 1 | 135 |
-| Settings | 153 | 23 | 130 | 0 | 0 | 153 |
+| Routes | 294 | 91 | 71 | 131 | 1 | 162 |
+| Settings | 153 | 26 | 127 | 0 | 0 | 153 |
 | Scheduled jobs | 8 | 0 | 0 | 8 | 0 | 0 |
 | Database tables | 28 | 28 | 0 | 0 | 0 | 28 |
 | Templates | 74 | 0 | 74 | 0 | 0 | 74 |
@@ -38,7 +38,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | GET `/api/alive` | src/api/core/mod.rs:183 | 2 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
 | ✅ | GET `/api/now` | src/api/core/mod.rs:188 | 2 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
 | ✅ | GET `/api/version` | src/api/core/mod.rs:193 | 2 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
-| ⬜ | GET `/api/config` | src/api/core/mod.rs:210 | 0 |  |
+| ⬜ | GET `/api/config` | src/api/core/mod.rs:210 | 0 | Deliberate difference to come: the server object names Vaultwarphpen and links to its repository instead of Vaultwarden (AGPL section 13; see AGENTS.md and docs/configuration.md). |
 | ⬜ | GET `/api/webauthn` | src/api/core/mod.rs:198 | 0 |  |
 | 🟨 | GET `/api/accounts/profile` | src/api/core/accounts.rs:505 | 1 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Not yet: users in organizations (answered with an error until organizations are ported). |
 | 🟨 | PUT `/api/accounts/profile` | src/api/core/accounts.rs:517 | 1 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Not yet: users in organizations (answered with an error until organizations are ported). |
@@ -80,15 +80,15 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ⬜ | GET `/api/auth-requests/{auth_request_id}/response` | src/api/core/accounts.rs:1826 | 0 |  |
 | ⬜ | GET `/api/auth-requests` | src/api/core/accounts.rs:1865 | 0 |  |
 | ⬜ | GET `/api/auth-requests/pending` | src/api/core/accounts.rs:1870 | 0 |  |
-| 🟨 | GET `/api/sync` | src/api/core/ciphers.rs:122 | 1 | Personal and organization ciphers compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest); access through groups is not ported yet. No live notifications. |
-| 🟨 | GET `/api/ciphers` | src/api/core/ciphers.rs:215 | 1 | Personal and organization ciphers compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest); access through groups is not ported yet. No live notifications. |
-| 🟨 | GET `/api/ciphers/{cipher_id}` | src/api/core/ciphers.rs:234 | 1 | Personal and organization ciphers compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest); access through groups is not ported yet. No live notifications. |
-| 🟨 | GET `/api/ciphers/{cipher_id}/admin` | src/api/core/ciphers.rs:247 | 1 | Personal and organization ciphers compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest); access through groups is not ported yet. No live notifications. |
-| 🟨 | GET `/api/ciphers/{cipher_id}/details` | src/api/core/ciphers.rs:253 | 1 | Personal and organization ciphers compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest); access through groups is not ported yet. No live notifications. |
-| 🟨 | POST `/api/ciphers` | src/api/core/ciphers.rs:384 | 1 | Personal and organization ciphers compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest); access through groups is not ported yet. No live notifications. |
-| 🟨 | PUT `/api/ciphers/{cipher_id}/admin` | src/api/core/ciphers.rs:682 | 1 | Personal and organization ciphers compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest); access through groups is not ported yet. No live notifications. |
-| 🟨 | POST `/api/ciphers/admin` | src/api/core/ciphers.rs:338 | 1 | Personal and organization ciphers compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest); access through groups is not ported yet. No live notifications. |
-| 🟨 | POST `/api/ciphers/create` | src/api/core/ciphers.rs:346 | 1 | Personal and organization ciphers compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest); access through groups is not ported yet. No live notifications. |
+| 🟨 | GET `/api/sync` | src/api/core/ciphers.rs:122 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
+| 🟨 | GET `/api/ciphers` | src/api/core/ciphers.rs:215 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
+| 🟨 | GET `/api/ciphers/{cipher_id}` | src/api/core/ciphers.rs:234 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
+| 🟨 | GET `/api/ciphers/{cipher_id}/admin` | src/api/core/ciphers.rs:247 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
+| 🟨 | GET `/api/ciphers/{cipher_id}/details` | src/api/core/ciphers.rs:253 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
+| 🟨 | POST `/api/ciphers` | src/api/core/ciphers.rs:384 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
+| 🟨 | PUT `/api/ciphers/{cipher_id}/admin` | src/api/core/ciphers.rs:682 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
+| 🟨 | POST `/api/ciphers/admin` | src/api/core/ciphers.rs:338 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
+| 🟨 | POST `/api/ciphers/create` | src/api/core/ciphers.rs:346 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
 | ✅ | POST `/api/ciphers/import` | src/api/core/ciphers.rs:630 | 1 | Compared with Vaultwarden in tests/Differential/CipherTest, including the validation and partial imports. |
 | 🟨 | GET `/api/ciphers/{cipher_id}/attachment/{attachment_id}` | src/api/core/ciphers.rs:1181 | 1 | Personal ciphers compared with Vaultwarden in tests/Differential/AttachmentTest; organization ciphers answer "Organizations are not implemented yet". Local storage only, no other OpenDAL backends. |
 | 🟨 | POST `/api/ciphers/{cipher_id}/attachment/v2` | src/api/core/ciphers.rs:1221 | 1 | Personal ciphers compared with Vaultwarden in tests/Differential/AttachmentTest; organization ciphers answer "Organizations are not implemented yet". Local storage only, no other OpenDAL backends. |
@@ -100,13 +100,13 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | POST `/api/ciphers/{cipher_id}/attachment/{attachment_id}/delete-admin` | src/api/core/ciphers.rs:1509 | 1 | Personal ciphers compared with Vaultwarden in tests/Differential/AttachmentTest; organization ciphers answer "Organizations are not implemented yet". Local storage only, no other OpenDAL backends. |
 | 🟨 | DELETE `/api/ciphers/{cipher_id}/attachment/{attachment_id}` | src/api/core/ciphers.rs:1531 | 1 | Personal ciphers compared with Vaultwarden in tests/Differential/AttachmentTest; organization ciphers answer "Organizations are not implemented yet". Local storage only, no other OpenDAL backends. |
 | 🟨 | DELETE `/api/ciphers/{cipher_id}/attachment/{attachment_id}/admin` | src/api/core/ciphers.rs:1542 | 1 | Personal ciphers compared with Vaultwarden in tests/Differential/AttachmentTest; organization ciphers answer "Organizations are not implemented yet". Local storage only, no other OpenDAL backends. |
-| 🟨 | POST `/api/ciphers/{cipher_id}/admin` | src/api/core/ciphers.rs:693 | 1 | Personal and organization ciphers compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest); access through groups is not ported yet. No live notifications. |
-| 🟨 | POST `/api/ciphers/{cipher_id}/share` | src/api/core/ciphers.rs:988 | 1 | Personal and organization ciphers compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest); access through groups is not ported yet. No live notifications. |
-| 🟨 | PUT `/api/ciphers/{cipher_id}/share` | src/api/core/ciphers.rs:1001 | 1 | Personal and organization ciphers compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest); access through groups is not ported yet. No live notifications. |
-| 🟨 | PUT `/api/ciphers/share` | src/api/core/ciphers.rs:1060 | 1 | Personal and organization ciphers compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest); access through groups is not ported yet. No live notifications. |
-| 🟨 | POST `/api/ciphers/{cipher_id}` | src/api/core/ciphers.rs:704 | 1 | Personal and organization ciphers compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest); access through groups is not ported yet. No live notifications. |
+| 🟨 | POST `/api/ciphers/{cipher_id}/admin` | src/api/core/ciphers.rs:693 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
+| 🟨 | POST `/api/ciphers/{cipher_id}/share` | src/api/core/ciphers.rs:988 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
+| 🟨 | PUT `/api/ciphers/{cipher_id}/share` | src/api/core/ciphers.rs:1001 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
+| 🟨 | PUT `/api/ciphers/share` | src/api/core/ciphers.rs:1060 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
+| 🟨 | POST `/api/ciphers/{cipher_id}` | src/api/core/ciphers.rs:704 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
 | 🟨 | POST `/api/ciphers/{cipher_id}/partial` | src/api/core/ciphers.rs:743 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
-| 🟨 | PUT `/api/ciphers/{cipher_id}` | src/api/core/ciphers.rs:715 | 1 | Personal and organization ciphers compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest); access through groups is not ported yet. No live notifications. |
+| 🟨 | PUT `/api/ciphers/{cipher_id}` | src/api/core/ciphers.rs:715 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
 | 🟨 | PUT `/api/ciphers/{cipher_id}/partial` | src/api/core/ciphers.rs:754 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
 | 🟨 | POST `/api/ciphers/{cipher_id}/delete` | src/api/core/ciphers.rs:1553 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
 | 🟨 | POST `/api/ciphers/{cipher_id}/delete-admin` | src/api/core/ciphers.rs:1559 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
@@ -128,12 +128,12 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | POST `/api/ciphers/purge` | src/api/core/ciphers.rs:1806 | 1 | Compared with Vaultwarden in tests/Differential/CipherTest; the protected action code path is covered by tests/Feature/Api/CipherTest. |
 | 🟨 | POST `/api/ciphers/move` | src/api/core/ciphers.rs:1693 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
 | 🟨 | PUT `/api/ciphers/move` | src/api/core/ciphers.rs:1747 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
-| 🟨 | PUT `/api/ciphers/{cipher_id}/collections_v2` | src/api/core/ciphers.rs:792 | 1 | Personal and organization ciphers compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest); access through groups is not ported yet. No live notifications. |
-| 🟨 | POST `/api/ciphers/{cipher_id}/collections_v2` | src/api/core/ciphers.rs:803 | 1 | Personal and organization ciphers compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest); access through groups is not ported yet. No live notifications. |
-| 🟨 | PUT `/api/ciphers/{cipher_id}/collections` | src/api/core/ciphers.rs:819 | 1 | Personal and organization ciphers compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest); access through groups is not ported yet. No live notifications. |
-| 🟨 | POST `/api/ciphers/{cipher_id}/collections` | src/api/core/ciphers.rs:830 | 1 | Personal and organization ciphers compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest); access through groups is not ported yet. No live notifications. |
-| 🟨 | POST `/api/ciphers/{cipher_id}/collections-admin` | src/api/core/ciphers.rs:910 | 1 | Personal and organization ciphers compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest); access through groups is not ported yet. No live notifications. |
-| 🟨 | PUT `/api/ciphers/{cipher_id}/collections-admin` | src/api/core/ciphers.rs:899 | 1 | Personal and organization ciphers compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest); access through groups is not ported yet. No live notifications. |
+| 🟨 | PUT `/api/ciphers/{cipher_id}/collections_v2` | src/api/core/ciphers.rs:792 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
+| 🟨 | POST `/api/ciphers/{cipher_id}/collections_v2` | src/api/core/ciphers.rs:803 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
+| 🟨 | PUT `/api/ciphers/{cipher_id}/collections` | src/api/core/ciphers.rs:819 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
+| 🟨 | POST `/api/ciphers/{cipher_id}/collections` | src/api/core/ciphers.rs:830 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
+| 🟨 | POST `/api/ciphers/{cipher_id}/collections-admin` | src/api/core/ciphers.rs:910 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
+| 🟨 | PUT `/api/ciphers/{cipher_id}/collections-admin` | src/api/core/ciphers.rs:899 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
 | 🟨 | PUT `/api/ciphers/{cipher_id}/archive` | src/api/core/ciphers.rs:1832 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
 | 🟨 | PUT `/api/ciphers/archive` | src/api/core/ciphers.rs:1837 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
 | 🟨 | PUT `/api/ciphers/{cipher_id}/unarchive` | src/api/core/ciphers.rs:1847 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
@@ -156,9 +156,9 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ⬜ | POST `/api/emergency-access/{emer_id}/password` | src/api/core/emergency_access.rs:663 | 0 |  |
 | ⬜ | POST `/api/emergency-access/{emer_id}/view` | src/api/core/emergency_access.rs:581 | 0 |  |
 | ⬜ | GET `/api/emergency-access/{emer_id}/policies` | src/api/core/emergency_access.rs:722 | 0 |  |
-| ⬜ | GET `/api/organizations/{org_id}/events` | src/api/core/events.rs:42 | 0 |  |
-| ⬜ | GET `/api/ciphers/{cipher_id}/events` | src/api/core/events.rs:69 | 0 |  |
-| ⬜ | GET `/api/organizations/{org_id}/users/{member_id}/events` | src/api/core/events.rs:90 | 0 |  |
+| ✅ | GET `/api/organizations/{org_id}/events` | src/api/core/events.rs:42 | 1 | Compared with Vaultwarden in tests/Differential/EventTest, with ORG_EVENTS_ENABLED on and off. |
+| ✅ | GET `/api/ciphers/{cipher_id}/events` | src/api/core/events.rs:69 | 1 | Compared with Vaultwarden in tests/Differential/EventTest, with ORG_EVENTS_ENABLED on and off. |
+| ✅ | GET `/api/organizations/{org_id}/users/{member_id}/events` | src/api/core/events.rs:90 | 1 | Compared with Vaultwarden in tests/Differential/EventTest, with ORG_EVENTS_ENABLED on and off. |
 | ✅ | GET `/api/folders` | src/api/core/folders.rs:18 | 1 | Compared with Vaultwarden in tests/Differential/FolderTest. |
 | ✅ | GET `/api/folders/{folder_id}` | src/api/core/folders.rs:30 | 1 | Compared with Vaultwarden in tests/Differential/FolderTest. |
 | ✅ | POST `/api/folders` | src/api/core/folders.rs:47 | 1 | Compared with Vaultwarden in tests/Differential/FolderTest. |
@@ -172,19 +172,19 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | POST `/api/organizations/{org_id}/leave` | src/api/core/organizations.rs:238 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
 | ✅ | GET `/api/collections` | src/api/core/organizations.rs:314 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
 | ✅ | GET `/api/organizations/{org_id}/collections` | src/api/core/organizations.rs:357 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
-| 🟨 | GET `/api/organizations/{org_id}/collections/details` | src/api/core/organizations.rs:374 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest with ORG_GROUPS_ENABLED=false; groups are not ported yet. |
-| 🟨 | GET `/api/organizations/{org_id}/collections/{col_id}/details` | src/api/core/organizations.rs:736 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest with ORG_GROUPS_ENABLED=false; groups are not ported yet. |
+| ✅ | GET `/api/organizations/{org_id}/collections/details` | src/api/core/organizations.rs:374 | 1 | Compared with Vaultwarden in tests/Differential (OrganizationTest, GroupTest), with groups on and off. |
+| ✅ | GET `/api/organizations/{org_id}/collections/{col_id}/details` | src/api/core/organizations.rs:736 | 1 | Compared with Vaultwarden in tests/Differential (OrganizationTest, GroupTest), with groups on and off. |
 | ✅ | GET `/api/organizations/{org_id}/collections/{col_id}/users` | src/api/core/organizations.rs:801 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
 | ✅ | PUT `/api/organizations/{org_id}` | src/api/core/organizations.rs:277 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
-| 🟨 | POST `/api/organizations/{org_id}/collections` | src/api/core/organizations.rs:467 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest with ORG_GROUPS_ENABLED=false; groups are not ported yet. |
-| 🟨 | POST `/api/organizations/{org_id}/collections/bulk-access` | src/api/core/organizations.rs:535 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest with ORG_GROUPS_ENABLED=false; groups are not ported yet. |
-| 🟨 | PUT `/api/organizations/{org_id}/collections/{col_id}` | src/api/core/organizations.rs:606 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest with ORG_GROUPS_ENABLED=false; groups are not ported yet. |
+| ✅ | POST `/api/organizations/{org_id}/collections` | src/api/core/organizations.rs:467 | 1 | Compared with Vaultwarden in tests/Differential (OrganizationTest, GroupTest), with groups on and off. |
+| ✅ | POST `/api/organizations/{org_id}/collections/bulk-access` | src/api/core/organizations.rs:535 | 1 | Compared with Vaultwarden in tests/Differential (OrganizationTest, GroupTest), with groups on and off. |
+| ✅ | PUT `/api/organizations/{org_id}/collections/{col_id}` | src/api/core/organizations.rs:606 | 1 | Compared with Vaultwarden in tests/Differential (OrganizationTest, GroupTest), with groups on and off. |
 | ✅ | DELETE `/api/organizations/{org_id}/collections/{col_id}` | src/api/core/organizations.rs:698 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
 | ✅ | DELETE `/api/organizations/{org_id}/collections` | src/api/core/organizations.rs:714 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
 | ✅ | POST `/api/ciphers/bulk-collections` | src/api/core/organizations.rs:1872 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
 | ✅ | GET `/api/ciphers/organization-details` | src/api/core/organizations.rs:835 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
 | ⬜ | POST `/api/organizations/domain/sso/verified` | src/api/core/organizations.rs:871 | 0 |  |
-| 🟨 | GET `/api/organizations/{org_id}/users` | src/api/core/organizations.rs:894 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest with ORG_GROUPS_ENABLED=false; groups are not ported yet. |
+| ✅ | GET `/api/organizations/{org_id}/users` | src/api/core/organizations.rs:894 | 1 | Compared with Vaultwarden in tests/Differential (OrganizationTest, GroupTest), with groups on and off. |
 | 🟨 | POST `/api/organizations/{org_id}/users/invite` | src/api/core/organizations.rs:991 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest without mail; with SMTP configured it answers that sending mail is not implemented yet. |
 | 🟨 | POST `/api/organizations/{org_id}/users/{member_id}/reinvite` | src/api/core/organizations.rs:1178 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest without mail; with SMTP configured it answers that sending mail is not implemented yet. |
 | 🟨 | POST `/api/organizations/{org_id}/users/reinvite` | src/api/core/organizations.rs:1143 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest without mail; with SMTP configured it answers that sending mail is not implemented yet. |
@@ -192,17 +192,17 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | POST `/api/organizations/{org_id}/users/confirm` | src/api/core/organizations.rs:1309 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest without mail; with SMTP configured it answers that sending mail is not implemented yet. |
 | ⬜ | POST `/api/organizations/{org_id}/users/{member_id}/accept` | src/api/core/organizations.rs:1241 | 0 |  |
 | ✅ | GET `/api/organizations/{org_id}/users/mini-details` | src/api/core/organizations.rs:1435 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
-| 🟨 | GET `/api/organizations/{org_id}/users/{member_id}` | src/api/core/organizations.rs:1452 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest with ORG_GROUPS_ENABLED=false; groups are not ported yet. |
-| 🟨 | PUT `/api/organizations/{org_id}/users/{member_id}` | src/api/core/organizations.rs:1485 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest with ORG_GROUPS_ENABLED=false; groups are not ported yet. |
+| ✅ | GET `/api/organizations/{org_id}/users/{member_id}` | src/api/core/organizations.rs:1452 | 1 | Compared with Vaultwarden in tests/Differential (OrganizationTest, GroupTest), with groups on and off. |
+| ✅ | PUT `/api/organizations/{org_id}/users/{member_id}` | src/api/core/organizations.rs:1485 | 1 | Compared with Vaultwarden in tests/Differential (OrganizationTest, GroupTest), with groups on and off. |
 | ✅ | DELETE `/api/organizations/{org_id}/users/{member_id}` | src/api/core/organizations.rs:1632 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
 | ✅ | DELETE `/api/organizations/{org_id}/users` | src/api/core/organizations.rs:1596 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
-| ⬜ | POST `/api/ciphers/import-organization` | src/api/core/organizations.rs:1768 | 0 |  |
-| ⬜ | GET `/api/organizations/{org_id}/policies` | src/api/core/organizations.rs:1926 | 0 |  |
-| ⬜ | GET `/api/organizations/{org_id}/policies/token` | src/api/core/organizations.rs:1941 | 0 |  |
-| ⬜ | GET `/api/organizations/00000000-01DC-01DC-01DC-000000000000/policies/master-password` | src/api/core/organizations.rs:1966 | 0 |  |
-| ⬜ | GET `/api/organizations/{org_id}/policies/master-password` | src/api/core/organizations.rs:1977 | 0 |  |
-| ⬜ | GET `/api/organizations/{org_id}/policies/{pol_type}` | src/api/core/organizations.rs:1992 | 0 |  |
-| ⬜ | PUT `/api/organizations/{org_id}/policies/{pol_type}` | src/api/core/organizations.rs:2025 | 0 |  |
+| ✅ | POST `/api/ciphers/import-organization` | src/api/core/organizations.rs:1768 | 1 | Compared with Vaultwarden in tests/Differential/ImportExportTest. |
+| ✅ | GET `/api/organizations/{org_id}/policies` | src/api/core/organizations.rs:1926 | 1 | Compared with Vaultwarden in tests/Differential/PolicyTest, including what enabling the 2FA and single organization policies does to members. |
+| ✅ | GET `/api/organizations/{org_id}/policies/token` | src/api/core/organizations.rs:1941 | 1 | Compared with Vaultwarden in tests/Differential/PolicyTest, including what enabling the 2FA and single organization policies does to members. |
+| ✅ | GET `/api/organizations/00000000-01DC-01DC-01DC-000000000000/policies/master-password` | src/api/core/organizations.rs:1966 | 1 | Compared with Vaultwarden in tests/Differential/PolicyTest, including what enabling the 2FA and single organization policies does to members. |
+| ✅ | GET `/api/organizations/{org_id}/policies/master-password` | src/api/core/organizations.rs:1977 | 1 | Compared with Vaultwarden in tests/Differential/PolicyTest, including what enabling the 2FA and single organization policies does to members. |
+| ✅ | GET `/api/organizations/{org_id}/policies/{pol_type}` | src/api/core/organizations.rs:1992 | 1 | Compared with Vaultwarden in tests/Differential/PolicyTest, including what enabling the 2FA and single organization policies does to members. |
+| ✅ | PUT `/api/organizations/{org_id}/policies/{pol_type}` | src/api/core/organizations.rs:2025 | 1 | Compared with Vaultwarden in tests/Differential/PolicyTest, including what enabling the 2FA and single organization policies does to members. |
 | ⬜ | GET `/api/plans` | src/api/core/organizations.rs:2144 | 0 |  |
 | ✅ | POST `/api/organizations/{org_id}/keys` | src/api/core/organizations.rs:929 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
 | ✅ | GET `/api/organizations/{org_id}/keys` | src/api/core/organizations.rs:2790 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
@@ -213,21 +213,21 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | PUT `/api/organizations/{org_id}/users/{member_id}/restore` | src/api/core/organizations.rs:2302 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
 | ✅ | PUT `/api/organizations/{org_id}/users/{member_id}/restore/vnext` | src/api/core/organizations.rs:2290 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
 | ✅ | PUT `/api/organizations/{org_id}/users/restore` | src/api/core/organizations.rs:2312 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
-| ⬜ | GET `/api/organizations/{org_id}/groups` | src/api/core/organizations.rs:2441 | 0 |  |
-| ⬜ | GET `/api/organizations/{org_id}/groups/details` | src/api/core/organizations.rs:2446 | 0 |  |
-| ⬜ | POST `/api/organizations/{org_id}/groups` | src/api/core/organizations.rs:2509 | 0 |  |
-| ⬜ | GET `/api/organizations/{org_id}/groups/{group_id}` | src/api/core/organizations.rs:2702 | 0 |  |
-| ⬜ | PUT `/api/organizations/{org_id}/groups/{group_id}` | src/api/core/organizations.rs:2542 | 0 |  |
-| ⬜ | GET `/api/organizations/{org_id}/groups/{group_id}/details` | src/api/core/organizations.rs:2623 | 0 |  |
-| ⬜ | DELETE `/api/organizations/{org_id}/groups/{group_id}` | src/api/core/organizations.rs:2644 | 0 |  |
-| ⬜ | DELETE `/api/organizations/{org_id}/groups` | src/api/core/organizations.rs:2680 | 0 |  |
-| ⬜ | GET `/api/organizations/{org_id}/groups/{group_id}/users` | src/api/core/organizations.rs:2718 | 0 |  |
-| ⬜ | PUT `/api/organizations/{org_id}/users/{user_id}/reset-password-enrollment` | src/api/core/organizations.rs:2988 | 0 |  |
-| ⬜ | GET `/api/organizations/{org_id}/users/{member_id}/reset-password-details` | src/api/core/organizations.rs:2914 | 0 |  |
-| ⬜ | PUT `/api/organizations/{org_id}/users/{member_id}/recover-account` | src/api/core/organizations.rs:2797 | 0 |  |
-| ⬜ | GET `/api/organizations/{org_id}/export` | src/api/core/organizations.rs:3046 | 0 |  |
-| ⬜ | POST `/api/organizations/{org_id}/api-key` | src/api/core/organizations.rs:3095 | 0 |  |
-| ⬜ | POST `/api/organizations/{org_id}/rotate-api-key` | src/api/core/organizations.rs:3105 | 0 |  |
+| ✅ | GET `/api/organizations/{org_id}/groups` | src/api/core/organizations.rs:2441 | 1 | Compared with Vaultwarden in tests/Differential/GroupTest, with ORG_GROUPS_ENABLED on and off. |
+| ✅ | GET `/api/organizations/{org_id}/groups/details` | src/api/core/organizations.rs:2446 | 1 | Compared with Vaultwarden in tests/Differential/GroupTest, with ORG_GROUPS_ENABLED on and off. |
+| ✅ | POST `/api/organizations/{org_id}/groups` | src/api/core/organizations.rs:2509 | 1 | Compared with Vaultwarden in tests/Differential/GroupTest, with ORG_GROUPS_ENABLED on and off. |
+| ✅ | GET `/api/organizations/{org_id}/groups/{group_id}` | src/api/core/organizations.rs:2702 | 1 | Compared with Vaultwarden in tests/Differential/GroupTest, with ORG_GROUPS_ENABLED on and off. |
+| ✅ | PUT `/api/organizations/{org_id}/groups/{group_id}` | src/api/core/organizations.rs:2542 | 1 | Compared with Vaultwarden in tests/Differential/GroupTest, with ORG_GROUPS_ENABLED on and off. |
+| ✅ | GET `/api/organizations/{org_id}/groups/{group_id}/details` | src/api/core/organizations.rs:2623 | 1 | Compared with Vaultwarden in tests/Differential/GroupTest, with ORG_GROUPS_ENABLED on and off. |
+| ✅ | DELETE `/api/organizations/{org_id}/groups/{group_id}` | src/api/core/organizations.rs:2644 | 1 | Compared with Vaultwarden in tests/Differential/GroupTest, with ORG_GROUPS_ENABLED on and off. |
+| ✅ | DELETE `/api/organizations/{org_id}/groups` | src/api/core/organizations.rs:2680 | 1 | Compared with Vaultwarden in tests/Differential/GroupTest, with ORG_GROUPS_ENABLED on and off. |
+| ✅ | GET `/api/organizations/{org_id}/groups/{group_id}/users` | src/api/core/organizations.rs:2718 | 1 | Compared with Vaultwarden in tests/Differential/GroupTest, with ORG_GROUPS_ENABLED on and off. |
+| 🟨 | PUT `/api/organizations/{org_id}/users/{user_id}/reset-password-enrollment` | src/api/core/organizations.rs:2988 | 1 | Compared with Vaultwarden in tests/Differential/AccountRecoveryTest without mail, which upstream requires for account recovery; sending mail is not ported, so with SMTP recovering stops at the mail. |
+| 🟨 | GET `/api/organizations/{org_id}/users/{member_id}/reset-password-details` | src/api/core/organizations.rs:2914 | 1 | Compared with Vaultwarden in tests/Differential/AccountRecoveryTest without mail, which upstream requires for account recovery; sending mail is not ported, so with SMTP recovering stops at the mail. |
+| 🟨 | PUT `/api/organizations/{org_id}/users/{member_id}/recover-account` | src/api/core/organizations.rs:2797 | 1 | Compared with Vaultwarden in tests/Differential/AccountRecoveryTest without mail, which upstream requires for account recovery; sending mail is not ported, so with SMTP recovering stops at the mail. |
+| ✅ | GET `/api/organizations/{org_id}/export` | src/api/core/organizations.rs:3046 | 1 | Compared with Vaultwarden in tests/Differential/ImportExportTest. |
+| ✅ | POST `/api/organizations/{org_id}/api-key` | src/api/core/organizations.rs:3095 | 1 | Compared with Vaultwarden in tests/Differential/ApiKeyTest, with the login of the key. |
+| ✅ | POST `/api/organizations/{org_id}/rotate-api-key` | src/api/core/organizations.rs:3105 | 1 | Compared with Vaultwarden in tests/Differential/ApiKeyTest, with the login of the key. |
 | ⬜ | GET `/api/organizations/{_org_id}/billing/vnext/warnings` | src/api/core/organizations.rs:2172 | 0 |  |
 | ⬜ | GET `/api/organizations/{identifier}/auto-enroll-status` | src/api/core/organizations.rs:330 | 0 |  |
 | ⬜ | GET `/api/organizations/{_org_id}/billing/vnext/self-host/metadata` | src/api/core/organizations.rs:2182 | 0 |  |
@@ -270,7 +270,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | GET `/api/sends/{send_id}/{file_id}` | src/api/core/sends.rs:455 | 1 | Compared with Vaultwarden in tests/Differential/SendTest; the organization policies (Disable Send, Send Options) are covered by tests/Feature/Api/SendTest. No live notifications yet. |
 | ✅ | POST `/api/sends/file/v2` | src/api/core/sends.rs:224 | 1 | Compared with Vaultwarden in tests/Differential/SendTest; the organization policies (Disable Send, Send Options) are covered by tests/Feature/Api/SendTest. No live notifications yet. |
 | ✅ | POST `/api/sends/{send_id}/file/{file_id}` | src/api/core/sends.rs:296 | 1 | Compared with Vaultwarden in tests/Differential/SendTest; the organization policies (Disable Send, Send Options) are covered by tests/Feature/Api/SendTest. No live notifications yet. |
-| ⬜ | POST `/api/public/organization/import` | src/api/core/public.rs:53 | 0 |  |
+| 🟨 | POST `/api/public/organization/import` | src/api/core/public.rs:53 | 1 | Compared with Vaultwarden in tests/Differential/ApiKeyTest without mail, with groups on and off; with SMTP the invitations fail as sending mail is not ported. |
 | ⬜ | GET `/admin` | src/api/admin.rs:100 | 0 |  |
 | ⬜ | GET `/admin/users` | src/api/admin.rs:357 | 0 |  |
 | ⬜ | GET `/admin/users/{user_id}` | src/api/admin.rs:412 | 0 |  |
@@ -299,7 +299,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ⬜ | GET `/admin/diagnostics/config` | src/api/admin.rs:825 | 0 |  |
 | ⬜ | POST `/admin/users/{user_id}/invite/resend` | src/api/admin.rs:520 | 0 |  |
 | ⬜ | GET `/admin/diagnostics/http` | src/api/admin.rs:831 | 0 |  |
-| ⬜ | POST `/events/collect` | src/api/core/events.rs:158 | 0 |  |
+| ✅ | POST `/events/collect` | src/api/core/events.rs:158 | 1 | Compared with Vaultwarden in tests/Differential/EventTest, with ORG_EVENTS_ENABLED on and off. |
 | 🟨 | POST `/identity/connect/token` | src/api/identity.rs:57 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Password (with KDF upgrade and the 2FA organization policy), refresh token, user API key and Send access (send_access) logins; accounts and tokens work across Vaultwarden and us on one database. Not yet: two-factor login, login with a device, SSO, organization API keys. |
 | ✅ | POST `/identity/accounts/prelogin` | src/api/identity.rs:1019 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
 | ✅ | POST `/identity/accounts/prelogin/password` | src/api/identity.rs:1024 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
@@ -361,7 +361,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `SIGNUPS_VERIFY_RESEND_TIME` | src/config.rs:639 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `SIGNUPS_VERIFY_RESEND_LIMIT` | src/config.rs:641 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `SIGNUPS_DOMAINS_WHITELIST` | src/config.rs:643 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `ORG_EVENTS_ENABLED` | src/config.rs:645 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `ORG_EVENTS_ENABLED` | src/config.rs:645 | 2 | Compared with Vaultwarden in tests/Differential/EventTest, with ORG_EVENTS_ENABLED on and off. |
 | 🟨 | `ORG_CREATION_USERS` | src/config.rs:648 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `INVITATIONS_ALLOWED` | src/config.rs:650 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `INVITATION_EXPIRATION_HOURS` | src/config.rs:653 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
@@ -372,7 +372,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `SHOW_PASSWORD_HINT` | src/config.rs:666 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `ADMIN_TOKEN` | src/config.rs:669 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `INVITATION_ORG_NAME` | src/config.rs:672 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `EVENTS_DAYS_RETAIN` | src/config.rs:675 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `EVENTS_DAYS_RETAIN` | src/config.rs:675 | 1 | Event::cleanEvents is ported; the scheduled job that runs it is not. |
 | 🟨 | `CLIENT_SUPPRESS_ONBOARDING` | src/config.rs:680 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | ✅ | `IP_HEADER` | src/config.rs:687 | 2 | Read like Vaultwarden and used: DOMAIN for mount path, origin, CORS, Host and token issuers; the IP settings for the client IP; the CSP sources in the security headers. |
 | ✅ | `_IP_HEADER_ENABLED` | src/config.rs:689 | 2 | Read like Vaultwarden and used: DOMAIN for mount path, origin, CORS, Host and token issuers; the IP settings for the client IP; the CSP sources in the security headers. |
@@ -415,10 +415,10 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `ADMIN_RATELIMIT_SECONDS` | src/config.rs:805 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `ADMIN_RATELIMIT_MAX_BURST` | src/config.rs:807 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `ADMIN_SESSION_LIFETIME` | src/config.rs:810 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `ORG_GROUPS_ENABLED` | src/config.rs:813 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `ORG_GROUPS_ENABLED` | src/config.rs:813 | 2 | Compared with Vaultwarden in tests/Differential/GroupTest, with ORG_GROUPS_ENABLED on and off. |
 | 🟨 | `INCREASE_NOTE_SIZE_LIMIT` | src/config.rs:817 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `_MAX_NOTE_SIZE` | src/config.rs:819 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `ENFORCE_SINGLE_ORG_WITH_RESET_PW_POLICY` | src/config.rs:824 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `ENFORCE_SINGLE_ORG_WITH_RESET_PW_POLICY` | src/config.rs:824 | 2 | tests/Feature/Api/SingleOrgResetPolicyTest. |
 | 🟨 | `DNS_PREFER_IPV6` | src/config.rs:828 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `SSO_ENABLED` | src/config.rs:834 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `SSO_ONLY` | src/config.rs:836 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
