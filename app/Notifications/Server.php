@@ -509,6 +509,10 @@ final class Server
         ];
         $cookies = [];
         foreach ($headers as [$name, $value]) {
+            // Like nginx and Apache in front of PHP: X_Real_IP would read as X-Real-IP.
+            if (str_contains($name, '_')) {
+                continue;
+            }
             $key = strtoupper(str_replace('-', '_', $name));
             $key = in_array($key, ['CONTENT_TYPE', 'CONTENT_LENGTH'], true) ? $key : "HTTP_{$key}";
             $server[$key] = isset($server[$key]) ? "{$server[$key]}, {$value}" : $value;

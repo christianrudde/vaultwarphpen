@@ -209,6 +209,23 @@ class DaemonTest extends TestCase
         $this->assertSame(101, WebSocketClient::connect($this->url, '/notifications/anonymous-hub?token=more')->status);
     }
 
+    /**
+     * Headers with underscores are dropped, as web servers do before PHP:
+     * otherwise X_Real_IP would pass for the IP header of a trusted proxy.
+     */
+    public function test_headers_with_underscores_do_not_count(): void
+    {
+        $connections = [];
+        for ($i = 0; $i < Subscriptions::MAX_ANONYMOUS_CONNECTIONS_PER_IP; $i++) {
+            $connections[] = $connection = WebSocketClient::connect($this->url, "/notifications/anonymous-hub?token={$i}", ['X_Real_IP' => "203.0.113.{$i}"]);
+            $this->assertSame(101, $connection->status);
+        }
+        $this->assertSame(429, WebSocketClient::connect($this->url, '/notifications/anonymous-hub?token=more', ['X_Real_IP' => '203.0.113.200'])->status);
+
+        // From the trusted proxy (a local address), X-Real-IP names another client.
+        $this->assertSame(101, WebSocketClient::connect($this->url, '/notifications/anonymous-hub?token=more', ['X-Real-IP' => '203.0.113.201'])->status);
+    }
+
     public function test_the_daemon_does_not_start_with_websockets_disabled(): void
     {
         $this->changeVaultwardenEnvironment(['ENABLE_WEBSOCKET' => 'false']);
