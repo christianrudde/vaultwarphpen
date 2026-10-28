@@ -32,10 +32,14 @@ environment variables, so the official Bitwarden clients and existing Vaultwarde
 - Mail: `App\Mail\Mail` ports `src/mail.rs`; the transport (`App\Mail\Transport`) is SMTP or
   sendmail. Tests put `Tests\Fakes\MailTransportFake` in the container. Locally, Herd Pro's mail
   service catches SMTP on 127.0.0.1:2525 (`SMTP_SECURITY=off`).
+- Two-factor login: `App\Auth\Webauthn` ports webauthn-rs and keeps its stored formats;
+  `Tests\Support\SoftwareAuthenticator` answers WebAuthn ceremonies in tests. Outgoing requests
+  (Yubico, Duo) go through `App\Support\HttpClient`.
 - Uploads: Vaultwarden takes files up to 525 MB, so PHP needs `upload_max_filesize=525M` and a
   `post_max_size` above it (or `0`). PHP cuts uploaded file names at the last slash, which encrypted
   names contain; read them with `getClientOriginalPath()` (see `App\Http\Data\UploadData`).
-- Database schema: `php86 artisan vaultwarden:migrate`.
+- Database schema: `php86 artisan vaultwarden:migrate`. It also converts old U2F and WebAuthn data,
+  which Vaultwarden does at every start.
 - CI (GitHub Actions): `tests.yml` runs Pint, PHPStan and the tests on SQLite, MySQL and PostgreSQL.
   `reference.yml` builds the pinned Vaultwarden for Linux, and for macOS (arm64) only when started by
   hand (Actions → Reference → Run workflow), and keeps the binaries as workflow artifacts. Its databases job lets Vaultwarden create SQLite, MySQL and PostgreSQL databases

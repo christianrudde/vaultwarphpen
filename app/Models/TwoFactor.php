@@ -2,6 +2,10 @@
 
 namespace App\Models;
 
+use App\Auth\Webauthn\CoseKey;
+use App\Auth\Webauthn\Credential;
+use App\Auth\Webauthn\Registrations;
+use App\Auth\Webauthn\U2fRegistration;
 use App\Http\ApiError;
 use App\Http\Json;
 use App\Support\Random;
@@ -132,6 +136,58 @@ final class TwoFactor extends Model
             self::query()->where('user_uuid', $userUuid)->delete();
         } catch (QueryException) {
             throw ApiError::message('Error deleting twofactors');
+        }
+    }
+
+    /**
+     * migrate_u2f_to_webauthn, which Vaultwarden runs at startup: U2F keys
+     * become WebAuthn keys marked as migrated, unless the user has WebAuthn
+     * keys already.
+     *
+     * @throws ApiError
+     */
+    public static function migrateU2fToWebauthn(): void
+    {
+        foreach (self::query()->where('atype', self::TYPE_U2F)->get() as $u2f) {
+            $registrations = U2fRegistration::parseList($u2f->data) ?? throw ApiError::message('Serde');
+            if ($registrations === [] || $registrations[0]->migrated === true) {
+                continue;
+            }
+            $existing = self::findByUserAndType($u2f->user_uuid, self::TYPE_WEBAUTHN);
+            if ($existing !== null && (Registrations::parse($existing->data) ?? throw ApiError::message('Serde')) !== []) {
+                continue;
+            }
+
+            $keys = [];
+            foreach ($registrations as $registration) {
+                $point = $registration->publicKey();
+                if (strlen($point) < 65) {
+                    throw ApiError::message('Invalid U2F public key');
+                }
+                $keys[] = ['id' => $registration->id, 'name' => $registration->name, 'migrated' => true,
+                    'credential' => Credential::legacy($registration->keyHandle, CoseKey::es256(substr($point, 1, 32), substr($point, 33, 32)), $registration->counter, false, 'discouraged')];
+            }
+
+            $u2f->data = Json::encode(array_map(static fn (U2fRegistration $registration): array => $registration->toJson(true), $registrations));
+            $u2f->save();
+            self::new($u2f->user_uuid, self::TYPE_WEBAUTHN, Registrations::encode($keys))->save();
+        }
+    }
+
+    /**
+     * migrate_credential_to_passkey, which Vaultwarden runs at startup:
+     * WebAuthn keys stored by webauthn-rs 0.3 get the current format.
+     *
+     * @throws ApiError
+     */
+    public static function migrateCredentialToPasskey(): void
+    {
+        foreach (self::query()->where('atype', self::TYPE_WEBAUTHN)->get() as $twoFactor) {
+            // What does not parse as the old format was converted already.
+            $registrations = Registrations::parseV3($twoFactor->data);
+            if ($registrations !== null) {
+                self::new($twoFactor->user_uuid, self::TYPE_WEBAUTHN, Registrations::encode($registrations))->save();
+            }
         }
     }
 

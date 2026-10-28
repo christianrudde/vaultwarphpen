@@ -103,6 +103,8 @@ byte for byte. No code is copied from them. Versions are those locked in Vaultwa
 | [url](https://github.com/servo/rust-url) | 2.5.8 | MIT or Apache-2.0 | WHATWG URL parsing of the settings, form encoding of links and requests | `app/Config/Url.php`, `app/Support/FormUrlencoded.php` |
 | [lettre](https://github.com/lettre/lettre) | 0.11.23 | MIT | how mails are built (alternative text and HTML, related inline images) and sent by SMTP or sendmail | `app/Mail` |
 | [handlebars-rust](https://github.com/sunng87/handlebars-rust) | 6.4.4 | MIT | strict rendering, HTML escaping and the helpers of the templates | `app/Templates` |
+| [webauthn-rs](https://github.com/kanidm/webauthn-rs) with webauthn-rs-core, webauthn-rs-proto and base64urlsafedata | 0.5.5 | MPL-2.0 | passkey registration and authentication, the stored credential and state formats, attestation checks | `app/Auth/Webauthn` |
+| [serde_cbor_2](https://github.com/deuxfleurs-org/cbor) | 0.13.0 | MIT or Apache-2.0 | CBOR decoding of authenticator data | `app/Support/Cbor.php` |
 | [yubico_ng](https://github.com/BlackDex/yubico-rs) | 1.0.0 | MIT or Apache-2.0 | the Yubico Validation Protocol 2.0 client: signed requests, checked answers | `app/Support/Yubico.php` |
 | [reqwest](https://github.com/seanmonstar/reqwest), [rustls-native-certs](https://github.com/rustls/rustls-native-certs) | 0.13.5, 0.8.5 | MIT or Apache-2.0; Apache-2.0, ISC or MIT | outgoing requests: user agent, timeout, redirects, trusted roots from `SSL_CERT_FILE` | `app/Support/HttpClient.php` |
 

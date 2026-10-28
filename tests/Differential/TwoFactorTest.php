@@ -6,6 +6,7 @@ use App\Http\Controllers\TwoFactor\AuthenticatorController;
 use App\Support\Base32;
 use GuzzleHttp\Client;
 use Tests\Attributes\Parity;
+use Tests\Support\SoftwareAuthenticator;
 
 /**
  * Two-factor methods and the logins that need them. The test computes the
@@ -182,6 +183,90 @@ class TwoFactorTest extends DifferentialTestCase
             $steps['get authenticator with a wrong code'] = $server->json('POST', '/api/two-factor/get-authenticator', ['otp' => 'nope'], $auth);
             $steps['verify'] = $server->json('POST', '/api/accounts/verify-otp', ['OTP' => $code], $auth);
             $steps['verify again'] = $server->json('POST', '/api/accounts/verify-otp', ['OTP' => $code], $auth);
+
+            return $steps;
+        });
+    }
+
+    /**
+     * Security keys, answered by a software authenticator for the servers'
+     * default DOMAIN (http://localhost).
+     */
+    #[Parity('route:POST /api/two-factor/get-webauthn')]
+    #[Parity('route:POST /api/two-factor/get-webauthn-challenge')]
+    #[Parity('route:POST /api/two-factor/webauthn')]
+    #[Parity('route:PUT /api/two-factor/webauthn')]
+    #[Parity('route:DELETE /api/two-factor/webauthn')]
+    #[Parity('route:DELETE /api/two-factor/webauthn/all')]
+    public function test_webauthn(): void
+    {
+        $this->assertSameFlows(function (Server $server): array {
+            [$auth] = CipherTest::session($server, '2fa-webauthn@example.com');
+            $login = LoginTest::loginFields('2fa-webauthn@example.com');
+            $password = ['masterPasswordHash' => 'client-hash'];
+            $first = new SoftwareAuthenticator;
+            $steps = [];
+
+            $steps['get webauthn'] = $setup = $server->json('POST', '/api/two-factor/get-webauthn', $password, $auth);
+            $token = $setup->jsonString('userVerificationToken');
+            $steps['challenge with a bad token'] = $server->json('POST', '/api/two-factor/get-webauthn-challenge', ['userVerificationToken' => 'nope'], $auth);
+            $steps['challenge'] = $challenge = $server->json('POST', '/api/two-factor/get-webauthn-challenge', ['userVerificationToken' => $token], $auth);
+            $activate = ['id' => 1, 'name' => 'First key', 'userVerificationToken' => $token];
+            $steps['activate from another origin'] = $server->json('POST', '/api/two-factor/webauthn', [...$activate,
+                'deviceResponse' => $first->register(self::options($challenge), origin: 'https://evil.example')], $auth);
+            $steps['activate without challenge'] = $server->json('POST', '/api/two-factor/webauthn', [...$activate,
+                'deviceResponse' => $first->register(self::options($challenge))], $auth);
+            $challenge = $server->json('POST', '/api/two-factor/get-webauthn-challenge', ['userVerificationToken' => $token], $auth);
+            $steps['activate with a login response'] = $server->json('POST', '/api/two-factor/webauthn', [...$activate,
+                'deviceResponse' => $first->register(self::options($challenge), type: 'webauthn.get')], $auth);
+            $challenge = $server->json('POST', '/api/two-factor/get-webauthn-challenge', ['userVerificationToken' => $token], $auth);
+            $steps['activate without device response'] = $server->json('POST', '/api/two-factor/webauthn', $activate, $auth);
+            $steps['activate'] = $server->json('POST', '/api/two-factor/webauthn', [...$activate, 'deviceResponse' => $first->register(self::options($challenge))], $auth);
+            $steps['get webauthn again'] = $enabled = $server->json('POST', '/api/two-factor/get-webauthn', $password, $auth);
+            $steps['methods'] = $server->send('GET', '/api/two-factor', $auth);
+
+            // More keys, in the other attestation formats.
+            $others = ['packed' => new SoftwareAuthenticator, 'packed-x5c' => new SoftwareAuthenticator, 'fido-u2f' => new SoftwareAuthenticator];
+            $steps['challenge with the old token'] = $server->json('POST', '/api/two-factor/get-webauthn-challenge', ['userVerificationToken' => $token], $auth);
+            $id = 2;
+            foreach ($others as $format => $other) {
+                $token = $server->json('POST', '/api/two-factor/get-webauthn', $password, $auth)->jsonString('userVerificationToken');
+                $steps["challenge for {$format}"] = $challenge = $server->json('POST', '/api/two-factor/get-webauthn-challenge', ['userVerificationToken' => $token], $auth);
+                $steps["activate {$format}"] = $server->json('PUT', '/api/two-factor/webauthn', ['id' => $id++, 'name' => $format, 'userVerificationToken' => $token,
+                    'deviceResponse' => $other->register(self::options($challenge), $format)], $auth);
+            }
+            $steps['activate with the token of fewer keys'] = $server->json('POST', '/api/two-factor/webauthn', [...$activate, 'id' => 9,
+                'userVerificationToken' => $enabled->jsonString('userVerificationToken'), 'deviceResponse' => $first->register(self::options($challenge))], $auth);
+
+            $steps['login without code'] = $prompt = $server->form('/identity/connect/token', $login);
+            $steps['login with a tampered signature'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '7',
+                'two_factor_token' => $first->assert(self::request($prompt), tamper: true)]);
+            $steps['login without challenge'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '7',
+                'two_factor_token' => $first->assert(self::request($prompt))]);
+            $server->form('/identity/connect/token', $login);
+            $steps['login with garbage'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '7', 'two_factor_token' => 'nope']);
+            $prompt = $server->form('/identity/connect/token', $login);
+            $steps['login from another origin'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '7',
+                'two_factor_token' => $first->assert(self::request($prompt), origin: 'https://evil.example')]);
+            $prompt = $server->form('/identity/connect/token', $login);
+            $steps['login'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '7',
+                'two_factor_token' => $first->assert(self::request($prompt), counter: 7)]);
+            $prompt = $server->form('/identity/connect/token', $login);
+            $steps['login with the same counter'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '7',
+                'two_factor_token' => $first->assert(self::request($prompt), counter: 7)]);
+            $prompt = $server->form('/identity/connect/token', $login);
+            $steps['login with the fido-u2f key'] = $server->form('/identity/connect/token', [...$login, 'two_factor_provider' => '7',
+                'two_factor_token' => $others['fido-u2f']->assert(self::request($prompt))]);
+
+            $token = $server->json('POST', '/api/two-factor/get-webauthn', $password, $auth)->jsonString('userVerificationToken');
+            $steps['delete an unknown key'] = $server->json('DELETE', '/api/two-factor/webauthn', ['id' => 9, 'userVerificationToken' => $token], $auth);
+            $steps['delete a key'] = $server->json('DELETE', '/api/two-factor/webauthn', ['id' => 2, 'userVerificationToken' => $token], $auth);
+            $steps['delete with the old token'] = $server->json('DELETE', '/api/two-factor/webauthn/all', ['userVerificationToken' => $token], $auth);
+            $token = $server->json('POST', '/api/two-factor/get-webauthn', $password, $auth)->jsonString('userVerificationToken');
+            $steps['delete all'] = $server->json('DELETE', '/api/two-factor/webauthn/all', ['userVerificationToken' => $token], $auth);
+            $steps['delete all again'] = $server->json('DELETE', '/api/two-factor/webauthn/all', ['userVerificationToken' => $token], $auth);
+            $steps['methods at last'] = $server->send('GET', '/api/two-factor', $auth);
+            $steps['login at last'] = $server->form('/identity/connect/token', $login);
 
             return $steps;
         });
@@ -416,6 +501,30 @@ class TwoFactorTest extends DifferentialTestCase
     private static function activateYubikey(Server $server, array $auth, array $token, array $keys): Exchange
     {
         return $server->json('POST', '/api/two-factor/yubikey', [...$token, ...$keys], $auth);
+    }
+
+    /**
+     * The publicKey options of a registration challenge.
+     *
+     * @return array<mixed>
+     */
+    public static function options(Exchange $challenge): array
+    {
+        $options = $challenge->json('options');
+
+        return is_array($options) ? $options : throw new \RuntimeException("No options in a {$challenge->status} response: {$challenge->body}");
+    }
+
+    /**
+     * The WebAuthn options of a login prompt.
+     *
+     * @return array<mixed>
+     */
+    public static function request(Exchange $prompt): array
+    {
+        $request = $prompt->json('TwoFactorProviders2.7');
+
+        return is_array($request) ? $request : throw new \RuntimeException("No WebAuthn request in a {$prompt->status} response: {$prompt->body}");
     }
 
     /**

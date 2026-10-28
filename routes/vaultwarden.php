@@ -14,6 +14,7 @@ use App\Http\Controllers\TwoFactor\DuoController;
 use App\Http\Controllers\TwoFactor\EmailController;
 use App\Http\Controllers\TwoFactor\ProtectedActionsController;
 use App\Http\Controllers\TwoFactor\TwoFactorController;
+use App\Http\Controllers\TwoFactor\WebauthnController;
 use App\Http\Controllers\TwoFactor\YubikeyController;
 use App\Http\Controllers\WebController;
 use Illuminate\Support\Facades\Route;
@@ -228,6 +229,13 @@ Route::prefix('/api')->group(function (): void {
     Route::post('/two-factor/send-email', [EmailController::class, 'sendEmail'])->name('core::two_factor::email::send_email');
     Route::put('/two-factor/email', [EmailController::class, 'email'])->name('core::two_factor::email::email');
     Route::delete('/two-factor/email', [EmailController::class, 'disableEmail'])->name('core::two_factor::email::disable_email');
+    Route::post('/two-factor/get-webauthn', [WebauthnController::class, 'getWebauthn'])->name('core::two_factor::webauthn::get_webauthn');
+    Route::post('/two-factor/get-webauthn-challenge', [WebauthnController::class, 'generateWebauthnChallenge'])
+        ->name('core::two_factor::webauthn::generate_webauthn_challenge');
+    Route::post('/two-factor/webauthn', [WebauthnController::class, 'activateWebauthn'])->name('core::two_factor::webauthn::activate_webauthn');
+    Route::put('/two-factor/webauthn', [WebauthnController::class, 'activateWebauthn'])->name('core::two_factor::webauthn::activate_webauthn_put');
+    Route::delete('/two-factor/webauthn', [WebauthnController::class, 'deleteWebauthn'])->name('core::two_factor::webauthn::delete_webauthn');
+    Route::delete('/two-factor/webauthn/all', [WebauthnController::class, 'deleteWebauthns'])->name('core::two_factor::webauthn::delete_webauthns');
     Route::post('/two-factor/get-yubikey', [YubikeyController::class, 'generateYubikey'])->name('core::two_factor::yubikey::generate_yubikey');
     Route::post('/two-factor/yubikey', [YubikeyController::class, 'activateYubikey'])->name('core::two_factor::yubikey::activate_yubikey');
     Route::put('/two-factor/yubikey', [YubikeyController::class, 'activateYubikey'])->name('core::two_factor::yubikey::activate_yubikey_put');

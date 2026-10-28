@@ -16,6 +16,7 @@ use App\Http\ApiError;
 use App\Http\Controllers\TwoFactor\AuthenticatorController;
 use App\Http\Controllers\TwoFactor\EmailController;
 use App\Http\Controllers\TwoFactor\TwoFactorController;
+use App\Http\Controllers\TwoFactor\WebauthnController;
 use App\Http\Controllers\TwoFactor\YubikeyController;
 use App\Http\Data\Body;
 use App\Http\Data\RegisterData;
@@ -492,6 +493,7 @@ final readonly class IdentityController
 
         match ($selected) {
             TwoFactor::TYPE_AUTHENTICATOR => AuthenticatorController::validateTotpCodeStr($user->uuid, $code, $methodData(), $ip),
+            TwoFactor::TYPE_WEBAUTHN => WebauthnController::validateWebauthnLogin($user->uuid, $code),
             TwoFactor::TYPE_YUBIKEY => YubikeyController::validateYubikeyLogin($code, $methodData()),
             TwoFactor::TYPE_DUO => DuoOidc::validateLogin($user->email, $code, $clientId, $device->uuid),
             TwoFactor::TYPE_EMAIL => EmailController::validateEmailCodeStr($user->uuid, $code, $methodData(), $ip),
@@ -584,6 +586,7 @@ final readonly class IdentityController
                 TwoFactor::TYPE_EMAIL => Json::sorted(['Email' => EmailController::obscureEmail(EmailController::methodEmail(
                     (TwoFactor::findByUserAndType($user->uuid, TwoFactor::TYPE_EMAIL) ?? throw ApiError::message('No twofactor email registered'))->data,
                 ))]),
+                TwoFactor::TYPE_WEBAUTHN => $this->config->isWebauthn2faSupported() ? WebauthnController::generateWebauthnLogin($user->uuid) : null,
                 TwoFactor::TYPE_DUO => ['AuthUrl' => DuoOidc::authUrl($user->email, $clientId, $deviceIdentifier)],
                 TwoFactor::TYPE_YUBIKEY => ['Nfc' => YubikeyController::nfc(
                     (TwoFactor::findByUserAndType($user->uuid, TwoFactor::TYPE_YUBIKEY) ?? throw ApiError::message('No YubiKey devices registered'))->data,

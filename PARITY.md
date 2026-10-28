@@ -8,7 +8,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 
 | Area | Total | ✅ | 🟨 | ⬜ | ➖ | With tests |
 |---|--:|--:|--:|--:|--:|--:|
-| Routes | 294 | 123 | 62 | 108 | 1 | 185 |
+| Routes | 294 | 127 | 64 | 102 | 1 | 191 |
 | Settings | 153 | 51 | 102 | 0 | 0 | 153 |
 | Scheduled jobs | 8 | 0 | 0 | 8 | 0 | 0 |
 | Database tables | 28 | 28 | 0 | 0 | 0 | 28 |
@@ -247,12 +247,12 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | POST `/api/two-factor/send-email` | src/api/core/two_factor/email.rs:188 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest on the servers with mail (codes read from the mails) and without; expiry and attempt limits in tests/Feature/Api/TwoFactorTest. |
 | ✅ | PUT `/api/two-factor/email` | src/api/core/two_factor/email.rs:225 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest on the servers with mail (codes read from the mails) and without; expiry and attempt limits in tests/Feature/Api/TwoFactorTest. |
 | ✅ | DELETE `/api/two-factor/email` | src/api/core/two_factor/email.rs:258 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest on the servers with mail (codes read from the mails) and without; expiry and attempt limits in tests/Feature/Api/TwoFactorTest. |
-| ⬜ | POST `/api/two-factor/get-webauthn` | src/api/core/two_factor/webauthn.rs:119 | 0 |  |
-| ⬜ | POST `/api/two-factor/get-webauthn-challenge` | src/api/core/two_factor/webauthn.rs:143 | 0 |  |
-| ⬜ | POST `/api/two-factor/webauthn` | src/api/core/two_factor/webauthn.rs:268 | 0 |  |
-| ⬜ | PUT `/api/two-factor/webauthn` | src/api/core/two_factor/webauthn.rs:316 | 0 |  |
-| ⬜ | DELETE `/api/two-factor/webauthn` | src/api/core/two_factor/webauthn.rs:328 | 0 |  |
-| ⬜ | DELETE `/api/two-factor/webauthn/all` | src/api/core/two_factor/webauthn.rs:333 | 0 |  |
+| ✅ | POST `/api/two-factor/get-webauthn` | src/api/core/two_factor/webauthn.rs:119 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest with a software authenticator (none, packed, packed with certificate and FIDO U2F attestation), logins included; keys registered by one work on the other (InteropTest). |
+| ✅ | POST `/api/two-factor/get-webauthn-challenge` | src/api/core/two_factor/webauthn.rs:143 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest with a software authenticator (none, packed, packed with certificate and FIDO U2F attestation), logins included; keys registered by one work on the other (InteropTest). |
+| 🟨 | POST `/api/two-factor/webauthn` | src/api/core/two_factor/webauthn.rs:268 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest with a software authenticator (none, packed, packed with certificate and FIDO U2F attestation), logins included; keys registered by one work on the other (InteropTest). TPM and Android key attestation are not ported and fail like unsupported formats; clients send them only when asked for attestation, which Vaultwarden does not do. |
+| 🟨 | PUT `/api/two-factor/webauthn` | src/api/core/two_factor/webauthn.rs:316 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest with a software authenticator (none, packed, packed with certificate and FIDO U2F attestation), logins included; keys registered by one work on the other (InteropTest). TPM and Android key attestation are not ported and fail like unsupported formats; clients send them only when asked for attestation, which Vaultwarden does not do. |
+| ✅ | DELETE `/api/two-factor/webauthn` | src/api/core/two_factor/webauthn.rs:328 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest with a software authenticator (none, packed, packed with certificate and FIDO U2F attestation), logins included; keys registered by one work on the other (InteropTest). |
+| ✅ | DELETE `/api/two-factor/webauthn/all` | src/api/core/two_factor/webauthn.rs:333 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest with a software authenticator (none, packed, packed with certificate and FIDO U2F attestation), logins included; keys registered by one work on the other (InteropTest). |
 | ✅ | POST `/api/two-factor/get-yubikey` | src/api/core/two_factor/yubikey.rs:119 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest against a fake Yubico server over HTTPS (.github/scripts/fake-services.php), with logins; also tests/Feature/Api/TwoFactorServicesTest. |
 | ✅ | POST `/api/two-factor/yubikey` | src/api/core/two_factor/yubikey.rs:148 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest against a fake Yubico server over HTTPS (.github/scripts/fake-services.php), with logins; also tests/Feature/Api/TwoFactorServicesTest. |
 | ✅ | PUT `/api/two-factor/yubikey` | src/api/core/two_factor/yubikey.rs:200 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest against a fake Yubico server over HTTPS (.github/scripts/fake-services.php), with logins; also tests/Feature/Api/TwoFactorServicesTest. |
@@ -300,7 +300,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ⬜ | POST `/admin/users/{user_id}/invite/resend` | src/api/admin.rs:520 | 0 |  |
 | ⬜ | GET `/admin/diagnostics/http` | src/api/admin.rs:831 | 0 |  |
 | ✅ | POST `/events/collect` | src/api/core/events.rs:158 | 1 | Compared with Vaultwarden in tests/Differential/EventTest, with ORG_EVENTS_ENABLED on and off. |
-| 🟨 | POST `/identity/connect/token` | src/api/identity.rs:57 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Password (with KDF upgrade and the 2FA organization policy), refresh token, user API key and Send access (send_access) logins, two-factor login with authenticator, email, YubiKey, Duo, remembered device and recovery code; accounts and tokens work across Vaultwarden and us on one database. Not yet: WebAuthn, login with a device, SSO, organization API keys. |
+| 🟨 | POST `/identity/connect/token` | src/api/identity.rs:57 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Password (with KDF upgrade and the 2FA organization policy), refresh token, user and organization API key and Send access (send_access) logins, two-factor login with authenticator, email, YubiKey, Duo, WebAuthn, remembered device and recovery code; accounts, tokens and two-factor methods work across Vaultwarden and us on one database. Not yet: login with a device, SSO. |
 | ✅ | POST `/identity/accounts/prelogin` | src/api/identity.rs:1019 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
 | ✅ | POST `/identity/accounts/prelogin/password` | src/api/identity.rs:1024 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
 | 🟨 | POST `/identity/accounts/register/send-verification-email` | src/api/identity.rs:1050 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Not yet: sending the verification mail (SMTP is not ported). |
