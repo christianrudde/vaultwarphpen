@@ -10,7 +10,10 @@ use App\Support\JsonValue;
 use App\Support\Random;
 use DateTimeImmutable;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Database\Query\JoinClause;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 use stdClass;
 
 /**
@@ -86,22 +89,21 @@ final class Cipher extends Model
     }
 
     /**
-     * Cipher::to_json for a user's own view (CipherSyncType::User).
+     * Cipher::to_json. A user's view (CipherSyncType::User) carries the folder,
+     * favorite, archive and access flags; an organization's view (as admins
+     * list the organization's ciphers) leaves them out.
      *
-     * @param  array{folders?: array<string, string>, favorites?: list<string>, archives?: array<string, DateTimeImmutable>}|null  $sync
-     *                                                                                                                                    Data gathered once for many ciphers, as in CipherSyncData
+     * @param  array{folders?: array<string, string>, favorites?: list<string>, archives?: array<string, DateTimeImmutable>, members?: array<string, Membership>, collections?: array<string, list<string>>, userCollections?: array<string, CollectionUser>}|null  $sync
+     *                                                                                                                                                                                                                                                                     Data gathered once for many ciphers, as in CipherSyncData
      * @return array<string, mixed>
      *
      * @throws ApiError
      */
-    public function toApi(string $host, string $userUuid, ?array $sync = null): array
+    public function toApi(string $host, string $userUuid, ?array $sync = null, bool $organizationView = false): array
     {
         $key = self::TYPE_KEYS[$this->atype] ?? throw ApiError::message("Cipher {$this->uuid} has an invalid type {$this->atype}");
 
         $attachments = Attachment::findByCipher($this->uuid);
-        [$readOnly, $hidePasswords] = $this->accessRestrictions($userUuid) ?? [true, true, false];
-
-        $archivedAt = $sync === null ? Archive::archivedAt($this->uuid, $userUuid) : ($sync['archives'][$this->uuid] ?? null);
 
         $json = [
             'object' => 'cipherDetails',
@@ -116,7 +118,7 @@ final class Cipher extends Model
             'attachments' => $attachments->isEmpty() ? null : $attachments->map(static fn (Attachment $attachment): array => $attachment->toApi($host))->all(),
             // UseTotp is on by default for organizations; together with premium it shows the TOTP counter.
             'organizationUseTotp' => true,
-            'collectionIds' => [],
+            'collectionIds' => $sync === null ? $this->adminCollections($userUuid) : ($sync['collections'][$this->uuid] ?? []),
             'name' => $this->name,
             'notes' => $this->notes,
             'fields' => $this->fieldsJson(),
@@ -130,40 +132,195 @@ final class Cipher extends Model
             'bankAccount' => null,
             'driversLicense' => null,
             'passport' => null,
-            'folderId' => $sync === null ? $this->folderUuid($userUuid) : ($sync['folders'][$this->uuid] ?? null),
-            'favorite' => $sync === null ? Favorite::isFavorite($this->uuid, $userUuid) : in_array($this->uuid, $sync['favorites'] ?? [], true),
-            'archivedDate' => $archivedAt === null ? null : Dates::format($archivedAt),
-            // False when an organization restricts the user's collection.
-            'edit' => ! $readOnly,
-            'viewPassword' => ! $hidePasswords,
-            // The newer form, read by clients since v2025.6.0.
-            'permissions' => ['delete' => ! $readOnly, 'restore' => ! $readOnly],
         ];
+
+        if (! $organizationView) {
+            [$readOnly, $hidePasswords] = $this->accessRestrictions($userUuid, $sync) ?? [true, true, false];
+            $archivedAt = $sync === null ? Archive::archivedAt($this->uuid, $userUuid) : ($sync['archives'][$this->uuid] ?? null);
+
+            $json['folderId'] = $sync === null ? $this->folderUuid($userUuid) : ($sync['folders'][$this->uuid] ?? null);
+            $json['favorite'] = $sync === null ? Favorite::isFavorite($this->uuid, $userUuid) : in_array($this->uuid, $sync['favorites'] ?? [], true);
+            $json['archivedDate'] = $archivedAt === null ? null : Dates::format($archivedAt);
+            // False when an organization restricts the user's collection.
+            $json['edit'] = ! $readOnly;
+            $json['viewPassword'] = ! $hidePasswords;
+            // The newer form, read by clients since v2025.6.0.
+            $json['permissions'] = ['delete' => ! $readOnly, 'restore' => ! $readOnly];
+        }
         $json[$key] = $this->typeDataJson();
 
         return Json::sorted($json);
     }
 
     /**
-     * The user's restrictions (read only, hide passwords, manage), or null
-     * without access. Own ciphers have none.
+     * Cipher::get_access_restrictions: (read only, hide passwords, manage), or
+     * null without access. Own ciphers and those of organizations where the
+     * user has full access have none. Across several collections a flag holds
+     * only if all of them set it; manage if any does. Groups are not ported yet.
      *
+     * @param  array{members?: array<string, Membership>, collections?: array<string, list<string>>, userCollections?: array<string, CollectionUser>}|null  $sync
      * @return array{bool, bool, bool}|null
-     *
-     * @throws ApiError For organization ciphers of members, until organizations are ported
      */
-    public function accessRestrictions(string $userUuid): ?array
+    public function accessRestrictions(string $userUuid, ?array $sync = null): ?array
     {
         if ($this->user_uuid !== null && $this->user_uuid === $userUuid) {
             return [false, false, true];
         }
 
-        if ($this->organization_uuid !== null && Membership::query()->where('user_uuid', $userUuid)
-            ->where('org_uuid', $this->organization_uuid)->where('status', Membership::STATUS_CONFIRMED)->exists()) {
-            throw ApiError::message('Organizations are not implemented yet');
+        if ($this->organization_uuid !== null) {
+            $member = $sync === null
+                ? Membership::findConfirmedByUserAndOrg($userUuid, $this->organization_uuid)
+                : ($sync['members'][$this->organization_uuid] ?? null);
+            if ($member?->hasFullAccess() === true) {
+                return [false, false, true];
+            }
         }
 
-        return null;
+        if ($sync === null) {
+            $rows = $this->userCollectionsAccessFlags($userUuid);
+        } else {
+            $rows = [];
+            foreach ($sync['collections'][$this->uuid] ?? [] as $collectionUuid) {
+                $access = $sync['userCollections'][$collectionUuid] ?? null;
+                if ($access !== null) {
+                    $rows[] = [$access->readOnly, $access->hidePasswords, $access->manage];
+                }
+            }
+        }
+        if ($rows === []) {
+            return null;
+        }
+
+        [$readOnly, $hidePasswords, $manage] = [true, true, false];
+        foreach ($rows as [$rowReadOnly, $rowHidePasswords, $rowManage]) {
+            $readOnly = $readOnly && $rowReadOnly;
+            $hidePasswords = $hidePasswords && $rowHidePasswords;
+            $manage = $manage || $rowManage;
+        }
+
+        return [$readOnly, $hidePasswords, $manage];
+    }
+
+    /**
+     * The flags of the collections of the cipher the user reaches through a
+     * confirmed membership.
+     *
+     * @return list<array{bool, bool, bool}>
+     */
+    private function userCollectionsAccessFlags(string $userUuid): array
+    {
+        $rows = DB::table('ciphers')
+            ->join('ciphers_collections', 'ciphers.uuid', '=', 'ciphers_collections.cipher_uuid')
+            ->join('users_organizations', function (JoinClause $join) use ($userUuid): void {
+                $join->on('ciphers.organization_uuid', '=', 'users_organizations.org_uuid')
+                    ->where('users_organizations.user_uuid', '=', $userUuid)
+                    ->where('users_organizations.status', '=', Membership::STATUS_CONFIRMED);
+            })
+            ->join('users_collections', function (JoinClause $join): void {
+                $join->on('ciphers_collections.collection_uuid', '=', 'users_collections.collection_uuid')
+                    ->on('users_organizations.user_uuid', '=', 'users_collections.user_uuid');
+            })
+            ->where('ciphers.uuid', $this->uuid)
+            ->select('users_collections.read_only', 'users_collections.hide_passwords', 'users_collections.manage')
+            ->get();
+
+        $flags = [];
+        foreach ($rows as $row) {
+            $flags[] = [(bool) $row->read_only, (bool) $row->hide_passwords, (bool) $row->manage];
+        }
+
+        return $flags;
+    }
+
+    /**
+     * Cipher::get_admin_collections: the cipher's collections the user can
+     * write to, or all of them for owners, admins and members with access to all.
+     *
+     * @return list<string>
+     */
+    public function adminCollections(string $userUuid): array
+    {
+        $ids = DB::table('ciphers_collections')
+            ->join('collections', 'collections.uuid', '=', 'ciphers_collections.collection_uuid')
+            ->join('users_organizations', function (JoinClause $join) use ($userUuid): void {
+                $join->on('users_organizations.org_uuid', '=', 'collections.org_uuid')
+                    ->where('users_organizations.user_uuid', '=', $userUuid);
+            })
+            ->leftJoin('users_collections', function (JoinClause $join) use ($userUuid): void {
+                $join->on('users_collections.collection_uuid', '=', 'ciphers_collections.collection_uuid')
+                    ->where('users_collections.user_uuid', '=', $userUuid);
+            })
+            ->where('ciphers_collections.cipher_uuid', $this->uuid)
+            ->where('users_organizations.status', Membership::STATUS_CONFIRMED)
+            ->where(static fn (QueryBuilder $query) => $query->where('users_organizations.access_all', true)
+                ->orWhere(static fn (QueryBuilder $query) => $query->where('users_collections.user_uuid', $userUuid)->where('users_collections.read_only', false))
+                ->orWhere('users_organizations.atype', '<=', Membership::TYPE_ADMIN))
+            ->pluck('ciphers_collections.collection_uuid');
+
+        return array_values(array_filter($ids->all(), is_string(...)));
+    }
+
+    /**
+     * Cipher::get_collections: the cipher's collections the user can write
+     * to, or all of them with access to all.
+     *
+     * @return list<string>
+     */
+    public function collectionsOfUser(string $userUuid): array
+    {
+        $ids = DB::table('ciphers_collections')
+            ->join('collections', 'collections.uuid', '=', 'ciphers_collections.collection_uuid')
+            ->join('users_organizations', function (JoinClause $join) use ($userUuid): void {
+                $join->on('users_organizations.org_uuid', '=', 'collections.org_uuid')
+                    ->where('users_organizations.user_uuid', '=', $userUuid);
+            })
+            ->leftJoin('users_collections', function (JoinClause $join) use ($userUuid): void {
+                $join->on('users_collections.collection_uuid', '=', 'ciphers_collections.collection_uuid')
+                    ->where('users_collections.user_uuid', '=', $userUuid);
+            })
+            ->where('ciphers_collections.cipher_uuid', $this->uuid)
+            ->where('users_organizations.status', Membership::STATUS_CONFIRMED)
+            ->where(static fn (QueryBuilder $query) => $query->where('users_organizations.access_all', true)
+                ->orWhere(static fn (QueryBuilder $query) => $query->where('users_collections.user_uuid', $userUuid)->where('users_collections.read_only', false)))
+            ->pluck('ciphers_collections.collection_uuid');
+
+        return array_values(array_filter($ids->all(), is_string(...)));
+    }
+
+    /**
+     * Cipher::get_collections_with_cipher_by_user: for a sync, the collections
+     * of every cipher the user reaches.
+     *
+     * @return array<string, list<string>> Collection ids by cipher
+     */
+    public static function collectionsWithCipherByUser(string $userUuid): array
+    {
+        $rows = DB::table('ciphers_collections')
+            ->join('collections', 'collections.uuid', '=', 'ciphers_collections.collection_uuid')
+            ->join('users_organizations', function (JoinClause $join) use ($userUuid): void {
+                $join->on('users_organizations.org_uuid', '=', 'collections.org_uuid')
+                    ->where('users_organizations.user_uuid', '=', $userUuid);
+            })
+            ->leftJoin('users_collections', function (JoinClause $join) use ($userUuid): void {
+                $join->on('users_collections.collection_uuid', '=', 'ciphers_collections.collection_uuid')
+                    ->where('users_collections.user_uuid', '=', $userUuid);
+            })
+            ->where(static fn (QueryBuilder $query) => $query->where('users_collections.user_uuid', $userUuid)
+                ->orWhere('users_organizations.access_all', true)
+                ->orWhere('users_organizations.atype', '<=', Membership::TYPE_ADMIN))
+            ->where('users_organizations.status', Membership::STATUS_CONFIRMED)
+            ->select('ciphers_collections.cipher_uuid', 'ciphers_collections.collection_uuid')
+            ->distinct()
+            ->get();
+
+        $collections = [];
+        foreach ($rows as $row) {
+            if (is_string($row->cipher_uuid) && is_string($row->collection_uuid)) {
+                $collections[$row->cipher_uuid][] = $row->collection_uuid;
+            }
+        }
+
+        return $collections;
     }
 
     public function isAccessibleToUser(string $userUuid): bool
@@ -176,6 +333,17 @@ final class Cipher extends Model
         $restrictions = $this->accessRestrictions($userUuid);
 
         return $restrictions !== null && (! $restrictions[0] || $restrictions[2]);
+    }
+
+    /**
+     * Whether the user may change the cipher's collections: write access with
+     * visible passwords, or manage, so that nobody escalates their rights.
+     */
+    public function isInEditableCollectionByUser(string $userUuid): bool
+    {
+        $restrictions = $this->accessRestrictions($userUuid);
+
+        return $restrictions !== null && ((! $restrictions[0] && ! $restrictions[1]) || $restrictions[2]);
     }
 
     /**
@@ -203,9 +371,7 @@ final class Cipher extends Model
     {
         $this->updateUsersRevision();
         FolderCipher::deleteAllByCipher($this->uuid);
-        if ($this->organization_uuid !== null) {
-            throw ApiError::message('Organizations are not implemented yet');
-        }
+        CollectionCipher::deleteAllByCipher($this->uuid);
         Attachment::deleteAllByCipher($this->uuid);
         Favorite::deleteAllByCipher($this->uuid);
 
@@ -226,8 +392,18 @@ final class Cipher extends Model
 
             return [$this->user_uuid];
         }
+        if ($this->organization_uuid === null) {
+            return [];
+        }
 
-        return [];
+        // Everyone in the organization who reaches the cipher.
+        $users = [];
+        foreach (Membership::findByCipherAndOrg($this->uuid, $this->organization_uuid) as $member) {
+            User::updateUuidRevision($member->user_uuid);
+            $users[] = $member->user_uuid;
+        }
+
+        return $users;
     }
 
     /**
@@ -284,25 +460,66 @@ final class Cipher extends Model
     }
 
     /**
-     * The ciphers a user sees: own ones, and (once ported) those of organizations.
+     * Cipher::find_by_user: own ciphers, those of organizations where the user
+     * has access to all, and those of collections the user reaches through a
+     * confirmed membership. Admins and owners also get the rest of their
+     * organizations' ciphers unless only visible ones are asked for.
      *
      * @param  list<string>  $uuids  Only these, when given
      * @return Collection<int, self>
+     */
+    public static function findByUser(string $userUuid, bool $visibleOnly, array $uuids = []): Collection
+    {
+        $query = self::query()
+            ->select('ciphers.*')
+            ->leftJoin('ciphers_collections', 'ciphers.uuid', '=', 'ciphers_collections.cipher_uuid')
+            ->leftJoin('users_organizations', function (JoinClause $join) use ($userUuid): void {
+                $join->on('ciphers.organization_uuid', '=', 'users_organizations.org_uuid')
+                    ->where('users_organizations.user_uuid', '=', $userUuid)
+                    ->where('users_organizations.status', '=', Membership::STATUS_CONFIRMED);
+            })
+            ->leftJoin('users_collections', function (JoinClause $join): void {
+                $join->on('ciphers_collections.collection_uuid', '=', 'users_collections.collection_uuid')
+                    // Unconfirmed members have no row above, so no access here either.
+                    ->on('users_organizations.user_uuid', '=', 'users_collections.user_uuid');
+            })
+            ->where(static function ($query) use ($userUuid, $visibleOnly): void {
+                $query->where('ciphers.user_uuid', $userUuid)
+                    ->orWhere('users_organizations.access_all', true)
+                    ->orWhere('users_collections.user_uuid', $userUuid);
+                if (! $visibleOnly) {
+                    $query->orWhere('users_organizations.atype', '<=', Membership::TYPE_ADMIN);
+                }
+            });
+        if ($uuids !== []) {
+            $query->whereIn('ciphers.uuid', $uuids);
+        }
+
+        return $query->distinct()->get();
+    }
+
+    /**
+     * The ciphers a user sees.
      *
-     * @throws ApiError For confirmed members of organizations, until organizations are ported
+     * @param  list<string>  $uuids  Only these, when given
+     * @return Collection<int, self>
      */
     public static function findByUserVisible(string $userUuid, array $uuids = []): Collection
     {
-        if (Membership::query()->where('user_uuid', $userUuid)->where('status', Membership::STATUS_CONFIRMED)->exists()) {
-            throw ApiError::message('Organizations are not implemented yet');
-        }
+        return self::findByUser($userUuid, true, $uuids);
+    }
 
-        $query = self::query()->where('user_uuid', $userUuid);
-        if ($uuids !== []) {
-            $query->whereIn('uuid', $uuids);
-        }
+    public static function findByUuidAndOrg(string $uuid, string $orgUuid): ?self
+    {
+        return self::query()->where('uuid', $uuid)->where('organization_uuid', $orgUuid)->first();
+    }
 
-        return $query->get();
+    /**
+     * @return Collection<int, self>
+     */
+    public static function findByOrg(string $orgUuid): Collection
+    {
+        return self::query()->where('organization_uuid', $orgUuid)->get();
     }
 
     /**

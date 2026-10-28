@@ -5,6 +5,7 @@ use App\Http\Controllers\CiphersController;
 use App\Http\Controllers\CoreController;
 use App\Http\Controllers\FoldersController;
 use App\Http\Controllers\IdentityController;
+use App\Http\Controllers\OrganizationsController;
 use App\Http\Controllers\SendsController;
 use App\Http\Controllers\WebController;
 use Illuminate\Support\Facades\Route;
@@ -58,6 +59,9 @@ Route::prefix('/api')->group(function (): void {
     Route::post('/ciphers/move', [CiphersController::class, 'moveCiphers'])->name('core::ciphers::move_cipher_selected');
     Route::put('/ciphers/move', [CiphersController::class, 'moveCiphers'])->name('core::ciphers::move_cipher_selected_put');
     Route::post('/ciphers/purge', [CiphersController::class, 'purgeVault'])->name('core::ciphers::purge_personal_vault');
+    Route::put('/ciphers/share', [CiphersController::class, 'putCipherShareSelected'])->name('core::ciphers::put_cipher_share_selected');
+    Route::get('/ciphers/organization-details', [OrganizationsController::class, 'getOrgDetails'])->name('core::organizations::get_org_details');
+    Route::post('/ciphers/bulk-collections', [OrganizationsController::class, 'postBulkCollections'])->name('core::organizations::post_bulk_collections');
     Route::post('/ciphers/create', [CiphersController::class, 'postCiphersCreate'])->name('core::ciphers::post_ciphers_create');
     Route::post('/ciphers/admin', [CiphersController::class, 'postCiphersCreate'])->name('core::ciphers::post_ciphers_admin');
     Route::post('/ciphers/import', [CiphersController::class, 'postCiphersImport'])->name('core::ciphers::post_ciphers_import');
@@ -75,6 +79,14 @@ Route::prefix('/api')->group(function (): void {
     Route::post('/ciphers/{cipherId}/admin', [CiphersController::class, 'putCipher'])->name('core::ciphers::post_cipher_admin');
     Route::put('/ciphers/{cipherId}/partial', [CiphersController::class, 'putCipherPartial'])->name('core::ciphers::put_cipher_partial');
     Route::post('/ciphers/{cipherId}/partial', [CiphersController::class, 'putCipherPartial'])->name('core::ciphers::post_cipher_partial');
+    Route::put('/ciphers/{cipherId}/share', [CiphersController::class, 'putCipherShare'])->name('core::ciphers::put_cipher_share');
+    Route::post('/ciphers/{cipherId}/share', [CiphersController::class, 'putCipherShare'])->name('core::ciphers::post_cipher_share');
+    Route::put('/ciphers/{cipherId}/collections', [CiphersController::class, 'putCollectionsUpdate'])->name('core::ciphers::put_collections_update');
+    Route::post('/ciphers/{cipherId}/collections', [CiphersController::class, 'putCollectionsUpdate'])->name('core::ciphers::post_collections_update');
+    Route::put('/ciphers/{cipherId}/collections_v2', [CiphersController::class, 'putCollections2Update'])->name('core::ciphers::put_collections2_update');
+    Route::post('/ciphers/{cipherId}/collections_v2', [CiphersController::class, 'putCollections2Update'])->name('core::ciphers::post_collections2_update');
+    Route::put('/ciphers/{cipherId}/collections-admin', [CiphersController::class, 'putCollectionsAdmin'])->name('core::ciphers::put_collections_admin');
+    Route::post('/ciphers/{cipherId}/collections-admin', [CiphersController::class, 'putCollectionsAdmin'])->name('core::ciphers::post_collections_admin');
     Route::get('/ciphers/{cipherId}/attachment/{attachmentId}', [CiphersController::class, 'getAttachment'])->name('core::ciphers::get_attachment');
     // Before the data upload, whose attachment id would take "v2" too.
     Route::post('/ciphers/{cipherId}/attachment/v2', [CiphersController::class, 'postAttachmentV2'])->name('core::ciphers::post_attachment_v2');
@@ -110,6 +122,46 @@ Route::prefix('/api')->group(function (): void {
     Route::put('/sends/{sendId}', [SendsController::class, 'putSend'])->name('core::sends::put_send');
     Route::delete('/sends/{sendId}', [SendsController::class, 'deleteSend'])->name('core::sends::delete_send');
     Route::put('/sends/{sendId}/remove-password', [SendsController::class, 'putRemovePassword'])->name('core::sends::put_remove_password');
+
+    // core::organizations
+    Route::get('/collections', [OrganizationsController::class, 'getUserCollections'])->name('core::organizations::get_user_collections');
+    Route::post('/organizations', [OrganizationsController::class, 'createOrganization'])->name('core::organizations::create_organization');
+    Route::get('/organizations/{orgId}', [OrganizationsController::class, 'getOrganization'])->name('core::organizations::get_organization');
+    Route::put('/organizations/{orgId}', [OrganizationsController::class, 'putOrganization'])->name('core::organizations::put_organization');
+    Route::delete('/organizations/{orgId}', [OrganizationsController::class, 'deleteOrganization'])->name('core::organizations::delete_organization');
+    Route::post('/organizations/{orgId}/leave', [OrganizationsController::class, 'leaveOrganization'])->name('core::organizations::leave_organization');
+    Route::post('/organizations/{orgId}/keys', [OrganizationsController::class, 'postOrgKeys'])->name('core::organizations::post_org_keys');
+    Route::get('/organizations/{orgId}/keys', [OrganizationsController::class, 'getOrganizationPublicKey'])->name('core::organizations::get_organization_keys');
+    Route::get('/organizations/{orgId}/public-key', [OrganizationsController::class, 'getOrganizationPublicKey'])->name('core::organizations::get_organization_public_key');
+
+    Route::get('/organizations/{orgId}/collections', [OrganizationsController::class, 'getOrgCollections'])->name('core::organizations::get_org_collections');
+    Route::get('/organizations/{orgId}/collections/details', [OrganizationsController::class, 'getOrgCollectionsDetails'])->name('core::organizations::get_org_collections_details');
+    Route::post('/organizations/{orgId}/collections', [OrganizationsController::class, 'postOrganizationCollections'])->name('core::organizations::post_organization_collections');
+    Route::delete('/organizations/{orgId}/collections', [OrganizationsController::class, 'bulkDeleteOrganizationCollections'])->name('core::organizations::bulk_delete_organization_collections');
+    Route::post('/organizations/{orgId}/collections/bulk-access', [OrganizationsController::class, 'postBulkAccessCollections'])->name('core::organizations::post_bulk_access_collections');
+    Route::put('/organizations/{orgId}/collections/{colId}', [OrganizationsController::class, 'putOrganizationCollectionUpdate'])->name('core::organizations::put_organization_collection_update');
+    Route::delete('/organizations/{orgId}/collections/{colId}', [OrganizationsController::class, 'deleteOrganizationCollection'])->name('core::organizations::delete_organization_collection');
+    Route::get('/organizations/{orgId}/collections/{colId}/details', [OrganizationsController::class, 'getOrgCollectionDetail'])->name('core::organizations::get_org_collection_detail');
+    Route::get('/organizations/{orgId}/collections/{colId}/users', [OrganizationsController::class, 'getCollectionUsers'])->name('core::organizations::get_collection_users');
+
+    // The static member routes before those with a member id, which would take their names too.
+    Route::get('/organizations/{orgId}/users', [OrganizationsController::class, 'getMembers'])->name('core::organizations::get_members');
+    Route::get('/organizations/{orgId}/users/mini-details', [OrganizationsController::class, 'getOrgUserMiniDetails'])->name('core::organizations::get_org_user_mini_details');
+    Route::post('/organizations/{orgId}/users/invite', [OrganizationsController::class, 'sendInvite'])->name('core::organizations::send_invite');
+    Route::post('/organizations/{orgId}/users/reinvite', [OrganizationsController::class, 'bulkReinviteMembers'])->name('core::organizations::bulk_reinvite_members');
+    Route::post('/organizations/{orgId}/users/confirm', [OrganizationsController::class, 'bulkConfirmInvite'])->name('core::organizations::bulk_confirm_invite');
+    Route::post('/organizations/{orgId}/users/public-keys', [OrganizationsController::class, 'bulkPublicKeys'])->name('core::organizations::bulk_public_keys');
+    Route::delete('/organizations/{orgId}/users', [OrganizationsController::class, 'bulkDeleteMember'])->name('core::organizations::bulk_delete_member');
+    Route::put('/organizations/{orgId}/users/revoke', [OrganizationsController::class, 'bulkRevokeMembers'])->name('core::organizations::bulk_revoke_members');
+    Route::put('/organizations/{orgId}/users/restore', [OrganizationsController::class, 'bulkRestoreMembers'])->name('core::organizations::bulk_restore_members');
+    Route::get('/organizations/{orgId}/users/{memberId}', [OrganizationsController::class, 'getUser'])->name('core::organizations::get_user');
+    Route::put('/organizations/{orgId}/users/{memberId}', [OrganizationsController::class, 'editMember'])->name('core::organizations::edit_member');
+    Route::delete('/organizations/{orgId}/users/{memberId}', [OrganizationsController::class, 'deleteMember'])->name('core::organizations::delete_member');
+    Route::post('/organizations/{orgId}/users/{memberId}/reinvite', [OrganizationsController::class, 'reinviteMember'])->name('core::organizations::reinvite_member');
+    Route::post('/organizations/{orgId}/users/{memberId}/confirm', [OrganizationsController::class, 'confirmInvite'])->name('core::organizations::confirm_invite');
+    Route::put('/organizations/{orgId}/users/{memberId}/revoke', [OrganizationsController::class, 'revokeMember'])->name('core::organizations::revoke_member');
+    Route::put('/organizations/{orgId}/users/{memberId}/restore', [OrganizationsController::class, 'restoreMember'])->name('core::organizations::restore_member');
+    Route::put('/organizations/{orgId}/users/{memberId}/restore/vnext', [OrganizationsController::class, 'restoreMember'])->name('core::organizations::restore_member_vnext');
 
     // core::folders
     Route::get('/folders', [FoldersController::class, 'getFolders'])->name('core::folders::get_folders');

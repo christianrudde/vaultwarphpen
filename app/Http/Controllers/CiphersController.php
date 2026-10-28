@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Auth\ClientVersion;
 use App\Auth\Headers;
+use App\Auth\OwnerHeaders;
 use App\Config\Config;
 use App\Http\ApiError;
 use App\Http\Data\Body;
@@ -16,23 +17,25 @@ use App\Http\Data\UploadData;
 use App\Http\EmptyResponse;
 use App\Http\HttpStatus;
 use App\Http\Json;
-use App\Http\Unauthorized;
 use App\Models\Archive;
 use App\Models\Attachment;
 use App\Models\Cipher;
+use App\Models\CollectionCipher;
+use App\Models\CollectionUser;
 use App\Models\Favorite;
 use App\Models\Folder;
 use App\Models\FolderCipher;
 use App\Models\Membership;
+use App\Models\OrgCollection;
 use App\Models\OrgPolicy;
 use App\Models\Send;
 use App\Support\CheckedInt;
 use App\Support\Dates;
 use App\Support\Uuid;
+use DateTimeImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\DB;
 
 /**
  * src/api/core/ciphers.rs; so far the personal vault. Live notifications to
@@ -64,10 +67,14 @@ final readonly class CiphersController
 
         // Clients before 2024.12.0 cannot handle SSH keys.
         $showSshKeys = $clientVersion?->isAtLeast(2024, 12, 0) ?? false;
+        $sync = self::syncData($user->uuid);
         $ciphers = array_values(array_filter(
-            $this->ciphersJson($headers),
+            $this->ciphersJson($headers, $sync),
             static fn (array $cipher): bool => $showSshKeys || $cipher['type'] !== 5,
         ));
+        $collections = OrgCollection::findByUserUuid($user->uuid)->map(static fn (OrgCollection $collection): array => $collection->toApiDetails($user->uuid, $sync))->all();
+        $policies = OrgPolicy::findConfirmedByUser($user->uuid)->map(static fn (OrgPolicy $policy): array => $policy->toApi())->all();
+        $policiesNew = OrgPolicy::findAcceptedAndConfirmedByUser($user->uuid)->map(static fn (OrgPolicy $policy): array => $policy->toApi())->all();
 
         $sends = Send::findByUser($user->uuid)->map(static fn (Send $send): array => $send->toApi())->all();
         $folders = Folder::findByUser($user->uuid)->map(static fn (Folder $folder): array => $folder->toApi())->all();
@@ -87,10 +94,9 @@ final readonly class CiphersController
         return Json::response(Json::sorted([
             'profile' => $profile,
             'folders' => array_values($folders),
-            // Collections and policies come with organizations, which the profile already refuses.
-            'collections' => [],
-            'policies' => [],
-            'policiesNew' => [],
+            'collections' => array_values($collections),
+            'policies' => array_values($policies),
+            'policiesNew' => array_values($policiesNew),
             'ciphers' => $ciphers,
             'domains' => $excludeDomains ? null : CoreController::eqDomains($user, noExcluded: true),
             'sends' => array_values($sends),
@@ -229,6 +235,85 @@ final readonly class CiphersController
         }
 
         $headers->user->updateRevision();
+
+        return new EmptyResponse;
+    }
+
+    /**
+     * PUT /api/ciphers/{cipher_id}/share, also POST: an update that may move
+     * the cipher into collections of an organization.
+     */
+    public function putCipherShare(Headers $headers, Request $request, string $cipherId): Response
+    {
+        $cipherId = Uuid::parameter($request, $cipherId);
+        $body = Body::json($request);
+        $data = CipherData::fromFields($body->object('cipher', 'Cipher'));
+        $collectionIds = $body->stringList('collectionIds', 'CollectionIds');
+
+        return Json::response($this->shareCipherByUuid($cipherId, $data, $collectionIds, $headers));
+    }
+
+    /**
+     * PUT /api/ciphers/share: several ciphers into the same collections. The
+     * answer lists the shared ciphers the user still sees, as cipherMini.
+     */
+    public function putCipherShareSelected(Headers $headers, Request $request): Response
+    {
+        $body = Body::json($request);
+        $ciphers = array_map(CipherData::fromFields(...), $body->objectList('ciphers'));
+        $collectionIds = $body->stringList('collectionIds');
+
+        if ($ciphers === []) {
+            throw ApiError::message('You must select at least one cipher.');
+        }
+        if ($collectionIds === []) {
+            throw ApiError::message('You must select at least one collection.');
+        }
+        foreach ($ciphers as $cipher) {
+            $cipher->id ?? throw ApiError::message('Request missing ids field');
+        }
+
+        $responses = [];
+        foreach ($ciphers as $data) {
+            $id = $data->id ?? throw ApiError::message('Request missing ids field');
+            $response = $this->shareCipherByUuid($id, $data, $collectionIds, $headers, checkRevision: false);
+            // Like upstream's VisibleToClient: not if sharing took the user's access away.
+            if (Cipher::findByUuid($id)?->isAccessibleToUser($headers->user->uuid) === true) {
+                $responses[] = self::cipherMini($response);
+            }
+        }
+
+        return Json::response(Json::sorted(['data' => $responses, 'object' => 'list', 'continuationToken' => null]));
+    }
+
+    /**
+     * PUT /api/ciphers/{cipher_id}/collections, also POST: the cipher's
+     * collections, as far as the user can write to them.
+     */
+    public function putCollectionsUpdate(Headers $headers, Request $request, string $cipherId): Response
+    {
+        $cipher = $this->updateCollections($headers, $request, $cipherId, admin: false);
+
+        return Json::response($cipher->toApi($headers->host, $headers->user->uuid));
+    }
+
+    /**
+     * PUT /api/ciphers/{cipher_id}/collections_v2, also POST
+     */
+    public function putCollections2Update(Headers $headers, Request $request, string $cipherId): Response
+    {
+        $cipher = $this->updateCollections($headers, $request, $cipherId, admin: false);
+
+        return Json::response(Json::sorted(['object' => 'optionalCipherDetails', 'unavailable' => false, 'cipher' => $cipher->toApi($headers->host, $headers->user->uuid)]));
+    }
+
+    /**
+     * PUT /api/ciphers/{cipher_id}/collections-admin, also POST: as above,
+     * starting from all of an admin's collections. Answers nothing.
+     */
+    public function putCollectionsAdmin(Headers $headers, Request $request, string $cipherId): EmptyResponse
+    {
+        $this->updateCollections($headers, $request, $cipherId, admin: true);
 
         return new EmptyResponse;
     }
@@ -507,17 +592,25 @@ final readonly class CiphersController
      */
     public function purgeVault(Headers $headers, Request $request): EmptyResponse
     {
-        $organizationId = $request->query('organizationId');
-        if (is_string($organizationId)) {
-            // OwnerHeaders: only members get further, and organizations are not ported yet.
-            if (! Uuid::isValid($organizationId)) {
-                throw new Unauthorized('Error getting the organization id');
+        $organizationId = Query::first($request, 'organizationId');
+        if ($organizationId !== null) {
+            // purge_org_vault, which only owners reach.
+            $owner = app(OwnerHeaders::class);
+            if ($organizationId !== $owner->membership->org_uuid) {
+                throw ApiError::message('Organization not found', logMessage: "Organization id's do not match");
             }
-            if (! Membership::query()->where('user_uuid', $headers->user->uuid)->where('org_uuid', $organizationId)->exists()) {
-                throw new Unauthorized("The current user isn't member of the organization");
+            $data = PasswordOrOtpData::fromFields(Body::json($request));
+            $data->validate($owner->user, true, $this->config);
+
+            $member = Membership::findConfirmedByUserAndOrg($owner->user->uuid, $organizationId);
+            if ($member === null || $member->atype !== Membership::TYPE_OWNER) {
+                throw ApiError::message("You don't have permission to purge the organization vault");
+            }
+            foreach (Cipher::findByOrg($organizationId) as $cipher) {
+                $cipher->deleteCipher();
             }
 
-            throw ApiError::message('Organizations are not implemented yet');
+            return new EmptyResponse;
         }
 
         $data = PasswordOrOtpData::fromFields(Body::json($request));
@@ -568,29 +661,53 @@ final readonly class CiphersController
     /**
      * The visible ciphers of the user, with the per-user data gathered once.
      *
+     * @param  array{folders: array<string, string>, favorites: list<string>, archives: array<string, DateTimeImmutable>, members: array<string, Membership>, collections: array<string, list<string>>, userCollections: array<string, CollectionUser>}|null  $sync
      * @return list<array<string, mixed>>
      */
-    public function ciphersJson(Headers $headers): array
+    public function ciphersJson(Headers $headers, ?array $sync = null): array
     {
         $userUuid = $headers->user->uuid;
-        $ciphers = Cipher::findByUserVisible($userUuid);
-        $sync = [
-            'folders' => FolderCipher::folderByCipherForUser($userUuid),
-            'favorites' => Favorite::cipherUuidsOfUser($userUuid),
-            'archives' => Archive::archivedAtByCipherForUser($userUuid),
-        ];
+        $sync ??= self::syncData($userUuid);
 
-        return array_values($ciphers->map(static fn (Cipher $cipher): array => $cipher->toApi($headers->host, $userUuid, $sync))->all());
+        return array_values(Cipher::findByUserVisible($userUuid)->map(static fn (Cipher $cipher): array => $cipher->toApi($headers->host, $userUuid, $sync))->all());
+    }
+
+    /**
+     * CipherSyncData: what many ciphers and collections need, gathered once.
+     * An organization's view has no folders, favorites or archives.
+     *
+     * @return array{folders: array<string, string>, favorites: list<string>, archives: array<string, DateTimeImmutable>, members: array<string, Membership>, collections: array<string, list<string>>, userCollections: array<string, CollectionUser>}
+     */
+    public static function syncData(string $userUuid, bool $organizationView = false): array
+    {
+        $members = [];
+        foreach (Membership::findConfirmedByUser($userUuid) as $member) {
+            $members[$member->org_uuid] = $member;
+        }
+        $userCollections = [];
+        foreach (CollectionUser::findByUser($userUuid) as $access) {
+            $userCollections[$access->collectionUuid] = $access;
+        }
+
+        return [
+            'folders' => $organizationView ? [] : FolderCipher::folderByCipherForUser($userUuid),
+            'favorites' => $organizationView ? [] : Favorite::cipherUuidsOfUser($userUuid),
+            'archives' => $organizationView ? [] : Archive::archivedAtByCipherForUser($userUuid),
+            'members' => $members,
+            'collections' => Cipher::collectionsWithCipherByUser($userUuid),
+            'userCollections' => $userCollections,
+        ];
     }
 
     /**
      * ciphers::update_cipher_from_data
      *
      * @param  bool  $checkRevision  Whether this is an update from a client, not an import
+     * @param  list<string>  $sharedToCollections  The collections a share put the cipher in
      *
      * @throws ApiError
      */
-    public function updateCipherFromData(Cipher $cipher, CipherData $data, Headers $headers, bool $checkRevision): void
+    public function updateCipherFromData(Cipher $cipher, CipherData $data, Headers $headers, bool $checkRevision, array $sharedToCollections = []): void
     {
         $this->enforcePersonalOwnershipPolicy($data, $headers);
 
@@ -616,14 +733,22 @@ final readonly class CiphersController
             throw ApiError::message("The field Notes exceeds the maximum encrypted value length of {$maxNoteSize} characters.");
         }
 
+        // A personal cipher moving into an organization.
+        $transfer = $cipher->organization_uuid === null && $data->organizationId !== null;
         if ($data->organizationId !== null) {
-            $member = Membership::query()->where('user_uuid', $headers->user->uuid)->where('org_uuid', $data->organizationId)
-                ->where('status', Membership::STATUS_CONFIRMED)->first();
-            throw $member === null
-                ? ApiError::message("You don't have permission to add item to organization")
-                : ApiError::message('Organizations are not implemented yet');
+            $member = Membership::findConfirmedByUserAndOrg($headers->user->uuid, $data->organizationId)
+                ?? throw ApiError::message("You don't have permission to add item to organization");
+            // Collections that were shared to were checked for write access by the caller;
+            // write access to the cipher counts only once it belongs to the organization.
+            if ($sharedToCollections !== [] || $member->hasFullAccess() || (! $transfer && $cipher->isWriteAccessibleToUser($headers->user->uuid))) {
+                $cipher->organization_uuid = $data->organizationId;
+                $cipher->user_uuid = null;
+            } else {
+                throw ApiError::message("You don't have permission to add cipher directly to organization");
+            }
+        } else {
+            $cipher->user_uuid = $headers->user->uuid;
         }
-        $cipher->user_uuid = $headers->user->uuid;
 
         if ($data->folderId !== null && Folder::findByUuidAndUser($data->folderId, $headers->user->uuid) === null) {
             throw ApiError::message('Invalid folder', logMessage: 'Folder does not exist or belongs to another user');
@@ -687,6 +812,55 @@ final readonly class CiphersController
     }
 
     /**
+     * ciphers::post_collections_update and post_collections_admin: adds and
+     * removes what differs between the posted collections and the current ones.
+     *
+     * @throws ApiError
+     */
+    private function updateCollections(Headers $headers, Request $request, string $cipherId, bool $admin): Cipher
+    {
+        $cipherId = Uuid::parameter($request, $cipherId);
+        $posted = array_values(array_unique(Body::json($request)->stringList('collectionIds', 'CollectionIds')));
+
+        $cipher = Cipher::findByUuid($cipherId) ?? throw ApiError::message("Cipher doesn't exist");
+        if (! $cipher->isInEditableCollectionByUser($headers->user->uuid)) {
+            throw ApiError::message('Collection cannot be changed');
+        }
+        $orgUuid = $cipher->organization_uuid ?? throw ApiError::message('Cipher is not owned by an organization');
+
+        $current = array_values(array_unique($admin ? $cipher->adminCollections($headers->user->uuid) : $cipher->collectionsOfUser($headers->user->uuid)));
+        foreach ([...array_diff($posted, $current), ...array_diff($current, $posted)] as $collectionId) {
+            $collection = OrgCollection::findByUuidAndOrg($collectionId, $orgUuid) ?? throw ApiError::message('Invalid collection ID provided');
+            if (! $collection->isWritableByUser($headers->user->uuid)) {
+                throw ApiError::message('No rights to modify the collection');
+            }
+            if (in_array($collectionId, $posted, true)) {
+                CollectionCipher::save($cipher->uuid, $collection->uuid);
+            } else {
+                CollectionCipher::delete($cipher->uuid, $collection->uuid);
+            }
+        }
+        $cipher->updateUsersRevision();
+
+        return $cipher;
+    }
+
+    /**
+     * ciphers::cipher_mini_from_json: what a bulk share returns of a cipher.
+     *
+     * @param  array<string, mixed>  $cipher
+     * @return array<string, mixed>
+     */
+    private static function cipherMini(array $cipher): array
+    {
+        $fields = ['id', 'organizationId', 'type', 'data', 'partialData', 'name', 'notes', 'login', 'card', 'identity', 'secureNote', 'sshKey',
+            'bankAccount', 'driversLicense', 'passport', 'fields', 'passwordHistory', 'attachments', 'organizationUseTotp', 'revisionDate',
+            'creationDate', 'deletedDate', 'reprompt', 'key'];
+
+        return Json::sorted([...array_intersect_key($cipher, array_flip($fields)), 'object' => 'cipherMini']);
+    }
+
+    /**
      * ciphers::share_cipher_by_uuid: an update that may move the cipher into
      * collections of an organization.
      *
@@ -695,7 +869,7 @@ final readonly class CiphersController
      *
      * @throws ApiError
      */
-    private function shareCipherByUuid(string $cipherId, CipherData $data, array $collectionIds, Headers $headers): array
+    private function shareCipherByUuid(string $cipherId, CipherData $data, array $collectionIds, Headers $headers, bool $checkRevision = true): array
     {
         $cipher = Cipher::findByUuid($cipherId) ?? throw ApiError::message("Cipher doesn't exist");
         if (! $cipher->isWriteAccessibleToUser($headers->user->uuid)) {
@@ -707,15 +881,19 @@ final readonly class CiphersController
             throw ApiError::message('Organization mismatch. Please resync the client before updating the cipher');
         }
 
+        $shared = [];
         if ($data->organizationId !== null) {
             foreach ($collectionIds as $collectionId) {
-                $exists = DB::table('collections')->where('uuid', $collectionId)->where('org_uuid', $data->organizationId)->exists();
-
-                throw $exists ? ApiError::message('Organizations are not implemented yet') : ApiError::message('Invalid collection ID provided');
+                $collection = OrgCollection::findByUuidAndOrg($collectionId, $data->organizationId) ?? throw ApiError::message('Invalid collection ID provided');
+                if (! $collection->isWritableByUser($headers->user->uuid)) {
+                    throw ApiError::message('No rights to modify the collection');
+                }
+                CollectionCipher::save($cipher->uuid, $collection->uuid);
+                $shared[] = $collection->uuid;
             }
         }
 
-        $this->updateCipherFromData($cipher, $data, $headers, checkRevision: true);
+        $this->updateCipherFromData($cipher, $data, $headers, $checkRevision, $shared);
 
         return $cipher->toApi($headers->host, $headers->user->uuid);
     }

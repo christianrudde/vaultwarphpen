@@ -7,6 +7,7 @@ use App\Auth\Jwt;
 use App\Auth\LoginClaims;
 use App\Models\Device;
 use App\Models\Membership;
+use App\Models\Organization;
 use App\Models\User;
 use App\Support\Random;
 use Tests\Concerns\UsesVaultwardenDatabase;
@@ -62,13 +63,28 @@ class AccountTest extends TestCase
         $this->get('/api/accounts/profile', ['Accept' => 'application/json'])->assertStatus(401);
     }
 
-    public function test_members_of_organizations_are_refused_until_organizations_exist(): void
+    public function test_the_profile_lists_organizations(): void
     {
-        (new Membership(['uuid' => Random::uuid(), 'user_uuid' => $this->user->uuid, 'org_uuid' => Random::uuid(), 'access_all' => false,
-            'akey' => '', 'status' => Membership::STATUS_CONFIRMED, 'atype' => Membership::TYPE_USER, 'reset_password_key' => null,
-            'external_id' => null, 'invited_by_email' => null]))->save();
+        $org = Organization::new('2.org', 'billing@example.com', null, null);
+        $org->save();
+        $member = Membership::new($this->user->uuid, $org->uuid, null);
+        $member->save();
 
-        $this->get('/api/accounts/profile', $this->auth)->assertStatus(400)->assertJsonPath('message', 'Organizations are not implemented yet');
+        // Accepted members only appear in the newer list.
+        $this->get('/api/accounts/profile', $this->auth)->assertStatus(200)
+            ->assertJsonPath('organizations', [])
+            ->assertJsonPath('organizationsNew.0.id', $org->uuid)
+            ->assertJsonPath('organizationsNew.0.key', null)
+            ->assertJsonPath('organizationsNew.0.status', Membership::STATUS_ACCEPTED);
+
+        $member->status = Membership::STATUS_CONFIRMED;
+        $member->akey = '4.org-key';
+        $member->save();
+        $this->get('/api/accounts/profile', $this->auth)->assertJsonPath('organizations.0.key', '4.org-key')->assertJsonPath('organizations.0.type', Membership::TYPE_USER);
+
+        // Upstream unwraps the organization of a membership.
+        Organization::query()->delete();
+        $this->get('/api/accounts/profile', $this->auth)->assertStatus(500);
     }
 
     public function test_keys(): void

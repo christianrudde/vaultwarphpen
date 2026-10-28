@@ -66,6 +66,19 @@ final class ApiError extends RuntimeException
     }
 
     /**
+     * The error's Debug formatting, which bulk responses show per item: the
+     * message, followed by the log value when there is one.
+     */
+    public function debugText(): string
+    {
+        return match ($this->kind) {
+            'empty' => '',
+            'json' => $this->message,
+            default => $this->logMessage === null ? $this->message : "{$this->message}. {$this->logMessage}",
+        };
+    }
+
+    /**
      * err! logs the message, without a stack trace.
      */
     public function report(): void

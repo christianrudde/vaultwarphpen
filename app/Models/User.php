@@ -245,16 +245,11 @@ final class User extends Model
      * User::to_json: the profile as the API shows it.
      *
      * @return array<string, mixed>
-     *
-     * @throws ApiError While organizations are not ported, for members of one
      */
     public function toApi(): array
     {
-        $memberships = Membership::query()->where('user_uuid', $this->uuid)
-            ->whereIn('status', [Membership::STATUS_ACCEPTED, Membership::STATUS_CONFIRMED])->exists();
-        if ($memberships) {
-            throw ApiError::message('Organizations are not implemented yet');
-        }
+        $organizations = Membership::findConfirmedByUser($this->uuid)->map(static fn (Membership $member): array => $member->toApiProfile())->all();
+        $organizationsNew = Membership::findAcceptedAndConfirmedByUser($this->uuid)->map(static fn (Membership $member): array => $member->toApiProfile())->all();
 
         return Json::sorted([
             '_status' => $this->status(),
@@ -270,8 +265,8 @@ final class User extends Model
             'key' => $this->akey,
             'privateKey' => $this->private_key,
             'securityStamp' => $this->security_stamp,
-            'organizations' => [],
-            'organizationsNew' => [],
+            'organizations' => array_values($organizations),
+            'organizationsNew' => array_values($organizationsNew),
             'providers' => [],
             'providerOrganizations' => [],
             'forcePasswordReset' => false,

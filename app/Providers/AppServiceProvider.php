@@ -2,8 +2,14 @@
 
 namespace App\Providers;
 
+use App\Auth\AdminHeaders;
 use App\Auth\Headers;
 use App\Auth\Jwt;
+use App\Auth\ManagerHeaders;
+use App\Auth\ManagerHeadersLoose;
+use App\Auth\OrgHeaders;
+use App\Auth\OrgMemberHeaders;
+use App\Auth\OwnerHeaders;
 use App\Auth\RsaKeys;
 use App\Auth\SendHeaders;
 use App\Config\Config;
@@ -39,6 +45,13 @@ class AppServiceProvider extends ServiceProvider
             $this->app->make(Config::class),
             $this->app->make(Jwt::class),
         ));
+        foreach ([OrgHeaders::class, AdminHeaders::class, ManagerHeaders::class, ManagerHeadersLoose::class, OwnerHeaders::class, OrgMemberHeaders::class] as $guard) {
+            $this->app->bind($guard, fn (): OrgHeaders => $guard::fromRequest(
+                $this->app->make(Request::class),
+                $this->app->make(Config::class),
+                $this->app->make(Jwt::class),
+            ));
+        }
         $this->app->bind(SendHeaders::class, fn (): SendHeaders => SendHeaders::fromRequest(
             $this->app->make(Request::class),
             $this->app->make(Jwt::class),
