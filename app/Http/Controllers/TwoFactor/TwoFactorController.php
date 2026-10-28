@@ -59,7 +59,7 @@ final readonly class TwoFactorController
      */
     public function getDeviceVerificationSettings(Headers $headers): Response
     {
-        return Json::response(['isDeviceVerificationSectionEnabled' => false, 'unknownDeviceVerificationEnabled' => false, 'object' => 'deviceVerificationSettings']);
+        return Json::response(Json::sorted(['isDeviceVerificationSectionEnabled' => false, 'unknownDeviceVerificationEnabled' => false, 'object' => 'deviceVerificationSettings']));
     }
 
     /**

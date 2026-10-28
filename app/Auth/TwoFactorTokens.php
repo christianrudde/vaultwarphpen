@@ -155,7 +155,7 @@ final class TwoFactorTokens
             $claims = app(Jwt::class)->decode($token, JwtIssuer::TwoFactorAuth, fields: ['nbf' => 'int', 'exp' => 'int', 'iss' => 'string', 'sub' => 'string', 'enabled' => 'bool'],
                 nested: ['claims', $field, $required]);
         } catch (ApiError $error) {
-            throw ApiError::message("Failed to decode verification token: {$error->getMessage()}");
+            throw ApiError::message("Failed to decode verification token: {$error->displayText()}");
         }
 
         if ($claims['sub'] !== $userUuid) {
@@ -175,6 +175,6 @@ final class TwoFactorTokens
 
     private static function decodeError(string $kind): ApiError
     {
-        return ApiError::message("Failed to decode verification token: Error decoding JWT: Error({$kind})");
+        return ApiError::message('Failed to decode verification token: '.ApiError::message("Error decoding JWT: Error({$kind})")->displayText());
     }
 }

@@ -81,6 +81,14 @@ final class ApiError extends RuntimeException
     }
 
     /**
+     * The error's Display formatting, which `{e}` shows: the JSON it responds with.
+     */
+    public function displayText(): string
+    {
+        return (string) $this->toResponse()->getContent();
+    }
+
+    /**
      * err! logs the message, without a stack trace.
      */
     public function report(): void
