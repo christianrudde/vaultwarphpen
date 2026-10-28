@@ -386,6 +386,16 @@ final class Send extends Model
     }
 
     /**
+     * @throws ApiError
+     */
+    public static function deleteAllByUser(string $userUuid): void
+    {
+        foreach (self::findByUser($userUuid) as $send) {
+            $send->deleteSend();
+        }
+    }
+
+    /**
      * @return Collection<int, self>
      */
     public static function findByUser(string $userUuid): Collection

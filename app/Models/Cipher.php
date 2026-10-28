@@ -630,6 +630,18 @@ final class Cipher extends Model
     }
 
     /**
+     * The user's own ciphers, not those of organizations.
+     *
+     * @throws ApiError
+     */
+    public static function deleteAllByUser(string $userUuid): void
+    {
+        foreach (self::findOwnedByUser($userUuid) as $cipher) {
+            $cipher->deleteCipher();
+        }
+    }
+
+    /**
      * @return Collection<int, self>
      */
     public static function findOwnedByUser(string $userUuid): Collection

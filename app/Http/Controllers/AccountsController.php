@@ -197,9 +197,9 @@ final readonly class AccountsController
             try {
                 if ($this->config->bool('signups_verify') && ! $emailVerified) {
                     $user->last_verifying_at = $user->created_at;
-                    Mail::send('welcome_must_verify', $user->email);
+                    Mail::sendWelcomeMustVerify($user->email, $user->uuid);
                 } else {
-                    Mail::send('welcome', $user->email);
+                    Mail::sendWelcome($user->email);
                 }
             } catch (Throwable $error) {
                 logger()->error("Error sending welcome email: {$error->getMessage()}");

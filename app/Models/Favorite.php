@@ -48,6 +48,18 @@ final class Favorite extends Model
     /**
      * @throws ApiError
      */
+    public static function deleteAllByUser(string $userUuid): void
+    {
+        try {
+            self::query()->where('user_uuid', $userUuid)->delete();
+        } catch (QueryException) {
+            throw ApiError::message('Error removing favorites by user');
+        }
+    }
+
+    /**
+     * @throws ApiError
+     */
     public static function deleteAllByCipher(string $cipherUuid): void
     {
         try {

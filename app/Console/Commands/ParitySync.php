@@ -17,7 +17,7 @@ class ParitySync extends Command
         ['migrations/mysql', 'database/vaultwarden/mysql', '#/up\.sql$#'],
         ['migrations/postgresql', 'database/vaultwarden/postgresql', '#/up\.sql$#'],
         ['src/static/templates', 'resources/vaultwarden/templates', '#\.hbs$#'],
-        ['src/static', 'resources/vaultwarden/static', '#^/global_domains\.json$#'],
+        ['src/static', 'resources/vaultwarden/static', '#^/(global_domains\.json|images/[^/]+)$#'],
     ];
 
     /**
@@ -28,7 +28,7 @@ class ParitySync extends Command
     /**
      * @var string
      */
-    protected $description = 'Copy migrations, templates and static data from the reference checkout';
+    protected $description = 'Copy migrations, templates, static data and images from the reference checkout';
 
     public function handle(): int
     {

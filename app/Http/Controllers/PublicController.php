@@ -16,7 +16,6 @@ use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\OrgPolicy;
 use App\Models\User;
-use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 
 /**
@@ -147,33 +146,16 @@ final readonly class PublicController
             return;
         }
         try {
-            Mail::send('send_invite', $user->email, ['org_id' => $orgId, 'member_id' => $member->uuid, 'org_name' => $org->name, 'invited_by_email' => $org->billing_email]);
+            Mail::sendInvite($user, $orgId, $member->uuid, $org->name, $org->billing_email);
         } catch (ApiError $error) {
             // Undo what the invitation added.
             if ($created) {
-                $this->deleteNewUser($user);
+                $user->deleteUser();
             } else {
                 $member->deleteMembership();
             }
 
-            throw ApiError::message("Error sending invite: {$error->getMessage()} ");
-        }
-    }
-
-    /**
-     * User::delete for a user created just now, who has nothing but the
-     * membership and maybe an invitation.
-     *
-     * @throws ApiError
-     */
-    private function deleteNewUser(User $user): void
-    {
-        Membership::deleteAllByUser($user->uuid);
-        Invitation::take($user->email);
-        try {
-            User::query()->where('uuid', $user->uuid)->delete();
-        } catch (QueryException) {
-            throw ApiError::message('Error deleting user');
+            throw ApiError::message("Error sending invite: {$error->debugText()} ");
         }
     }
 }

@@ -52,6 +52,8 @@ abstract class DifferentialTestCase extends TestCase
         '/^[A-Za-z0-9_-]{43}$/' => '<hash>',
         // Organization API keys.
         '/^[A-Za-z0-9]{30}$/' => '<api key>',
+        // Dates in mails, in the server's time zone.
+        '/[A-Z][a-z]+day, [A-Z][a-z]+ [ \d]\d, \d{4} at \d{2}:\d{2}:\d{2} [AP]M \S+/' => '<datetime>',
         // Each server builds URLs with its own address.
         '#http://127\.0\.0\.1:\d+#' => '<host>',
     ];
@@ -100,13 +102,13 @@ abstract class DifferentialTestCase extends TestCase
      * @param  callable(Server): array<string, Exchange>  $flow  The exchanges by step name
      * @return array{array<string, Exchange>, array<string, Exchange>} Reference and subject
      */
-    protected function assertSameFlowsOn(string $referenceUrl, string $subjectUrl, callable $flow): array
+    protected function assertSameFlowsOn(string $referenceUrl, string $subjectUrl, callable $flow, ?string $referenceMailDir = null, ?string $subjectMailDir = null): array
     {
         if ($referenceUrl === '' || $subjectUrl === '') {
             $this->markTestSkipped('This pair of servers is not configured.');
         }
-        $reference = $flow(new Server($referenceUrl));
-        $subject = $flow(new Server($subjectUrl));
+        $reference = $flow(new Server($referenceUrl, $referenceMailDir));
+        $subject = $flow(new Server($subjectUrl, $subjectMailDir));
 
         $this->assertSame(array_keys($reference), array_keys($subject), 'Steps of the flow');
         foreach ($reference as $step => $exchange) {
@@ -130,6 +132,19 @@ abstract class DifferentialTestCase extends TestCase
         );
 
         $this->assertSame(self::normalizedBody($reference), self::normalizedBody($subject), "Body of {$label}");
+    }
+
+    /**
+     * assertSameFlows on the pair of servers that send mail through SMTP
+     * sinks (VW_MAIL_*); Server::mail() reads what they sent.
+     *
+     * @param  callable(Server): array<string, Exchange>  $flow  The exchanges by step name
+     * @return array{array<string, Exchange>, array<string, Exchange>} Reference and subject
+     */
+    protected function assertSameMailFlows(callable $flow): array
+    {
+        return $this->assertSameFlowsOn((string) getenv('VW_MAIL_REFERENCE_URL'), (string) getenv('VW_MAIL_SUBJECT_URL'), $flow,
+            (string) getenv('VW_MAIL_REFERENCE_DIR'), (string) getenv('VW_MAIL_SUBJECT_DIR'));
     }
 
     /**

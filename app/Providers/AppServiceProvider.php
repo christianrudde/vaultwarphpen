@@ -17,6 +17,9 @@ use App\Config\Config;
 use App\Database\DatabaseUrl;
 use App\Database\SqlStatements;
 use App\Database\VaultwardenMigrator;
+use App\Mail\SendmailTransport;
+use App\Mail\SmtpTransport;
+use App\Mail\Transport as MailTransport;
 use App\Templates\TemplateRenderer;
 use Illuminate\Database\Connectors\ConnectionFactory;
 use Illuminate\Database\DatabaseManager;
@@ -66,6 +69,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(VaultwardenMigrator::class, fn (): VaultwardenMigrator => new VaultwardenMigrator(
             database_path('vaultwarden'),
         ));
+
+        // mail::send_with_selected_transport
+        $this->app->bind(MailTransport::class, fn (): MailTransport => $this->app->make(Config::class)->bool('use_sendmail')
+            ? new SendmailTransport($this->app->make(Config::class))
+            : new SmtpTransport($this->app->make(Config::class)));
 
         $this->app->singleton(TemplateRenderer::class, function (): TemplateRenderer {
             $config = $this->app->make(Config::class);

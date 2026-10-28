@@ -3,13 +3,42 @@
 namespace Tests\Differential;
 
 /**
- * One of the two servers in a flow of requests.
+ * One of the two servers in a flow of requests, with the mails it sent.
  */
 final readonly class Server
 {
     public function __construct(
         public string $baseUrl,
+        // Where the SMTP sink of the server writes its mails, for servers with mail.
+        public ?string $mailDir = null,
     ) {}
+
+    /**
+     * The last mail the server sent to the address.
+     */
+    public function mail(string $to): CapturedMail
+    {
+        $files = $this->mailDir === null ? [] : (glob("{$this->mailDir}/*.eml") ?: []);
+        rsort($files);
+        foreach ($files as $file) {
+            $mail = CapturedMail::parse((string) file_get_contents($file));
+            if (strcasecmp($mail->to, $to) === 0) {
+                return $mail;
+            }
+        }
+
+        throw new \RuntimeException("No mail to {$to} in {$this->mailDir}.");
+    }
+
+    /**
+     * The token of the link in the server's last mail to the address.
+     */
+    public function mailedToken(string $to): string
+    {
+        $text = $this->mail($to)->text;
+
+        return preg_match('/[?&]token=([\w.-]+)/', $text, $match) === 1 ? $match[1] : throw new \RuntimeException("No token in the mail to {$to}.");
+    }
 
     /**
      * @param  array<string, string>  $headers

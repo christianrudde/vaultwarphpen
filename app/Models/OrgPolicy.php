@@ -297,7 +297,7 @@ final class OrgPolicy extends Model
             }
             if (app(Config::class)->mailEnabled()) {
                 $org = Organization::findByUuid($member->org_uuid) ?? throw new \LogicException("Organization {$member->org_uuid} is missing");
-                Mail::send('send_2fa_removed_from_org', $user->email, ['org_name' => $org->name]);
+                Mail::send2faRemovedFromOrg($user->email, $org->name);
             }
             $member->revoke();
             $member->save();
@@ -320,7 +320,7 @@ final class OrgPolicy extends Model
             }
             if (app(Config::class)->mailEnabled()) {
                 $user = User::findByUuid($member->user_uuid) ?? throw new \LogicException("User {$member->user_uuid} is missing");
-                Mail::send('send_2fa_removed_from_org', $user->email, ['org_name' => $org->name]);
+                Mail::send2faRemovedFromOrg($user->email, $org->name);
             }
             $member->revoke();
             $member->save();

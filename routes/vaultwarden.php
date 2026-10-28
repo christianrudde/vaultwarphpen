@@ -181,6 +181,7 @@ Route::prefix('/api')->group(function (): void {
     Route::put('/organizations/{orgId}/users/{memberId}', [OrganizationsController::class, 'editMember'])->name('core::organizations::edit_member');
     Route::delete('/organizations/{orgId}/users/{memberId}', [OrganizationsController::class, 'deleteMember'])->name('core::organizations::delete_member');
     Route::post('/organizations/{orgId}/users/{memberId}/reinvite', [OrganizationsController::class, 'reinviteMember'])->name('core::organizations::reinvite_member');
+    Route::post('/organizations/{orgId}/users/{memberId}/accept', [OrganizationsController::class, 'acceptInvite'])->name('core::organizations::accept_invite');
     Route::post('/organizations/{orgId}/users/{memberId}/confirm', [OrganizationsController::class, 'confirmInvite'])->name('core::organizations::confirm_invite');
     Route::put('/organizations/{orgId}/users/{memberId}/revoke', [OrganizationsController::class, 'revokeMember'])->name('core::organizations::revoke_member');
     Route::put('/organizations/{orgId}/users/{memberId}/restore', [OrganizationsController::class, 'restoreMember'])->name('core::organizations::restore_member');

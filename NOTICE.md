@@ -50,7 +50,7 @@ What Vaultwarphpen takes from it:
   | `database/vaultwarden/mysql` | `migrations/mysql` (the `up.sql` files) |
   | `database/vaultwarden/postgresql` | `migrations/postgresql` (the `up.sql` files) |
   | `resources/vaultwarden/templates` | `src/static/templates` (Handlebars templates for mails, the admin panel and the web vault's CSS) |
-  | `resources/vaultwarden/static` | `src/static/global_domains.json` |
+  | `resources/vaultwarden/static` | `src/static/global_domains.json` and `src/static/images` (the images of the mails and the web pages) |
 
 - **Data derived from it:** `parity/matrix.json` and `PARITY.md` are extracted from its source;
   `parity/schema/*.json` describe the databases Vaultwarden itself creates.
@@ -100,7 +100,9 @@ byte for byte. No code is copied from them. Versions are those locked in Vaultwa
 | [jsonwebtoken](https://github.com/Keats/jsonwebtoken) | 11.1.0 | MIT | token validation and its error messages | `app/Auth/Jwt.php` |
 | [governor](https://github.com/boinkor-net/governor) | 0.10.4 | MIT | the GCRA rate limiter | `app/Support/RateLimiter.php` |
 | [data-encoding](https://github.com/ia0/data-encoding) | 2.11.1 | MIT | strict base64 decoding | `app/Models/Send.php` |
-| [url](https://github.com/servo/rust-url) | 2.5.8 | MIT or Apache-2.0 | WHATWG URL parsing of the settings | `app/Config/Url.php` |
+| [url](https://github.com/servo/rust-url) | 2.5.8 | MIT or Apache-2.0 | WHATWG URL parsing of the settings, the form encoding of mailed links | `app/Config/Url.php`, `app/Mail/Mail.php` |
+| [lettre](https://github.com/lettre/lettre) | 0.11.23 | MIT | how mails are built (alternative text and HTML, related inline images) and sent by SMTP or sendmail | `app/Mail` |
+| [handlebars-rust](https://github.com/sunng87/handlebars-rust) | 6.4.4 | MIT | strict rendering, HTML escaping and the helpers of the templates | `app/Templates` |
 
 ## Laravel
 

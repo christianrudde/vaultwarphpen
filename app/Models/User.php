@@ -12,6 +12,7 @@ use App\Support\EmailAddress;
 use App\Support\Random;
 use DateTimeImmutable;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 
 /**
  * src/db/models/user.rs
@@ -315,6 +316,52 @@ final class User extends Model
     /**
      * update_uuid_revision: failures are only logged.
      */
+    /**
+     * User::delete: with everything of the user. The last owner of an
+     * organization cannot go.
+     *
+     * @throws ApiError
+     */
+    public function deleteUser(): void
+    {
+        foreach (Membership::findConfirmedByUser($this->uuid) as $member) {
+            if ($member->atype === Membership::TYPE_OWNER && Membership::countConfirmedByOrgAndType($member->org_uuid, Membership::TYPE_OWNER) <= 1) {
+                throw ApiError::message("Can't delete last owner");
+            }
+        }
+
+        Send::deleteAllByUser($this->uuid);
+        EmergencyAccess::deleteAllByUser($this->uuid);
+        EmergencyAccess::deleteAllByGranteeEmail($this->email);
+        Membership::deleteAllByUser($this->uuid);
+        Cipher::deleteAllByUser($this->uuid);
+        Favorite::deleteAllByUser($this->uuid);
+        Folder::deleteAllByUser($this->uuid);
+        self::deleteRowsOf('auth_requests', $this->uuid, 'Error deleting auth requests for user');
+        Device::deleteAllByUser($this->uuid);
+        TwoFactor::deleteAllByUser($this->uuid);
+        self::deleteRowsOf('twofactor_incomplete', $this->uuid, 'Error in twofactor_incomplete::delete_all_by_user()');
+        Invitation::take($this->email);
+
+        try {
+            self::query()->where('uuid', $this->uuid)->delete();
+        } catch (QueryException) {
+            throw ApiError::message('Error deleting user');
+        }
+    }
+
+    /**
+     * @throws ApiError
+     */
+    private static function deleteRowsOf(string $table, string $userUuid, string $error): void
+    {
+        try {
+            DB::table($table)->where('user_uuid', $userUuid)->delete();
+        } catch (QueryException) {
+            throw ApiError::message($error);
+        }
+    }
+
     public static function updateUuidRevision(string $uuid): void
     {
         try {

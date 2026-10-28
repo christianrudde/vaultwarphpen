@@ -231,7 +231,7 @@ final readonly class IdentityController
                 // Hide that the account exists: the mail path takes about as long.
                 usleep(random_int(900, 1_100) * 1_000);
             } else {
-                Mail::send('register_verify_email', $email, ['token' => $token]);
+                Mail::sendRegisterVerifyEmail($email, $token);
             }
 
             return (new EmptyResponse)->setStatusCode(204);
@@ -484,7 +484,7 @@ final readonly class IdentityController
         }
 
         try {
-            Mail::send('new_device_logged_in', $user->email, ['ip' => $ip, 'device' => $device->name]);
+            Mail::sendNewDeviceLoggedIn($user->email, $ip, Dates::now(), $device);
         } catch (ApiError $error) {
             logger()->error("Error sending new device email: {$error->getMessage()}");
             if ($this->config->bool('require_device_email')) {
@@ -518,7 +518,7 @@ final readonly class IdentityController
         }
 
         try {
-            Mail::send('verify_email', $user->email);
+            Mail::sendVerifyEmail($user->email, $user->uuid);
         } catch (ApiError $error) {
             logger()->error("Error auto-sending email verification email: {$error->getMessage()}");
         }

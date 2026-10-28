@@ -7,6 +7,7 @@ use App\Models\Casts\NaiveDateTime;
 use App\Support\Dates;
 use DateTimeImmutable;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\QueryException;
 
 /**
  * src/db/models/emergency_access.rs; so far the parts registration needs.
@@ -61,6 +62,46 @@ final class EmergencyAccess extends Model
         $this->upsertRow(['uuid'], 'Error saving emergency access');
 
         return true;
+    }
+
+    /**
+     * Tells the grantor's clients to sync.
+     *
+     * @throws ApiError
+     */
+    public function deleteAccess(): void
+    {
+        User::updateUuidRevision($this->grantor_uuid);
+        try {
+            self::query()->where('uuid', $this->uuid)->delete();
+        } catch (QueryException) {
+            throw ApiError::message('Error removing user from emergency access');
+        }
+    }
+
+    /**
+     * The accesses the user grants and those granted to the user.
+     *
+     * @throws ApiError
+     */
+    public static function deleteAllByUser(string $userUuid): void
+    {
+        foreach (self::query()->where('grantor_uuid', $userUuid)->get() as $access) {
+            $access->deleteAccess();
+        }
+        foreach (self::query()->where('grantee_uuid', $userUuid)->get() as $access) {
+            $access->deleteAccess();
+        }
+    }
+
+    /**
+     * @throws ApiError
+     */
+    public static function deleteAllByGranteeEmail(string $email): void
+    {
+        foreach (self::findAllInvitedByGranteeEmail($email) as $access) {
+            $access->deleteAccess();
+        }
     }
 
     public static function findInvitedByGranteeEmail(string $email): ?self

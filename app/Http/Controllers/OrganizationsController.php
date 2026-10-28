@@ -521,6 +521,7 @@ final readonly class OrganizationsController
         foreach ($emails as $email) {
             $status = Membership::STATUS_INVITED;
             $user = User::findByMail($email);
+            $created = $user === null;
             if ($user === null) {
                 if (! $this->config->bool('invitations_allowed')) {
                     throw ApiError::message('User does not exist: '.addcslashes($email, "\0..\37\"\\"));
@@ -554,7 +555,19 @@ final readonly class OrganizationsController
             $member->save();
 
             if ($this->config->mailEnabled()) {
-                throw ApiError::message('Sending mail is not implemented yet');
+                $org = Organization::findByUuid($orgId) ?? throw ApiError::message('Error looking up organization');
+                try {
+                    Mail::sendInvite($user, $orgId, $member->uuid, $org->name, $headers->user->email);
+                } catch (ApiError $error) {
+                    // Undo what the invitation added.
+                    if ($created) {
+                        $user->deleteUser();
+                    } else {
+                        $member->deleteMembership();
+                    }
+
+                    throw ApiError::message("Error sending invite: {$error->debugText()} ");
+                }
             }
 
             self::logEvent(Event::ORGANIZATION_USER_INVITED, $member->uuid, $orgId, $headers);
@@ -575,12 +588,61 @@ final readonly class OrganizationsController
     }
 
     /**
+     * POST /api/organizations/{org_id}/users/{member_id}/accept: the invited
+     * user accepts with the mailed token, which names the organization and
+     * the membership.
+     */
+    public function acceptInvite(Headers $headers, Request $request, string $orgId, string $memberId): EmptyResponse
+    {
+        $orgId = Uuid::parameter($request, $orgId);
+        $memberId = Uuid::parameter($request, $memberId);
+        $body = Body::json($request);
+        $token = $body->string('token');
+        $resetPasswordKey = $body->optionalString('resetPasswordKey');
+
+        $claims = $this->jwt->decode($token, JwtIssuer::Invite, fields: Jwt::INVITE_CLAIMS);
+        // Nobody else may accept the invitation.
+        if ($claims['email'] !== $headers->user->email) {
+            throw ApiError::message('Invitation was issued to a different account', logMessage: 'Claim does not match user_id');
+        }
+        if ($claims['org_id'] !== $orgId) {
+            throw ApiError::message('Error accepting the invitation', logMessage: 'Claim does not match the org_id');
+        }
+        if ($claims['member_id'] !== $memberId) {
+            throw ApiError::message('Error accepting the invitation', logMessage: 'Claim does not match the member_id');
+        }
+        Invitation::take($claims['email']);
+
+        // Invitations from the admin panel need no acceptance.
+        if ($claims['member_id'] === self::FAKE_ADMIN_UUID) {
+            if ($this->config->mailEnabled()) {
+                Mail::sendInviteConfirmed($claims['email'], $this->config->string('invitation_org_name'));
+            }
+
+            return new EmptyResponse;
+        }
+
+        $membership = Membership::findByUuidAndOrg($claims['member_id'], $claims['org_id']) ?? throw ApiError::message('Error accepting the invitation');
+        if ($this->orgIsResetPasswordAutoEnroll($membership->org_uuid)) {
+            $resetPasswordKey ?? throw ApiError::message('Reset password key is required, but not provided.');
+        } else {
+            $resetPasswordKey = null;
+        }
+        // For members invited before the inviter was stored.
+        $membership->invited_by_email ??= is_string($claims['invited_by_email']) ? $claims['invited_by_email'] : null;
+
+        $this->acceptOrgInvite($headers->user, $membership, $resetPasswordKey);
+
+        return new EmptyResponse;
+    }
+
+    /**
      * POST /api/organizations/{org_id}/users/{member_id}/reinvite
      */
     public function reinviteMember(AdminHeaders $headers, Request $request, string $orgId, string $memberId): EmptyResponse
     {
         $orgId = $this->orgId($request, $orgId, $headers);
-        $this->reinvite($orgId, Uuid::parameter($request, $memberId));
+        $this->reinvite($orgId, Uuid::parameter($request, $memberId), $headers->user->email);
 
         return new EmptyResponse;
     }
@@ -593,7 +655,7 @@ final readonly class OrganizationsController
         $orgId = $this->orgId($request, $orgId, $headers);
         $ids = Body::json($request)->stringList('ids');
 
-        return self::bulkResponse($ids, 'OrganizationBulkConfirmResponseModel', fn (string $id) => $this->reinvite($orgId, $id));
+        return self::bulkResponse($ids, 'OrganizationBulkConfirmResponseModel', fn (string $id) => $this->reinvite($orgId, $id, $headers->user->email));
     }
 
     /**
@@ -899,10 +961,9 @@ final readonly class OrganizationsController
 
         // The mail goes first: it proves the mail settings work and tells the user.
         try {
-            Mail::send('admin_account_recovery', $user->email, ['user_name' => $user->displayName(), 'org_name' => $org->name,
-                'reset_master_password' => $resetMasterPassword, 'reset_two_factor' => $resetTwoFactor, 'fallback_2fa_email' => $fallbackEmail]);
+            Mail::sendAdminAccountRecovery($user->email, $user->displayName(), $org->name, $resetMasterPassword, $resetTwoFactor, $fallbackEmail);
         } catch (ApiError $error) {
-            throw ApiError::message("Error sending user reset password email: {$error->getMessage()}");
+            throw ApiError::message("Error sending user reset password email: {$error->debugText()}");
         }
 
         if ($newPassword !== null) {
@@ -1346,7 +1407,7 @@ final readonly class OrganizationsController
                     if ($this->config->mailEnabled()) {
                         $org = Organization::findByUuid($member->org_uuid) ?? throw new \LogicException("Organization {$member->org_uuid} is missing");
                         $user = User::findByUuid($member->user_uuid) ?? throw new \LogicException("User {$member->user_uuid} is missing");
-                        Mail::send('send_single_org_removed_from_org', $user->email, ['org_name' => $org->name]);
+                        Mail::sendSingleOrgRemovedFromOrg($user->email, $org->name);
                     }
                     self::logEvent(Event::ORGANIZATION_USER_REMOVED, $member->uuid, $orgId, $headers);
                     $member->revoke();
@@ -1416,6 +1477,29 @@ final readonly class OrganizationsController
         }
 
         return Json::response(Json::sorted(['apiKey' => $apiKey->api_key, 'revisionDate' => Dates::format($apiKey->revision_date), 'object' => 'apiKey']));
+    }
+
+    /**
+     * core::accept_org_invite: accepted, if the policies allow it; whoever
+     * invited the member hears of it.
+     *
+     * @throws ApiError
+     */
+    private function acceptOrgInvite(User $user, Membership $member, ?string $resetPasswordKey): void
+    {
+        if ($member->status !== Membership::STATUS_INVITED) {
+            throw ApiError::message('User already accepted the invitation');
+        }
+        $member->status = Membership::STATUS_ACCEPTED;
+        $member->reset_password_key = $resetPasswordKey;
+        OrgPolicy::checkUserAllowed($member, 'join');
+        $member->save();
+
+        if ($this->config->mailEnabled()) {
+            $org = Organization::findByUuid($member->org_uuid) ?? throw ApiError::message('Organization not found.');
+            // The member must be confirmed by hand now.
+            Mail::sendInviteAccepted($user->email, $member->invited_by_email ?? $org->billing_email, $org->name);
+        }
     }
 
     /**
@@ -1639,11 +1723,12 @@ final readonly class OrganizationsController
     }
 
     /**
-     * organizations::reinvite_member_impl, without mail.
+     * organizations::reinvite_member_impl: the invitation goes out again by
+     * mail; without mail, users with an account accept right away.
      *
      * @throws ApiError
      */
-    private function reinvite(string $orgId, string $memberId): void
+    private function reinvite(string $orgId, string $memberId, string $invitedByEmail): void
     {
         $member = Membership::findByUuidAndOrg($memberId, $orgId) ?? throw ApiError::message("The user hasn't been invited to the organization.");
         if ($member->status !== Membership::STATUS_INVITED) {
@@ -1653,12 +1738,11 @@ final readonly class OrganizationsController
         if (! $this->config->bool('invitations_allowed') && $user->password_hash === '') {
             throw ApiError::message('Invitations are not allowed.');
         }
-        Organization::findByUuid($orgId) ?? throw ApiError::message('Error looking up organization.');
+        $org = Organization::findByUuid($orgId) ?? throw ApiError::message('Error looking up organization.');
 
         if ($this->config->mailEnabled()) {
-            throw ApiError::message('Sending mail is not implemented yet');
-        }
-        if ($user->password_hash === '') {
+            Mail::sendInvite($user, $orgId, $member->uuid, $org->name, $invitedByEmail);
+        } elseif ($user->password_hash === '') {
             Invitation::new($user->email)->save();
         } else {
             Invitation::take($user->email);
@@ -1695,7 +1779,9 @@ final readonly class OrganizationsController
         self::logEvent(Event::ORGANIZATION_USER_CONFIRMED, $member->uuid, $orgId, $headers);
 
         if ($this->config->mailEnabled()) {
-            throw ApiError::message('Sending mail is not implemented yet');
+            $org = Organization::findByUuid($orgId) ?? throw ApiError::message('Error looking up organization.');
+            $user = User::findByUuid($member->user_uuid) ?? throw ApiError::message('Error looking up user.');
+            Mail::sendInviteConfirmed($user->email, $org->name);
         }
 
         $member->save();
