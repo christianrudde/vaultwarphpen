@@ -19,6 +19,7 @@ use App\Database\DatabaseUrl;
 use App\Database\SqlStatements;
 use App\Database\VaultwardenMigrator;
 use App\Logging\LogLevel;
+use App\Logging\LogOutputs;
 use App\Mail\SendmailTransport;
 use App\Mail\SmtpTransport;
 use App\Mail\Transport as MailTransport;
@@ -115,6 +116,9 @@ class AppServiceProvider extends ServiceProvider
             }
 
             LogLevel::configure($this->app->make('config'), $level);
+            if ($level !== null) {
+                LogOutputs::configure($this->app->make('config'), $this->app->make(Config::class), $level);
+            }
         });
     }
 

@@ -53,8 +53,10 @@ no effect so far. The `config:` items in [PARITY.md](../PARITY.md) show the stat
   it), not to standard output. `LOG_LEVEL` takes Vaultwarden's values and sets the level of every
   channel: `trace` and `debug` become Laravel's `debug`, `warn` becomes `warning`, and `off` turns the
   log off. Levels for single modules, as in `info,vaultwarden::api::icons=debug`, are checked like
-  Vaultwarden does, but only the first level counts. `EXTENDED_LOGGING`, `LOG_TIMESTAMP_FORMAT`,
-  `USE_SYSLOG` and `LOG_FILE` have no effect yet.
+  Vaultwarden does, but only the first level counts. The lines look like Vaultwarden's
+  (`EXTENDED_LOGGING`, `LOG_TIMESTAMP_FORMAT`), with `vaultwarphpen` where Vaultwarden names its Rust
+  module. `LOG_FILE` adds a file and `USE_SYSLOG` the syslog (as `vaultwarden`, facility user), as in
+  Vaultwarden; a file is not reopened on `SIGHUP`, which PHP does not need.
 - **Scheduled jobs** run in a process of their own (`php artisan vaultwarden:schedule`) or from cron
   (`--once`), not inside the web server ([Installation](installation.md#scheduled-jobs)).
   `JOB_POLL_INTERVAL_MS` sets how often the process checks; with cron, cron decides, but `0` still

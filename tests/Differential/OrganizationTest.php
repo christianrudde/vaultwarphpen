@@ -346,6 +346,28 @@ class OrganizationTest extends DifferentialTestCase
         });
     }
 
+    #[Parity('route:GET /api/plans')]
+    #[Parity('route:GET /api/organizations/{_org_id}/billing/vnext/warnings')]
+    #[Parity('route:GET /api/organizations/{_org_id}/billing/vnext/self-host/metadata')]
+    public function test_plans_and_billing(): void
+    {
+        $this->assertSameFlows(function (Server $server): array {
+            [$owner] = CipherTest::session($server, 'billing-owner@example.com');
+            [$stranger] = CipherTest::session($server, 'billing-stranger@example.com');
+            $org = $server->json('POST', '/api/organizations', self::org(), $owner)->jsonString('id');
+            $billing = "/api/organizations/{$org}/billing/vnext";
+
+            return [
+                'plans' => $server->send('GET', '/api/plans'),
+                'warnings' => $server->send('GET', "{$billing}/warnings", $owner),
+                'warnings for a stranger' => $server->send('GET', "{$billing}/warnings", $stranger),
+                'warnings unauthenticated' => $server->send('GET', "{$billing}/warnings"),
+                'metadata' => $server->send('GET', "{$billing}/self-host/metadata", $owner),
+                'metadata of a bad id' => $server->send('GET', '/api/organizations/nope/billing/vnext/self-host/metadata', $owner),
+            ];
+        });
+    }
+
     /**
      * A secure note.
      *

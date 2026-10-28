@@ -109,7 +109,7 @@ byte for byte. No code is copied from them. Versions are those locked in Vaultwa
 |---|---|---|---|---|
 | [Diesel](https://github.com/diesel-rs/diesel) | 2.3.14 | MIT or Apache-2.0 | upserts, the migration bookkeeping in `__diesel_schema_migrations`, how timestamps and connections are stored and set up | `app/Database`, `app/Models` |
 | [serde](https://github.com/serde-rs/serde), [serde_json](https://github.com/serde-rs/json) | 1.0.154 (serde_json) | MIT or Apache-2.0 | key order, number and string formatting of JSON, deserialisation rules | `app/Http/Json.php`, `app/Http/Data`, `app/Support/JsonValue.php` |
-| [chrono](https://github.com/chronotope/chrono) | 0.4.45 | MIT or Apache-2.0 | parsing and formatting of dates | `app/Support/Dates.php`, `app/Models/Casts/NaiveDateTime.php` |
+| [chrono](https://github.com/chronotope/chrono) | 0.4.45 | MIT or Apache-2.0 | parsing and formatting of dates, the strftime specifiers of the log timestamps | `app/Support/Dates.php`, `app/Models/Casts/NaiveDateTime.php`, `app/Logging/Strftime.php` |
 | [jsonwebtoken](https://github.com/Keats/jsonwebtoken) | 11.1.0 | MIT | token validation and its error messages | `app/Auth/Jwt.php` |
 | [governor](https://github.com/boinkor-net/governor) | 0.10.4 | MIT | the GCRA rate limiter | `app/Support/RateLimiter.php` |
 | [data-encoding](https://github.com/ia0/data-encoding) | 2.11.1 | MIT | strict base64 decoding | `app/Models/Send.php`, `app/Auth/Sso/Sso.php` |

@@ -8,8 +8,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 
 | Area | Total | ✅ | 🟨 | ⬜ | ➖ | With tests |
 |---|--:|--:|--:|--:|--:|--:|
-| Routes | 294 | 220 | 66 | 7 | 1 | 286 |
-| Settings | 153 | 101 | 52 | 0 | 0 | 153 |
+| Routes | 294 | 223 | 66 | 4 | 1 | 289 |
+| Settings | 153 | 105 | 48 | 0 | 0 | 153 |
 | Scheduled jobs | 9 | 9 | 0 | 0 | 0 | 9 |
 | Database tables | 28 | 28 | 0 | 0 | 0 | 28 |
 | Templates | 74 | 62 | 12 | 0 | 0 | 74 |
@@ -203,7 +203,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | GET `/api/organizations/{org_id}/policies/master-password` | src/api/core/organizations.rs:1977 | 1 | Compared with Vaultwarden in tests/Differential/PolicyTest, including what enabling the 2FA and single organization policies does to members. |
 | ✅ | GET `/api/organizations/{org_id}/policies/{pol_type}` | src/api/core/organizations.rs:1992 | 1 | Compared with Vaultwarden in tests/Differential/PolicyTest, including what enabling the 2FA and single organization policies does to members. |
 | ✅ | PUT `/api/organizations/{org_id}/policies/{pol_type}` | src/api/core/organizations.rs:2025 | 1 | Compared with Vaultwarden in tests/Differential/PolicyTest, including what enabling the 2FA and single organization policies does to members. |
-| ⬜ | GET `/api/plans` | src/api/core/organizations.rs:2144 | 0 |  |
+| ✅ | GET `/api/plans` | src/api/core/organizations.rs:2144 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
 | ✅ | POST `/api/organizations/{org_id}/keys` | src/api/core/organizations.rs:929 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
 | ✅ | GET `/api/organizations/{org_id}/keys` | src/api/core/organizations.rs:2790 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
 | ✅ | GET `/api/organizations/{org_id}/public-key` | src/api/core/organizations.rs:2773 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
@@ -228,9 +228,9 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | GET `/api/organizations/{org_id}/export` | src/api/core/organizations.rs:3046 | 1 | Compared with Vaultwarden in tests/Differential/ImportExportTest. |
 | ✅ | POST `/api/organizations/{org_id}/api-key` | src/api/core/organizations.rs:3095 | 1 | Compared with Vaultwarden in tests/Differential/ApiKeyTest, with the login of the key. |
 | ✅ | POST `/api/organizations/{org_id}/rotate-api-key` | src/api/core/organizations.rs:3105 | 1 | Compared with Vaultwarden in tests/Differential/ApiKeyTest, with the login of the key. |
-| ⬜ | GET `/api/organizations/{_org_id}/billing/vnext/warnings` | src/api/core/organizations.rs:2172 | 0 |  |
+| ✅ | GET `/api/organizations/{_org_id}/billing/vnext/warnings` | src/api/core/organizations.rs:2172 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
 | ✅ | GET `/api/organizations/{identifier}/auto-enroll-status` | src/api/core/organizations.rs:330 | 1 | Compared with Vaultwarden in tests/Differential/SsoTest against a fake OpenID provider (.github/scripts/fake-services.php); also tests/Feature/Api/SsoTest and tests/Unit/Auth/SsoTest. |
-| ⬜ | GET `/api/organizations/{_org_id}/billing/vnext/self-host/metadata` | src/api/core/organizations.rs:2182 | 0 |  |
+| ✅ | GET `/api/organizations/{_org_id}/billing/vnext/self-host/metadata` | src/api/core/organizations.rs:2182 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
 | ✅ | GET `/api/two-factor` | src/api/core/two_factor/mod.rs:86 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest (the test computes the codes), with logins that need the code. |
 | ✅ | POST `/api/two-factor/get-recover` | src/api/core/two_factor/mod.rs:104 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest on the servers with mail (codes read from the mails) and without; expiry and attempt limits in tests/Feature/Api/TwoFactorTest. |
 | ✅ | GET `/api/two-factor/get-device-verification-settings` | src/api/core/two_factor/mod.rs:258 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest (the test computes the codes), with logins that need the code. |
@@ -393,10 +393,10 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | `EXPERIMENTAL_CLIENT_FEATURE_FLAGS` | src/config.rs:742 | 3 | Read, defaulted and validated like Vaultwarden (App\Config); GET /api/config lists the supported flags (tests/Feature/Api/AccountManagementTest, compared in tests/Differential/AccountManagementTest). |
 | ✅ | `REQUIRE_DEVICE_EMAIL` | src/config.rs:746 | 2 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it; tested in tests/Feature/Api/LoginTest. |
 | ✅ | `RELOAD_TEMPLATES` | src/config.rs:750 | 2 | Read like Vaultwarden (environment, *_FILE, config.json, default) and used: DATABASE_URL drives the default connection, the templates folder and reload drive the renderer. |
-| 🟨 | `EXTENDED_LOGGING` | src/config.rs:752 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `LOG_TIMESTAMP_FORMAT` | src/config.rs:754 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `USE_SYSLOG` | src/config.rs:756 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `LOG_FILE` | src/config.rs:758 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `EXTENDED_LOGGING` | src/config.rs:752 | 3 | Read, defaulted and validated like Vaultwarden (App\Config) and applied to Laravel's log channels (App\Logging\LogOutputs, App\Logging\VaultwardenFormatter); tested in tests/Feature/Config/AppConfigTest. |
+| ✅ | `LOG_TIMESTAMP_FORMAT` | src/config.rs:754 | 3 | Read, defaulted and validated like Vaultwarden (App\Config) and applied to Laravel's log channels (App\Logging\LogOutputs, App\Logging\VaultwardenFormatter); tested in tests/Feature/Config/AppConfigTest. chrono's specifiers become PHP's date format (App\Logging\Strftime, tests/Unit/Logging/LogLevelTest). |
+| ✅ | `USE_SYSLOG` | src/config.rs:756 | 2 | Read, defaulted and validated like Vaultwarden (App\Config) and applied to Laravel's log channels (App\Logging\LogOutputs, App\Logging\VaultwardenFormatter); tested in tests/Feature/Config/AppConfigTest. |
+| ✅ | `LOG_FILE` | src/config.rs:758 | 2 | Read, defaulted and validated like Vaultwarden (App\Config) and applied to Laravel's log channels (App\Logging\LogOutputs, App\Logging\VaultwardenFormatter); tested in tests/Feature/Config/AppConfigTest. The file is not reopened on SIGHUP, which PHP does not need. |
 | ✅ | `LOG_LEVEL` | src/config.rs:761 | 4 | Validated like init_logging (src/main.rs) and applied to every Laravel log channel (App\Logging\LogLevel): trace becomes debug, warn becomes warning, off logs nothing. Levels for single modules are accepted, but only the global level applies. |
 | ✅ | `ENABLE_DB_WAL` | src/config.rs:765 | 2 | Read like Vaultwarden (environment, *_FILE, config.json, default) and used: DATABASE_URL drives the default connection, the templates folder and reload drive the renderer. |
 | 🟨 | `DB_CONNECTION_RETRIES` | src/config.rs:768 | 1 | Read and validated like Vaultwarden; PHP opens one connection per request, so there is no pool to size yet. |

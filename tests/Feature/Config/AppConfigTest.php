@@ -76,7 +76,38 @@ class AppConfigTest extends TestCase
 
         $log = (string) file_get_contents("{$this->base}/laravel.log");
         $this->assertStringNotContainsString('not logged', $log);
-        $this->assertStringContainsString('.WARNING: logged', $log);
+        $this->assertStringContainsString('[vaultwarphpen][WARN] logged', $log);
+    }
+
+    #[Parity('config:EXTENDED_LOGGING')]
+    #[Parity('config:LOG_TIMESTAMP_FORMAT')]
+    #[Parity('config:LOG_FILE')]
+    public function test_log_lines_and_the_log_file(): void
+    {
+        $this->logTo("{$this->base}/laravel.log");
+        $this->useConfig(['LOG_FILE' => 'data/vaultwarden.log', 'LOG_TIMESTAMP_FORMAT' => '%d.%m.%Y %H:%M:%S%.3f (%Z)']);
+
+        Log::warning('careful');
+        Log::notice('noted');
+
+        $line = '\[\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}:\d{2}\.\d{3} \(UTC\)\]\[vaultwarphpen\]';
+        $expected = "/^{$line}\[WARN\] careful\n{$line}\[INFO\] noted\n$/";
+        $this->assertMatchesRegularExpression($expected, (string) file_get_contents("{$this->base}/laravel.log"));
+        $this->assertMatchesRegularExpression($expected, (string) file_get_contents("{$this->base}/data/vaultwarden.log"));
+    }
+
+    #[Parity('config:EXTENDED_LOGGING')]
+    #[Parity('config:USE_SYSLOG')]
+    public function test_plain_lines_and_the_syslog(): void
+    {
+        $this->logTo("{$this->base}/laravel.log");
+        $this->useConfig(['EXTENDED_LOGGING' => 'false', 'USE_SYSLOG' => 'true']);
+
+        Log::error('broken');
+
+        $this->assertSame("broken\n", file_get_contents("{$this->base}/laravel.log"));
+        $this->assertSame(['single', 'vaultwarden_syslog'], config('logging.channels.vaultwarden.channels'));
+        $this->assertSame(['ident' => 'vaultwarden', 'facility' => LOG_USER], config('logging.channels.vaultwarden_syslog.handler_with'));
     }
 
     #[Parity('config:LOG_LEVEL')]

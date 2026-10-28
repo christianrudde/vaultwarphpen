@@ -226,6 +226,10 @@ Route::prefix('/api')->group(function (): void {
     Route::get('/organizations/{orgId}/export', [OrganizationsController::class, 'getOrgExport'])->name('core::organizations::get_org_export');
     Route::post('/organizations/{orgId}/api-key', [OrganizationsController::class, 'postApiKey'])->name('core::organizations::post_api_key');
     Route::post('/organizations/{orgId}/rotate-api-key', [OrganizationsController::class, 'rotateApiKey'])->name('core::organizations::rotate_api_key');
+    Route::get('/plans', [OrganizationsController::class, 'getPlans'])->name('core::organizations::get_plans');
+    Route::get('/organizations/{orgId}/billing/vnext/warnings', [OrganizationsController::class, 'getBillingWarnings'])->name('core::organizations::get_billing_warnings');
+    Route::get('/organizations/{orgId}/billing/vnext/self-host/metadata', [OrganizationsController::class, 'getSelfHostBillingMetadata'])
+        ->name('core::organizations::get_self_host_billing_metadata');
     Route::post('/organizations/domain/sso/verified', [OrganizationsController::class, 'getOrgDomainSsoVerified'])->name('core::organizations::get_org_domain_sso_verified');
     Route::get('/organizations/{identifier}/auto-enroll-status', [OrganizationsController::class, 'getAutoEnrollStatus'])->name('core::organizations::get_auto_enroll_status');
     Route::get('/organizations/{orgId}/policies', [OrganizationsController::class, 'listPolicies'])->name('core::organizations::list_policies');

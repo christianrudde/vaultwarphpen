@@ -4,6 +4,7 @@ namespace Tests\Unit\Logging;
 
 use App\Config\ConfigException;
 use App\Logging\LogLevel;
+use App\Logging\Strftime;
 use Illuminate\Config\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -30,6 +31,15 @@ class LogLevelTest extends TestCase
         yield 'one module' => ['info,vaultwarden::api::icons=debug', 'info'];
         yield 'several modules' => ['error,vaultwarden::db::query_logger=warn,rocket=OFF', 'error'];
         yield 'module after a space' => ['info, rocket=off', 'info'];
+    }
+
+    #[Parity('config:LOG_TIMESTAMP_FORMAT')]
+    public function test_chrono_timestamp_formats_become_date_formats(): void
+    {
+        $this->assertSame('Y-m-d H:i:s.v', Strftime::toDateFormat('%Y-%m-%d %H:%M:%S.%3f'));
+        // %% is a percent sign; an unknown specifier stays as it is.
+        $this->assertSame('\a\t H:i:s.u P %%\Q', Strftime::toDateFormat('at %T%.6f %:z %%%Q'));
+        $this->assertSame('D, d M Y', Strftime::toDateFormat('%a, %d %b %Y'));
     }
 
     #[DataProvider('validLevels')]

@@ -1332,6 +1332,38 @@ final readonly class OrganizationsController
     }
 
     /**
+     * GET /api/plans: just enough for the clients to create an organization.
+     */
+    public function getPlans(): Response
+    {
+        $free = static fn (int $product): array => ['object' => 'plan', 'type' => 0, 'product' => $product, 'name' => 'Free',
+            'nameLocalizationKey' => 'planNameFree', 'bitwardenProduct' => $product, 'maxUsers' => 0, 'descriptionLocalizationKey' => 'planDescFree'];
+
+        return Json::response(Json::sorted(['object' => 'list', 'data' => [$free(0), $free(1)], 'continuationToken' => null]));
+    }
+
+    /**
+     * GET /api/organizations/{org_id}/billing/vnext/warnings: there is no billing to warn about.
+     */
+    public function getBillingWarnings(OrgMemberHeaders $headers, Request $request, string $orgId): Response
+    {
+        Uuid::parameter($request, $orgId);
+
+        return Json::response(Json::sorted(['freeTrial' => null, 'inactiveSubscription' => null, 'resellerRenewal' => null, 'taxId' => null]));
+    }
+
+    /**
+     * GET /api/organizations/{org_id}/billing/vnext/self-host/metadata: no
+     * Secrets Manager and no seat count, but no 404 the web vault trips on.
+     */
+    public function getSelfHostBillingMetadata(OrgMemberHeaders $headers, Request $request, string $orgId): Response
+    {
+        Uuid::parameter($request, $orgId);
+
+        return Json::response(Json::sorted(['isOnSecretsManagerStandalone' => false, 'organizationOccupiedSeats' => 0]));
+    }
+
+    /**
      * POST /api/organizations/domain/sso/verified: the clients prefill the
      * organization identifier of an SSO login with it; there is a single SSO
      * integration, so a dummy, whether SSO is enabled or not.
