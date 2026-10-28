@@ -351,8 +351,8 @@ class MigrationTest extends TestCase
         }
         // The admin panel's overviews, and the settings it saved.
         $views['admin users'] = $this->admin('GET', '/admin/users');
-        $views['admin users overview'] = $this->admin('GET', '/admin/users/overview');
-        $views['admin organizations overview'] = $this->admin('GET', '/admin/organizations/overview');
+        $views['admin users overview'] = self::tableRowsInOrder($this->admin('GET', '/admin/users/overview'));
+        $views['admin organizations overview'] = self::tableRowsInOrder($this->admin('GET', '/admin/organizations/overview'));
         $views['admin settings'] = $this->admin('GET', '/admin/diagnostics/config');
         foreach ($this->installation->records('attachments') as [$user, $cipher, $attachment]) {
             $views["attachment {$attachment}"] = $metadata = $this->get((string) $user, "/api/ciphers/{$cipher}/attachment/{$attachment}");
@@ -630,11 +630,47 @@ class MigrationTest extends TestCase
     private static function normalized(mixed $value): mixed
     {
         return match (true) {
-            is_array($value) => array_map(self::normalized(...), $value),
+            is_array($value) => self::rowsInOrder(array_map(self::normalized(...), $value)),
             $value instanceof stdClass => (object) array_map(self::normalized(...), get_object_vars($value)),
             is_string($value) => (string) preg_replace('/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/', '<jwt>', $value),
             default => $value,
         };
+    }
+
+    /**
+     * A page of the admin panel with the rows of its tables in a stable
+     * order, for the reason of rowsInOrder().
+     */
+    private static function tableRowsInOrder(Exchange $page): Exchange
+    {
+        return $page->withBody((string) preg_replace_callback('#<tbody>(.*?)</tbody>#s', static function (array $table): string {
+            preg_match_all('#<tr\b.*?</tr>#s', $table[1], $rows);
+            sort($rows[0]);
+
+            return '<tbody>'.implode("\n", $rows[0]).'</tbody>';
+        }, $page->body));
+    }
+
+    /**
+     * Lists of rows (objects with an id or of an API object type, or ids) in
+     * a stable order. Neither Vaultwarden nor we sort them, so they come in
+     * the order of each query's plan, which differs on PostgreSQL; clients
+     * give it no meaning. What a row holds in order (fields, password
+     * history, URIs) keeps it.
+     *
+     * @param  array<mixed>  $list
+     * @return array<mixed>
+     */
+    private static function rowsInOrder(array $list): array
+    {
+        $rows = $list !== [] && array_is_list($list) && (array_all($list, static fn (mixed $item): bool => $item instanceof stdClass
+            && (is_string($item->id ?? null) || is_string($item->object ?? null)))
+            || array_all($list, static fn (mixed $item): bool => is_string($item) && preg_match('/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/', $item) === 1));
+        if ($rows) {
+            usort($list, static fn (mixed $a, mixed $b): int => strcmp((string) json_encode($a), (string) json_encode($b)));
+        }
+
+        return $list;
     }
 
     private function ok(Exchange $exchange, int $status = 200, string $label = 'request'): Exchange
