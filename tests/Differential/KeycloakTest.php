@@ -44,7 +44,7 @@ class KeycloakTest extends DifferentialTestCase
             $steps['refresh with the new token'] = $again = self::ok(self::refresh($server, $refreshed->jsonString('refresh_token')));
 
             $this->keycloak()->logOut('kc-alice');
-            $steps['refresh after the session ended at Keycloak'] = self::refresh($server, $again->jsonString('refresh_token'));
+            $steps['refresh after the session ended at Keycloak'] = self::refused(self::refresh($server, $again->jsonString('refresh_token')), 'invalid_grant');
             $code = $this->code($server, $steps, 'sign in again', 'kc-alice', $browser);
             $steps['sign in again login'] = self::ok(self::login($server, $code));
 
@@ -61,16 +61,16 @@ class KeycloakTest extends DifferentialTestCase
 
             // Keycloak sends email_verified: false.
             $code = $this->code($server, $steps, 'unverified', 'kc-unverified');
-            $steps['unverified login'] = self::login($server, $code);
+            $steps['unverified login'] = self::refused(self::login($server, $code), 'You need to verify your email');
             $steps += self::register($server, 'kc-unverified-linked@example.com');
             $code = $this->code($server, $steps, 'unverified linked', 'kc-unverified-linked');
-            $steps['unverified linked login'] = self::login($server, $code);
+            $steps['unverified linked login'] = self::refused(self::login($server, $code), 'Email is not verified');
 
             // Two Keycloak users with one address: the second is another identity.
             $code = $this->code($server, $steps, 'first twin', 'kc-twin-1');
             $steps['first twin login'] = self::ok(self::login($server, $code));
             $code = $this->code($server, $steps, 'second twin', 'kc-twin-2');
-            $steps['second twin login'] = self::login($server, $code);
+            $steps['second twin login'] = self::refused(self::login($server, $code), 'Existing SSO user with same email');
 
             return $steps;
         });
@@ -85,10 +85,10 @@ class KeycloakTest extends DifferentialTestCase
             try {
                 $steps['no sign-ups'] = self::configure($server, ['sso_signups_allowed' => false]);
                 $code = $this->code($server, $steps, 'without sign-ups', 'kc-invitee');
-                $steps['without sign-ups login'] = self::login($server, $code);
+                $steps['without sign-ups login'] = self::refused(self::login($server, $code), 'Signups are disabled');
                 $steps['sign-ups for example.org'] = self::configure($server, ['sso_signups_allowed' => false, 'signups_domains_whitelist' => 'example.org']);
                 $code = $this->code($server, $steps, 'from another domain', 'kc-invitee');
-                $steps['from another domain login'] = self::login($server, $code);
+                $steps['from another domain login'] = self::refused(self::login($server, $code), 'Email domain not allowed');
 
                 $steps['no sign-ups again'] = self::configure($server, ['sso_signups_allowed' => false]);
                 $steps['invite'] = $server->json('POST', '/admin/invite', ['email' => 'kc-invitee@example.com'], self::adminSession($server));
@@ -98,7 +98,7 @@ class KeycloakTest extends DifferentialTestCase
                 $steps['no matching by email'] = self::configure($server, ['sso_signups_match_email' => false]);
                 $steps += self::register($server, 'kc-no-match@example.com');
                 $code = $this->code($server, $steps, 'same email', 'kc-no-match');
-                $steps['same email login'] = self::login($server, $code);
+                $steps['same email login'] = self::refused(self::login($server, $code), 'Existing non SSO user with same email');
             } finally {
                 $steps['reset'] = self::configure($server);
             }
@@ -119,9 +119,9 @@ class KeycloakTest extends DifferentialTestCase
             try {
                 $steps['without email_verified'] = self::configure($server, $client);
                 $code = $this->code($server, $steps, 'unknown', 'kc-unknown');
-                $steps['unknown login'] = self::login($server, $code);
+                $steps['unknown login'] = self::refused(self::login($server, $code), 'does not send email verification status');
                 $code = $this->code($server, $steps, 'unknown linked', 'kc-unknown-linked');
-                $steps['unknown linked login'] = self::login($server, $code);
+                $steps['unknown linked login'] = self::refused(self::login($server, $code), 'Email verification status is unknown');
 
                 $steps['unknown allowed'] = self::configure($server, [...$client, 'sso_allow_unknown_email_verification' => true]);
                 $code = $this->code($server, $steps, 'allowed', 'kc-unknown');
@@ -146,8 +146,8 @@ class KeycloakTest extends DifferentialTestCase
             try {
                 $steps['sso only'] = self::configure($server, ['sso_only' => true,
                     'sso_master_password_policy' => '{"minLength":14,"enforceOnLogin":true,"requireUpper":true,"minComplexity":4}']);
-                $steps['password login refused'] = $server->form('/identity/connect/token', LoginTest::loginFields('kc-password@example.com'));
-                $steps['refresh of the password login'] = self::refresh($server, $password->jsonString('refresh_token'), 'cli');
+                $steps['password login refused'] = self::refused($server->form('/identity/connect/token', LoginTest::loginFields('kc-password@example.com')), 'SSO sign-in is required');
+                $steps['refresh of the password login'] = self::refused(self::refresh($server, $password->jsonString('refresh_token'), 'cli'), 'invalid_grant');
                 $steps['config'] = self::withoutServer($server->send('GET', '/api/config'));
                 $steps['css'] = $server->send('GET', '/css/vaultwarden.css');
                 $code = $this->code($server, $steps, 'only sso', 'kc-sso-only');
@@ -181,7 +181,7 @@ class KeycloakTest extends DifferentialTestCase
                 $steps['reset'] = self::configure($server);
             }
             // The refresh token holds no token of Keycloak's.
-            $steps['refresh in the session of Keycloak'] = self::refresh($server, $refreshed->jsonString('refresh_token'));
+            $steps['refresh in the session of Keycloak'] = self::refused(self::refresh($server, $refreshed->jsonString('refresh_token')), 'invalid_grant');
 
             return $steps;
         });
@@ -226,7 +226,7 @@ class KeycloakTest extends DifferentialTestCase
                 $steps['refresh lifetimes'] = self::lifetimes($refreshed);
 
                 $this->keycloak()->logOut('kc-access-only');
-                $steps['refresh after the session ended at Keycloak'] = self::refresh($server, $refreshed->jsonString('refresh_token'));
+                $steps['refresh after the session ended at Keycloak'] = self::refused(self::refresh($server, $refreshed->jsonString('refresh_token')), 'invalid_grant');
             } finally {
                 $steps['reset'] = self::configure($server);
             }
@@ -244,13 +244,13 @@ class KeycloakTest extends DifferentialTestCase
             try {
                 $steps['second audience'] = self::configure($server, $client);
                 $code = $this->code($server, $steps, 'untrusted', 'kc-audience');
-                $steps['untrusted login'] = self::login($server, $code);
+                $steps['untrusted login'] = self::refused(self::login($server, $code), 'is not a trusted audience');
                 $steps['trusted audience'] = self::configure($server, [...$client, 'sso_audience_trusted' => '^vaultwarden-other-.*$']);
                 $code = $this->code($server, $steps, 'trusted', 'kc-audience');
                 $steps['trusted login'] = self::ok(self::login($server, $code));
                 $steps['another trusted audience'] = self::configure($server, [...$client, 'sso_audience_trusted' => '^other-']);
                 $code = $this->code($server, $steps, 'still untrusted', 'kc-audience');
-                $steps['still untrusted login'] = self::login($server, $code);
+                $steps['still untrusted login'] = self::refused(self::login($server, $code), 'is not a trusted audience');
             } finally {
                 $steps['reset'] = self::configure($server);
             }
@@ -276,7 +276,7 @@ class KeycloakTest extends DifferentialTestCase
                 $key = $this->keycloak()->addKeyProvider('rotated', 'rsa-generated', ['priority' => '1000', 'algorithm' => 'RS256', 'keySize' => '2048']);
                 try {
                     $code = $this->code($server, $steps, 'with the cached keys', 'kc-rotation');
-                    $steps['with the cached keys login'] = self::login($server, $code);
+                    $steps['with the cached keys login'] = self::refused(self::login($server, $code), 'Signature verification failed');
                     $code = $this->code($server, $steps, 'with the new keys', 'kc-rotation');
                     $steps['with the new keys login'] = self::ok(self::login($server, $code));
                 } finally {
@@ -311,7 +311,7 @@ class KeycloakTest extends DifferentialTestCase
                         $keycloak->setClientAttributes('vaultwarden-algorithms', ['id.token.signed.response.alg' => $algorithm]);
                         $code = $this->code($server, $steps, $algorithm, 'kc-algorithms');
                         $login = self::login($server, $code);
-                        $steps["{$algorithm} login"] = $algorithm === 'ES512' ? $login : self::ok($login);
+                        $steps["{$algorithm} login"] = $algorithm === 'ES512' ? self::refused($login, 'Signature verification failed') : self::ok($login);
                     }
                 } finally {
                     $keycloak->setClientAttributes('vaultwarden-algorithms', ['id.token.signed.response.alg' => 'RS256']);
@@ -334,12 +334,12 @@ class KeycloakTest extends DifferentialTestCase
             try {
                 $steps['wrong secret'] = self::configure($server, ['sso_client_secret' => 'wrong-secret']);
                 $code = $this->code($server, $steps, 'with the wrong secret', 'kc-errors');
-                $steps['with the wrong secret login'] = self::login($server, $code);
+                $steps['with the wrong secret login'] = self::refused(self::login($server, $code), 'Failed to contact token endpoint');
 
                 // Keycloak answers at once, with login_required.
                 $steps['no prompt'] = self::configure($server, ['sso_authorize_extra_params' => 'prompt=none&ui_locales=de']);
                 $code = $this->code($server, $steps, 'not signed in', 'kc-errors');
-                $steps['not signed in login'] = self::login($server, $code);
+                $steps['not signed in login'] = self::refused(self::login($server, $code), 'SSO authorization failed: login_required');
 
                 $steps['unknown scope'] = self::configure($server, ['sso_scopes' => 'email profile unknown-scope']);
                 $code = $this->code($server, $steps, 'with an unknown scope', 'kc-errors');
@@ -422,6 +422,19 @@ class KeycloakTest extends DifferentialTestCase
     private static function ok(Exchange $exchange): Exchange
     {
         $exchange->jsonString('access_token');
+
+        return $exchange;
+    }
+
+    /**
+     * A login or refresh that must be refused with the message: one that passes
+     * on both servers means the step before it did not take effect.
+     */
+    private static function refused(Exchange $exchange, string $message): Exchange
+    {
+        if ($exchange->status !== 400 || ! str_contains($exchange->body, $message)) {
+            throw new RuntimeException("Expected a refusal with {$message}: {$exchange->status} {$exchange->body}");
+        }
 
         return $exchange;
     }
