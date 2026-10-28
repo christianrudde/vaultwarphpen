@@ -37,6 +37,7 @@ use App\Models\TwoFactor;
 use App\Models\User;
 use App\Support\Dates;
 use App\Support\HttpClient;
+use App\Support\Push;
 use App\Support\RateLimiter;
 use App\Support\Release;
 use App\Support\SemVer;
@@ -400,9 +401,11 @@ final readonly class AdminController
         $this->token($request);
         $user = self::userOr404(Uuid::parameter($request, $userId));
 
-        // Notifications over WebSockets and push are not ported; nobody is told to log out.
-        if ($this->config->bool('push_enabled') && Device::findPushDevicesByUser($user->uuid)->isNotEmpty()) {
-            logger()->warning('Unregistering push devices is not implemented yet.');
+        // WebSocket notifications are not ported; nobody is told to log out.
+        if ($this->config->bool('push_enabled')) {
+            foreach (Device::findPushDevicesByUser($user->uuid) as $device) {
+                Push::unregisterDevice($device->push_uuid);
+            }
         }
 
         Device::deleteAllByUser($user->uuid);
