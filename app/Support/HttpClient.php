@@ -8,9 +8,12 @@ use Uri\WhatWg\Url;
 
 /**
  * src/http_client.rs: outgoing requests like Vaultwarden's reqwest client,
- * with its user agent, a 10-second timeout and at most five redirects.
- * Requests made with make_http_request (enforceBlock) refuse hosts that
- * HTTP_REQUEST_BLOCK_NON_GLOBAL_IPS or HTTP_REQUEST_BLOCK_REGEX block.
+ * with its user agent, its redirect policy and one timeout for the whole
+ * request. A name is resolved once, every address it resolves to is
+ * checked like the DNS resolver checks it, and the connection goes to
+ * those addresses only. Requests made with make_http_request
+ * (enforceBlock) refuse hosts that HTTP_REQUEST_BLOCK_NON_GLOBAL_IPS or
+ * HTTP_REQUEST_BLOCK_REGEX block, at every redirect.
  */
 final class HttpClient
 {
@@ -20,67 +23,71 @@ final class HttpClient
     private const array REDIRECTS = [301, 302, 303, 307, 308];
 
     /**
+     * The timeout of the client of make_http_request, in seconds.
+     */
+    private const int TIMEOUT = 10;
+
+    /**
+     * What reqwest removes when a redirect leads to another host or port (remove_sensitive_headers).
+     */
+    private const array SENSITIVE_HEADERS = ['authorization', 'cookie', 'cookie2', 'proxy-authorization', 'www-authenticate'];
+
+    /**
+     * The most a response head may take before the request fails.
+     */
+    private const int MAX_HEAD = 65_536;
+
+    /**
      * @param  array<string, string>  $headers
      * @return array{int, string, array<string, string>} The status, the body and the headers of the last response, by lower case name
      *
-     * @throws ApiError When the host is blocked or the request fails
+     * @throws ApiError When a host is blocked or the request fails
      */
     public static function send(string $method, string $url, array $headers = [], ?string $body = null, bool $enforceBlock = true, bool $redirects = true): array
     {
-        $host = parse_url($url, PHP_URL_HOST);
-        if (! is_string($host) || $host === '') {
+        // url::Url::parse, which lower-cases the host and turns it into ASCII.
+        $current = Url::parse($url) ?? throw ApiError::message('Invalid URL');
+        $host = $current->getAsciiHost();
+        if ($host === null || $host === '') {
             throw ApiError::message('Invalid host');
         }
-        if ($enforceBlock) {
-            self::checkHost(trim($host, '[]'));
-        }
 
-        $lines = [];
+        $deadline = microtime(true) + self::TIMEOUT;
         // reqwest's client sends Accept: */* unless a request sets its own.
-        foreach (['User-Agent' => 'Vaultwarden', 'Accept' => '*/*', ...$headers] as $name => $value) {
-            $lines[] = "{$name}: {$value}";
-        }
-        $context = stream_context_create(['http' => [
-            'method' => $method,
-            'header' => $lines,
-            'content' => $body ?? '',
-            'timeout' => 10,
-            'follow_location' => $redirects ? 1 : 0,
-            'max_redirects' => 6,
-            'ignore_errors' => true,
-            'protocol_version' => 1.1,
-        ], 'ssl' => self::sslOptions()]);
-
-        $error = null;
-        set_error_handler(static function (int $level, string $message) use (&$error): bool {
-            $error = $message;
-
-            return true;
-        });
+        $headers = ['User-Agent' => 'Vaultwarden', 'Accept' => '*/*', ...$headers];
+        $previous = 0;
         try {
-            $response = file_get_contents($url, false, $context);
-        } finally {
-            restore_error_handler();
-        }
-        $responseHeaders = http_get_last_response_headers() ?? [];
-        if ($response === false || $responseHeaders === []) {
-            throw ApiError::message('Error sending request', logMessage: $error ?? "Request to {$url} failed");
-        }
-
-        // After redirects the headers of each response follow one another.
-        $status = 0;
-        $last = [];
-        foreach ($responseHeaders as $header) {
-            if (preg_match('#^HTTP/\S+\s+(\d{3})#', $header, $match) === 1) {
-                $status = (int) $match[1];
-                $last = [];
-            } elseif (str_contains($header, ':')) {
-                [$name, $value] = explode(':', $header, 2);
-                $last[strtolower(trim($name))] = trim($value);
+            if ($enforceBlock && ($reason = self::blockReason($host)) !== null) {
+                throw new BlockedHost($reason);
             }
-        }
+            while (true) {
+                $response = self::request($method, $current, $headers, $body, $deadline, $enforceBlock);
+                $location = $redirects ? self::location($response) : null;
+                if ($location === null) {
+                    $content = $response->read(PHP_INT_MAX);
+                    if (! $response->complete()) {
+                        throw new HttpRequestFailed("Reading the response of {$current->toAsciiString()} failed or timed out");
+                    }
 
-        return [$status, $response, $last];
+                    return [$response->status, $content, $response->headers];
+                }
+                $response->close();
+
+                self::checkRedirect(++$previous, $location, $enforceBlock);
+                // 301, 302 and 303 go on without the body, as a GET unless it was a HEAD.
+                if (in_array($response->status, [301, 302, 303], true)) {
+                    $method = in_array($method, ['GET', 'HEAD'], true) ? $method : 'GET';
+                    $body = null;
+                    $headers = self::without($headers, ['transfer-encoding', 'content-encoding', 'content-type', 'content-length']);
+                }
+                $headers = self::redirectHeaders($headers, $current, $location);
+                $current = $location;
+            }
+        } catch (BlockedHost $blocked) {
+            throw ApiError::message($blocked->getMessage());
+        } catch (HttpRequestFailed $failure) {
+            throw ApiError::message('Error sending request', logMessage: $failure->getMessage());
+        }
     }
 
     /**
@@ -97,79 +104,27 @@ final class HttpClient
     public static function get(Url $url, array $headers, float $timeout, ?CookieJar $cookies = null): HttpResponse
     {
         $deadline = microtime(true) + $timeout;
-        $previous = [];
+        $previous = 0;
         while (true) {
-            if (! in_array($url->getScheme(), ['http', 'https'], true)) {
-                throw new HttpRequestFailed("URL scheme is not allowed: {$url->toAsciiString()}");
-            }
-            $host = (string) $url->getAsciiHost();
-            if (! str_starts_with($host, '[') && filter_var($host, FILTER_VALIDATE_IP) === false) {
-                self::checkResolvedHost($host);
-            }
-
-            $lines = [];
             $cookie = $cookies?->header($url);
-            foreach ($cookie === null ? $headers : [...$headers, 'Cookie' => $cookie] as $name => $value) {
-                $lines[] = "{$name}: {$value}";
-            }
-            $lines[] = 'Accept-Encoding: gzip, deflate';
-            $remaining = max($deadline - microtime(true), 0.001);
-            $context = stream_context_create(['http' => [
-                'method' => 'GET',
-                'header' => $lines,
-                'timeout' => $remaining,
-                'follow_location' => 0,
-                'ignore_errors' => true,
-                'protocol_version' => 1.1,
-            ], 'ssl' => self::sslOptions()]);
+            $requestHeaders = $cookie === null ? $headers : [...$headers, 'Cookie' => $cookie];
+            $response = self::request('GET', $url, [...$requestHeaders, 'Accept-Encoding' => 'gzip, deflate'], null, $deadline, true);
+            $cookies?->store($response->cookies, $url);
 
-            $error = null;
-            set_error_handler(static function (int $level, string $message) use (&$error): bool {
-                $error = $message;
-
-                return true;
-            });
-            try {
-                $stream = fopen($url->toAsciiString(), 'rb', false, $context);
-            } finally {
-                restore_error_handler();
-            }
-            if ($stream === false) {
-                throw new HttpRequestFailed($error ?? "Request to {$url->toAsciiString()} failed");
-            }
-
-            $wrapperData = stream_get_meta_data($stream)['wrapper_data'] ?? [];
-            [$status, $responseHeaders, $setCookies] = self::parseHeaders(is_array($wrapperData) ? $wrapperData : []);
-            $cookies?->store($setCookies, $url);
-
-            $location = isset($responseHeaders['location']) && in_array($status, self::REDIRECTS, true)
-                ? Url::parse($responseHeaders['location'], $url)
-                : null;
+            $location = self::location($response);
             if ($location === null) {
-                $response = new HttpResponse($url, $status, $responseHeaders, $stream, $deadline);
-                if ($status >= 400 && $status < 600) {
+                if ($response->status >= 400 && $response->status < 600) {
                     $response->close();
 
-                    throw new HttpRequestFailed("HTTP status {$status} for URL ({$url->toAsciiString()})");
+                    throw new HttpRequestFailed("HTTP status {$response->status} for URL ({$url->toAsciiString()})");
                 }
 
                 return $response;
             }
-            fclose($stream);
+            $response->close();
 
-            // The redirect policy of get_reqwest_client_builder.
-            $previous[] = $url;
-            if (count($previous) >= 5) {
-                throw new HttpRequestFailed('Too many redirects');
-            }
-            $reason = self::blockReason((string) $location->getAsciiHost());
-            if ($reason !== null) {
-                throw new BlockedHost($reason);
-            }
-            // Referer: the previous URL, but never from HTTPS to HTTP (the one set before stays then).
-            if (! ($location->getScheme() === 'http' && $url->getScheme() === 'https')) {
-                $headers['Referer'] = $url->withUsername(null)->withPassword(null)->withFragment(null)->toAsciiString();
-            }
+            self::checkRedirect(++$previous, $location, true);
+            $headers = self::redirectHeaders($headers, $url, $location);
             $url = $location;
         }
     }
@@ -209,9 +164,9 @@ final class HttpClient
     }
 
     /**
-     * should_block_host: why the host (from validHost) is blocked, or null.
-     * An address that is not global, or a name or address that the block
-     * regex matches; names are not resolved here.
+     * should_block_host: why the host (from validHost, or an address) is
+     * blocked, or null. An address that is not global, or a name or address
+     * that the block regex matches; names are not resolved here.
      */
     public static function blockReason(string $host, ?string $domain = null): ?string
     {
@@ -227,7 +182,9 @@ final class HttpClient
 
         $regex = $config->optionalString('http_request_block_regex');
         $subject = $ip ?? $host;
-        if ($regex !== null && preg_match('/'.str_replace('/', '\/', $regex).'/u', $subject) === 1) {
+        // The delimiters ConfigValidator checks the regex with. Rust's regex cannot fail
+        // while matching; PCRE can (backtracking limits), and then the host stays blocked.
+        if ($regex !== null && @preg_match("\x01{$regex}\x01u", $subject) !== 0) {
             return 'Blocked domain: \''.($domain === null ? $subject : "{$domain} ({$subject})").'\' matched HTTP_REQUEST_BLOCK_REGEX';
         }
 
@@ -235,53 +192,246 @@ final class HttpClient
     }
 
     /**
-     * The checks of the DNS resolver (pre_resolve and post_resolve): a valid
-     * name that is not blocked, resolving only to addresses that are not.
+     * One request on a connection of its own, up to the head of the
+     * response; the body is left in the response.
+     *
+     * @param  array<string, string>  $headers
      *
      * @throws BlockedHost
+     * @throws HttpRequestFailed
      */
-    private static function checkResolvedHost(string $domain): void
+    private static function request(string $method, Url $url, array $headers, ?string $body, float $deadline, bool $enforceBlock): HttpResponse
+    {
+        $scheme = $url->getScheme();
+        if (! in_array($scheme, ['http', 'https'], true)) {
+            throw new HttpRequestFailed("URL scheme is not allowed: {$url->toAsciiString()}");
+        }
+        $host = (string) $url->getAsciiHost();
+        $port = $url->getPort();
+        $stream = self::connect($scheme === 'https', $host, $port ?? ($scheme === 'https' ? 443 : 80), $deadline, $enforceBlock);
+
+        $query = $url->getQuery();
+        $head = "{$method} {$url->getPath()}".($query === null ? '' : "?{$query}")." HTTP/1.1\r\n"
+            .'Host: '.$host.($port === null ? '' : ":{$port}")."\r\n";
+        foreach ($headers as $name => $value) {
+            $head .= "{$name}: {$value}\r\n";
+        }
+        if ($body !== null) {
+            $head .= 'Content-Length: '.strlen($body)."\r\n";
+        }
+        self::write($stream, "{$head}Connection: close\r\n\r\n".($body ?? ''), $deadline);
+
+        [$status, $responseHeaders, $cookies, $rest] = self::readHead($stream, $deadline);
+        $chunked = str_contains(strtolower($responseHeaders['transfer-encoding'] ?? ''), 'chunked');
+        $length = match (true) {
+            $method === 'HEAD', $status === 204, $status === 304 => 0,
+            $chunked => null,
+            preg_match('/^\d{1,18}$/D', $responseHeaders['content-length'] ?? '') === 1 => (int) $responseHeaders['content-length'],
+            default => null,
+        };
+
+        return new HttpResponse($url, $status, $responseHeaders, $stream, $deadline, $cookies, $rest, $length, $chunked && $length === null);
+    }
+
+    /**
+     * A connection to the host: to its address, or to the addresses its
+     * name resolves to, in the order the resolver sorts them.
+     *
+     * @return resource
+     *
+     * @throws BlockedHost
+     * @throws HttpRequestFailed
+     */
+    private static function connect(bool $tls, string $host, int $port, float $deadline, bool $enforceBlock): mixed
+    {
+        $address = str_starts_with($host, '[') ? substr($host, 1, -1) : (filter_var($host, FILTER_VALIDATE_IP) === false ? null : $host);
+        if ($address !== null && $enforceBlock && ($reason = self::blockReason($host)) !== null) {
+            throw new BlockedHost($reason);
+        }
+        $addresses = $address === null ? self::resolve($host, $enforceBlock) : [$address];
+
+        // The certificate is checked for the name, which is also sent as SNI.
+        $context = stream_context_create(['ssl' => [...self::sslOptions(), 'peer_name' => $address ?? $host]]);
+        $failures = [];
+        foreach ($addresses as $ip) {
+            $remaining = $deadline - microtime(true);
+            if ($remaining <= 0) {
+                $failures[] = 'operation timed out';
+
+                break;
+            }
+            $target = str_contains($ip, ':') ? "[{$ip}]:{$port}" : "{$ip}:{$port}";
+            $stream = @stream_socket_client(($tls ? 'ssl' : 'tcp')."://{$target}", $errno, $error, $remaining, STREAM_CLIENT_CONNECT, $context);
+            if ($stream !== false) {
+                return $stream;
+            }
+            $failures[] = "{$target}: {$error}";
+        }
+
+        throw new HttpRequestFailed("Connecting to {$host}:{$port} failed: ".implode('; ', $failures));
+    }
+
+    /**
+     * The DNS resolver (pre_resolve and post_resolve): a valid name that is
+     * not blocked, resolving only to addresses that are not, with IPv4
+     * first unless DNS_PREFER_IPV6.
+     *
+     * @return list<string>
+     *
+     * @throws BlockedHost
+     * @throws HttpRequestFailed
+     */
+    private static function resolve(string $domain, bool $enforceBlock): array
     {
         if (self::validHost($domain) === null) {
             throw new BlockedHost("Invalid host: '{$domain}' contains invalid characters or exceeds the maximum length");
         }
-        if (self::blockReason($domain) !== null) {
+        if ($enforceBlock && self::blockReason($domain) !== null) {
             throw new BlockedHost("Blocked domain: '{$domain}' matched HTTP_REQUEST_BLOCK_REGEX");
         }
 
-        $config = app(Config::class);
-        if (! $config->bool('http_request_block_non_global_ips') && $config->optionalString('http_request_block_regex') === null) {
-            return;
+        $addresses = app(DnsResolver::class)->lookup($domain);
+        if ($addresses === []) {
+            throw new HttpRequestFailed("dns error: no addresses for {$domain}");
         }
-        foreach (gethostbynamel($domain) ?: [] as $ip) {
-            $reason = self::blockReason($ip, $domain);
-            if ($reason !== null) {
-                throw new BlockedHost($reason);
+        if ($enforceBlock) {
+            foreach ($addresses as $ip) {
+                $reason = self::blockReason($ip, $domain);
+                if ($reason !== null) {
+                    throw new BlockedHost($reason);
+                }
             }
+        }
+
+        $preferIpv6 = app(Config::class)->bool('dns_prefer_ipv6');
+        usort($addresses, static fn (string $a, string $b): int => (str_contains($a, ':') <=> str_contains($b, ':')) * ($preferIpv6 ? -1 : 1));
+
+        return $addresses;
+    }
+
+    /**
+     * @param  resource  $stream
+     *
+     * @throws HttpRequestFailed
+     */
+    private static function write($stream, string $data, float $deadline): void
+    {
+        while ($data !== '') {
+            $remaining = $deadline - microtime(true);
+            if ($remaining <= 0) {
+                throw new HttpRequestFailed('Sending the request timed out');
+            }
+            stream_set_timeout($stream, (int) $remaining, (int) (fmod($remaining, 1) * 1_000_000));
+            $written = @fwrite($stream, $data);
+            if ($written === false || $written === 0) {
+                throw new HttpRequestFailed('Sending the request failed');
+            }
+            $data = substr($data, $written);
         }
     }
 
     /**
-     * should_block_host for make_http_request: an address that is not
-     * global, or a name the block regex matches. Names are checked against
-     * their addresses as well.
+     * The head of the response, skipping interim (1xx) ones, and what came after it.
      *
-     * @throws ApiError
+     * @param  resource  $stream
+     * @return array{int, array<string, string>, list<string>, string}
+     *
+     * @throws HttpRequestFailed
      */
-    private static function checkHost(string $host): void
+    private static function readHead($stream, float $deadline): array
     {
-        $isIp = filter_var($host, FILTER_VALIDATE_IP) !== false;
-        $reason = self::blockReason($isIp && str_contains($host, ':') ? "[{$host}]" : $host);
-        if ($reason !== null) {
-            throw ApiError::message($reason);
-        }
-        if (! $isIp) {
-            try {
-                self::checkResolvedHost($host);
-            } catch (BlockedHost $blocked) {
-                throw ApiError::message($blocked->getMessage());
+        // Reads that wait no longer than the deadline: a server may send its head byte by byte.
+        stream_set_blocking($stream, false);
+        $buffer = '';
+        while (true) {
+            if (preg_match('/\r?\n\r?\n/', $buffer, $match, PREG_OFFSET_CAPTURE) === 1) {
+                $lines = preg_split('/\r?\n/', substr($buffer, 0, $match[0][1])) ?: [];
+                $buffer = substr($buffer, $match[0][1] + strlen($match[0][0]));
+                [$status, $headers, $cookies] = self::parseHeaders($lines);
+                if (preg_match('#^HTTP/\d(?:\.\d)?\s+\d{3}#', $lines[0] ?? '') !== 1) {
+                    throw new HttpRequestFailed('The response has no valid status line');
+                }
+                if ($status >= 100 && $status < 200) {
+                    continue;
+                }
+
+                return [$status, $headers, $cookies, $buffer];
             }
+            if (strlen($buffer) > self::MAX_HEAD) {
+                throw new HttpRequestFailed('The head of the response is too large');
+            }
+
+            $received = HttpResponse::receive($stream, $deadline);
+            if (! is_string($received)) {
+                fclose($stream);
+
+                throw new HttpRequestFailed($received === false ? 'Waiting for the response timed out' : 'The connection closed before the response');
+            }
+            $buffer .= $received;
         }
+    }
+
+    /**
+     * The URL a redirect leads to, or null when the response is none.
+     */
+    private static function location(HttpResponse $response): ?Url
+    {
+        $location = $response->headers['location'] ?? null;
+
+        return $location !== null && in_array($response->status, self::REDIRECTS, true) ? Url::parse($location, $response->url) : null;
+    }
+
+    /**
+     * The redirect policy of get_reqwest_client_builder: at most four
+     * redirects, each to a host that is not blocked.
+     *
+     * @throws BlockedHost
+     * @throws HttpRequestFailed
+     */
+    private static function checkRedirect(int $previous, Url $location, bool $enforceBlock): void
+    {
+        if ($previous >= 5) {
+            throw new HttpRequestFailed('Too many redirects');
+        }
+        $host = $location->getAsciiHost();
+        if ($host === null || $host === '') {
+            throw new HttpRequestFailed('Invalid host');
+        }
+        if ($enforceBlock && ($reason = self::blockReason($host)) !== null) {
+            throw new BlockedHost($reason);
+        }
+    }
+
+    /**
+     * The headers after a redirect: credentials stay with their host and
+     * port, and the Referer is the previous URL, but never from HTTPS to
+     * HTTP (the one set before stays then).
+     *
+     * @param  array<string, string>  $headers
+     * @return array<string, string>
+     */
+    private static function redirectHeaders(array $headers, Url $previous, Url $next): array
+    {
+        $port = static fn (Url $url): ?int => $url->getPort() ?? ['http' => 80, 'https' => 443][$url->getScheme()] ?? null;
+        if ($next->getAsciiHost() !== $previous->getAsciiHost() || $port($next) !== $port($previous)) {
+            $headers = self::without($headers, self::SENSITIVE_HEADERS);
+        }
+        if (! ($next->getScheme() === 'http' && $previous->getScheme() === 'https')) {
+            $headers = [...self::without($headers, ['referer']),
+                'Referer' => $previous->withUsername(null)->withPassword(null)->withFragment(null)->toAsciiString()];
+        }
+
+        return $headers;
+    }
+
+    /**
+     * @param  array<string, string>  $headers
+     * @param  list<string>  $names  Lower case
+     * @return array<string, string>
+     */
+    private static function without(array $headers, array $names): array
+    {
+        return array_filter($headers, static fn (string $name): bool => ! in_array(strtolower($name), $names, true), ARRAY_FILTER_USE_KEY);
     }
 
     /**
