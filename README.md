@@ -39,7 +39,8 @@ pinned Vaultwarden version and whether it is ported. In short:
   redirected to an external icon service.
 
 Every ported route is compared with Vaultwarden itself: the differential tests send the same requests
-to both servers and compare the answers.
+to both servers and compare the answers. End-to-end tests drive the official web vault and CLI against
+both, with the clients' own cryptography ([docs/clients.md](docs/clients.md)).
 
 ## Requirements
 

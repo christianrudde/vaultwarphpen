@@ -1,0 +1,28 @@
+import { defineConfig } from '@playwright/test';
+
+// .github/scripts/clients.sh starts the server and sets VW_CLIENTS_URL.
+if (!process.env.VW_CLIENTS_URL) {
+    throw new Error('VW_CLIENTS_URL is not set; run the tests with .github/scripts/clients.sh');
+}
+
+export default defineConfig({
+    testDir: '.',
+    testMatch: '*.spec.ts',
+    forbidOnly: !!process.env.CI,
+    // The tests build on each other, in one account.
+    workers: 1,
+    retries: 0,
+    timeout: 5 * 60 * 1000,
+    expect: { timeout: 20_000 },
+    reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
+    use: {
+        baseURL: process.env.VW_CLIENTS_URL,
+        browserName: 'chromium',
+        locale: 'en-US',
+        timezoneId: 'UTC',
+        // The certificate's authority is one of clients.sh's own.
+        ignoreHTTPSErrors: true,
+        actionTimeout: 20_000,
+        navigationTimeout: 30_000,
+    },
+});

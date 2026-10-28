@@ -18,6 +18,7 @@ on:
       - "routes/**"
       - "resources/**"
       - "tests/Differential/**"
+      - "tests/Clients/**"
       - "database/vaultwarden/**"
       # Dependency updates, Dependabot's included, can change what we answer.
       - "composer.json"
@@ -235,3 +236,85 @@ jobs:
           name: parity-schema
           path: parity/schema/
           if-no-files-found: error
+
+  clients:
+    name: Clients against Vaultwarden
+    needs: build
+    # Only the Linux binary is needed; run even if the macOS build failed.
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    # The tests of the Clients workflow, run against Vaultwarden: a failure there that shows
+    # here too is the tests', not ours.
+    steps:
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libmariadb3 libpq5
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Read the pins
+        id: pin
+        run: |
+          echo "commit=$(jq -r .commit parity/reference.json)" >> "$GITHUB_OUTPUT"
+          echo "web-vault=$(jq -r .web_vault_digest parity/reference.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Download Vaultwarden
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: vaultwarden-${{ steps.pin.outputs.commit }}-linux-x86_64
+          path: ${{ runner.temp }}/vaultwarden
+
+      # PHP installs the web vault.
+      - name: Set up PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2 (2.40.0)
+        with:
+          php-version: "8.5"
+          extensions: pdo_sqlite, sodium, openssl
+          coverage: none
+
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: tests/Clients/package-lock.json
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Prepare environment
+        run: cp .env.example .env && php artisan key:generate
+
+      - name: Cache the web vault
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: web-vault
+          key: web-vault-${{ steps.pin.outputs.web-vault }}
+
+      - name: Install the web vault
+        run: php artisan vaultwarden:web-vault
+
+      - name: Install the clients
+        working-directory: tests/Clients
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx playwright install --with-deps --only-shell chromium
+
+      - name: Run the clients
+        run: |
+          chmod +x "${RUNNER_TEMP}/vaultwarden/vaultwarden"
+          .github/scripts/clients.sh --vaultwarden "${RUNNER_TEMP}/vaultwarden/vaultwarden"
+
+      - name: Upload the report
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: clients-report-vaultwarden
+          path: |
+            tests/Clients/playwright-report/
+            tests/Clients/test-results/
+          retention-days: 14

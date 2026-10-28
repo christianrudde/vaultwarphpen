@@ -291,8 +291,8 @@ class AdminTest extends TestCase
     public function test_diagnostics_name_vaultwarphpen(): void
     {
         $this->useDatabase('sqlite');
-        // No requests leave the test.
-        $this->changeVaultwardenEnvironment(['HTTP_REQUEST_BLOCK_REGEX' => '.*']);
+        // No requests leave the test, and the web vault installed for the client tests stays out of it.
+        $this->changeVaultwardenEnvironment(['HTTP_REQUEST_BLOCK_REGEX' => '.*', 'WEB_VAULT_FOLDER' => sys_get_temp_dir().'/no-web-vault/']);
         $this->login();
 
         $page = $this->get('/admin/diagnostics', ['X-Forwarded-For' => '192.0.2.1'])->assertStatus(200);

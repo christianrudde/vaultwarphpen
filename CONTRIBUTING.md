@@ -18,6 +18,8 @@ version, so that the official Bitwarden clients and existing Vaultwarden data ke
   [docs/configuration.md](docs/configuration.md).
 - Write a test for every item you mark as done, and a differential test for every route (see
   AGENTS.md).
+- Changes to what the clients see are best checked with the clients themselves:
+  [docs/clients.md](docs/clients.md) runs the web vault and the CLI against a server of your own.
 - Run Pint, PHPStan and the tests before you open a pull request:
 
   ```bash

@@ -57,6 +57,8 @@ What Vaultwarphpen takes from it:
 - **The reference for the tests.** The differential tests and the CI scripts in `.github/scripts` run a
   Vaultwarden binary next to Vaultwarphpen and compare the answers. CI builds it from the Vaultwarden
   repository; it is not part of Vaultwarphpen.
+- **The way its own end-to-end tests drive the web vault.** `tests/Clients` follows Vaultwarden's
+  Playwright tests (`playwright/` at the pinned commit) in how it finds its way through the web vault.
 
 ## Bitwarden
 
@@ -325,6 +327,17 @@ All runtime licenses are compatible with the AGPL-3.0: MIT, BSD-3-Clause and Apa
 | `sebastian/version` | BSD-3-Clause | <https://github.com/sebastianbergmann/version> |
 | `staabm/side-effects-detector` | MIT | <https://github.com/staabm/side-effects-detector> |
 | `theseer/tokenizer` | BSD-3-Clause | <https://github.com/theseer/tokenizer> |
+
+## Client tests
+
+The tests in `tests/Clients` ([docs/clients.md](docs/clients.md)) install these from npm, at the versions
+of `tests/Clients/package-lock.json` with their dependencies. They run in development and CI only and are
+not part of Vaultwarphpen or its release archives:
+
+| Package | License | Source |
+|---|---|---|
+| `@playwright/test` | Apache-2.0 | <https://github.com/microsoft/playwright> |
+| `@bitwarden/cli` | GPL-3.0 | <https://github.com/bitwarden/clients> |
 
 ## Tools
 

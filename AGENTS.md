@@ -38,6 +38,11 @@ environment variables, so the official Bitwarden clients and existing Vaultwarde
   compare what arrived. `signedToken()` signs tokens with the key all
   servers share (`VW_RSA_KEY`). Responses are compared as JSON with objects kept apart from
   lists, after placeholders replace random values (`DifferentialTestCase::PLACEHOLDERS`).
+- Client tests (`tests/Clients`, [docs/clients.md](docs/clients.md)) drive the pinned web vault (Playwright,
+  Chromium) and `@bitwarden/cli` against one account with real cryptography. `.github/scripts/clients.sh
+  [--vaultwarden <binary>] [--serve]` starts the server with SQLite, the notifications daemon and an HTTPS
+  proxy (`tests/Clients/proxy.mjs`); `clients.yml` runs it on every push, `reference.yml` against Vaultwarden.
+  Run `npm ci --ignore-scripts` and `npx playwright install chromium` there first; `PHP=php86` picks Herd's PHP.
 - Live notifications: `php86 artisan vaultwarden:notifications` (`App\Notifications\Server`) serves the hubs of
   `src/api/notifications.rs` over WebSocket; upgrade requests go through the HTTP kernel to
   `NotificationsController`, which only accepts them inside the daemon. Handlers send updates with
