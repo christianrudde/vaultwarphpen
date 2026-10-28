@@ -241,6 +241,32 @@ class OrganizationTest extends TestCase
         $this->assertSame(0, Cipher::query()->count());
     }
 
+    /**
+     * The manager guard checks the collection the route works on: an encoded
+     * slash, which Laravel's router splits on, must not move the collection id
+     * out of the path, so that the guard checks the collectionId query field.
+     */
+    public function test_a_manager_only_reaches_collections_they_manage(): void
+    {
+        $org = $this->createOrganization();
+        $victim = $this->string($this->get("/api/organizations/{$org}/collections", $this->owner)->json('data.0.id'));
+        $this->postJson("/api/organizations/{$org}/users/invite", ['emails' => ['member@example.com'], 'groups' => [], 'type' => 3], $this->owner)->assertStatus(200);
+        $memberId = $this->string(Membership::query()->where('user_uuid', $this->memberUser->uuid)->value('uuid'));
+        $this->postJson("/api/organizations/{$org}/users/{$memberId}/confirm", ['key' => '4.member-key'], $this->owner)->assertStatus(200);
+        $managed = $this->string($this->postJson("/api/organizations/{$org}/collections", ['name' => '2.managed', 'groups' => [], 'externalId' => '',
+            'users' => [['id' => $memberId, 'readOnly' => false, 'hidePasswords' => false, 'manage' => true]]], $this->owner)->json('id'));
+
+        $takeOver = ['name' => '2.taken', 'groups' => [], 'users' => [['id' => $memberId, 'readOnly' => false, 'hidePasswords' => false, 'manage' => true]]];
+        $this->putJson("/api/organizations/{$org}/collections/{$managed}", $takeOver, $this->member)->assertStatus(200);
+        $this->putJson("/api/organizations/{$org}/collections/{$victim}", $takeOver, $this->member)->assertStatus(401);
+        $this->putJson("/api/organizations/{$org}/collections%2F{$victim}?collectionId={$managed}", $takeOver, $this->member)->assertStatus(401);
+        $this->get("/api/organizations/{$org}/collections/{$victim}%2Fusers?collectionId={$managed}", $this->member)->assertStatus(401);
+        $this->deleteJson("/api/organizations/{$org}/collections%2F{$victim}?collectionId={$managed}", [], $this->member)->assertStatus(401);
+
+        $this->assertSame('2.first', OrgCollection::query()->where('uuid', $victim)->value('name'));
+        $this->assertFalse(OrgCollection::isCollManageableByUser($victim, $this->memberUser->uuid));
+    }
+
     private function createOrganization(): string
     {
         return $this->string($this->postJson('/api/organizations', ['billingEmail' => 'billing@example.com', 'collectionName' => '2.first',

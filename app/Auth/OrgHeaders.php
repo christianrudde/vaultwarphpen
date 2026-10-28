@@ -67,18 +67,21 @@ readonly class OrgHeaders
     }
 
     /**
-     * A path segment below the API's mount point, percent-decoded like Rocket's.
+     * A path segment below the API's mount point, percent-decoded. The path
+     * is decoded before it is split, as Laravel's router does: an encoded
+     * slash separates segments there (Rocket would not match such a path),
+     * and the guard must check the ids the route binds.
      */
     protected static function pathSegment(Request $request, Config $config, int $index): ?string
     {
         $mount = $config->string('domain_path').'/api';
-        $path = $request->getPathInfo();
+        $path = rawurldecode($request->getPathInfo());
         if (! str_starts_with($path, $mount.'/')) {
             return null;
         }
         $segments = array_values(array_filter(explode('/', substr($path, strlen($mount))), static fn (string $segment): bool => $segment !== ''));
 
-        return isset($segments[$index]) ? rawurldecode($segments[$index]) : null;
+        return $segments[$index] ?? null;
     }
 
     /**
