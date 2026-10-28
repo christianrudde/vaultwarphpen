@@ -32,8 +32,8 @@ and when the provider ends the session, the clients are logged out at their next
 ## Settings
 
 Set them as environment variables or in `.env` ([Configuration](configuration.md)), or in the admin
-panel under *Settings → OpenID Connect SSO settings*, which writes `config.json`. Changes take effect with the next
-request.
+panel under *Settings → OpenID Connect SSO settings*, which writes `config.json`. Changes take effect
+with the next request.
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
@@ -203,7 +203,8 @@ SSO_AUTHORIZE_EXTRA_PARAMS="access_type=offline&prompt=consent"
 
 - **The authority** is `https://accounts.google.com`, without trailing slash.
 - **No `offline_access`.** Google refuses that scope. It issues refresh tokens for `access_type=offline`,
-  and only at a consent, hence `prompt=consent`. Without both, users log in again after an hour.
+  and only at a consent, hence `prompt=consent` (Google then asks for consent at every login). Without
+  both, users log in again after an hour.
 - **Restrict the users.** Vaultwarphpen does not check the Workspace domain (the `hd` claim). With user
   type *External*, any Google account would pass; then turn off `SSO_SIGNUPS_ALLOWED` or set
   `SIGNUPS_DOMAINS_WHITELIST=example.com`. `hd=example.com` in `SSO_AUTHORIZE_EXTRA_PARAMS` only
@@ -262,4 +263,7 @@ against a fake provider (`tests/Differential/SsoTest.php`) and against a real Ke
 (`tests/Differential/KeycloakTest.php`, with the realm of `.github/scripts/keycloak-realm.json`). The
 Keycloak tests cover sign-ups, linking by email, refresh with rotating refresh tokens, offline tokens,
 access tokens without refresh tokens, sessions ended at the provider, key rotation, the signing
-algorithms, a client without `email_verified` like Entra ID's, and every `SSO_*` switch above.
+algorithms, a client without `email_verified` like Entra ID's, and the settings `SSO_ONLY`,
+`SSO_SIGNUPS_ALLOWED`, `SSO_SIGNUPS_MATCH_EMAIL`, `SSO_ALLOW_UNKNOWN_EMAIL_VERIFICATION`,
+`SSO_AUTH_ONLY_NOT_SESSION`, `SSO_AUDIENCE_TRUSTED`, `SSO_CLIENT_CACHE_EXPIRATION`,
+`SSO_AUTHORIZE_EXTRA_PARAMS` and `SSO_MASTER_PASSWORD_POLICY`.
