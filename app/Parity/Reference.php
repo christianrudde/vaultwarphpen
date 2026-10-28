@@ -11,6 +11,11 @@ use RuntimeException;
  */
 final readonly class Reference
 {
+    /**
+     * @param  array<string, string>  $webVaultSource  The source of the web vault build: the tag of each
+     *                                                 GitHub repository ("owner/name") it is built from,
+     *                                                 which the release archives carry along (GPL-3.0)
+     */
     public function __construct(
         public string $repository,
         public string $commit,
@@ -18,6 +23,7 @@ final readonly class Reference
         public string $webVault,
         public string $webVaultDigest,
         public string $checkout,
+        public array $webVaultSource = [],
     ) {}
 
     /**
@@ -38,6 +44,7 @@ final readonly class Reference
             webVault: self::string($pin, 'web_vault'),
             webVaultDigest: self::string($pin, 'web_vault_digest'),
             checkout: $basePath.'/reference/vaultwarden',
+            webVaultSource: self::webVaultSource($pin),
         );
     }
 
@@ -74,6 +81,26 @@ final readonly class Reference
                 $version ?? 'unknown', $digest ?? 'no digest',
             ));
         }
+    }
+
+    /**
+     * @param  array<mixed>  $pin
+     * @return array<string, string>
+     */
+    private static function webVaultSource(array $pin): array
+    {
+        $source = [];
+        foreach (is_array($pin['web_vault_source'] ?? null) ? $pin['web_vault_source'] : [] as $repository => $tag) {
+            if (! is_string($repository) || preg_match('#^[\w.-]+/[\w.-]+$#', $repository) !== 1 || ! is_string($tag) || $tag === '') {
+                throw new RuntimeException('"web_vault_source" in parity/reference.json must map GitHub repositories ("owner/name") to tags.');
+            }
+            $source[$repository] = $tag;
+        }
+        if ($source === []) {
+            throw new RuntimeException('parity/reference.json is missing "web_vault_source".');
+        }
+
+        return $source;
     }
 
     /**

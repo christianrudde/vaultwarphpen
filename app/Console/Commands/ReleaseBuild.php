@@ -2,11 +2,14 @@
 
 namespace App\Console\Commands;
 
+use App\Parity\Reference;
 use App\Release\ArchiveWriter;
+use App\Support\Downloader;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Number;
+use RuntimeException;
 use Symfony\Component\Process\ExecutableFinder;
 
 class ReleaseBuild extends Command
@@ -46,7 +49,7 @@ class ReleaseBuild extends Command
      */
     protected $description = 'Build the release archives for hosts without Composer: the code with its dependencies and the web vault';
 
-    public function handle(): int
+    public function handle(Downloader $downloader): int
     {
         $ref = (string) $this->argument('ref');
         $git = Process::path(base_path());
@@ -97,6 +100,21 @@ class ReleaseBuild extends Command
                     ->throw();
             });
 
+            // The web vault is GPL-3.0 object code: its source goes along with every release (section 6).
+            $sources = [];
+            $this->components->task('Fetching the source of the web vault', function () use ($staging, $output, $downloader, &$sources): void {
+                $reference = Reference::load($staging);
+                foreach ($reference->webVaultSource as $repository => $tag) {
+                    $file = "web-vault-{$reference->webVault}-source-".basename($repository).'.tar.gz';
+                    $url = "https://github.com/{$repository}/archive/refs/tags/".rawurlencode($tag).'.tar.gz';
+                    $status = $downloader->download($url, [], "{$output}/{$file}");
+                    if ($status !== 200 || file_get_contents("{$output}/{$file}", length: 2) !== "\x1f\x8b") {
+                        throw new RuntimeException("GitHub answered {$status} without an archive for {$repository} {$tag}.");
+                    }
+                    $sources[] = $file;
+                }
+            });
+
             $version = trim(Process::path($staging)
                 ->run([PHP_BINARY, '-r', 'require "vendor/autoload.php"; echo App\Support\Release::installed();'])
                 ->throw()->output());
@@ -116,7 +134,7 @@ class ReleaseBuild extends Command
 
         // In the format of sha256sum, so that `sha256sum -c` checks the downloads.
         $sums = '';
-        foreach ($files as $file) {
+        foreach ([...$files, ...$sources] as $file) {
             $hash = (string) hash_file('sha256', "{$output}/{$file}");
             $sums .= "{$hash}  {$file}\n";
             $this->components->twoColumnDetail($file, Number::fileSize((int) filesize("{$output}/{$file}"), 1)." <fg=gray>sha256:{$hash}</>");

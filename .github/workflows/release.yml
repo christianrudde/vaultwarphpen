@@ -58,7 +58,9 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release
-          path: build/vaultwarphpen-*
+          path: |
+            build/vaultwarphpen-*
+            build/web-vault-*-source-*.tar.gz
           if-no-files-found: error
 
   # Apart from the build, so that the token that may write releases never runs Composer.
@@ -95,7 +97,8 @@ jobs:
           that Vaultwarden ships in \`web-vault/\`. [Installing from a release archive](https://github.com/$GH_REPO/blob/$TAG/docs/installation.md#installing-from-a-release-archive)
           describes the installation and the update; \`sha256sum --check vaultwarphpen-${TAG#v}.sha256\` checks the downloads.
 
-          The web vault is Vaultwarden's build of the Bitwarden web client, under the GPL-3.0;
-          [NOTICE.md](https://github.com/$GH_REPO/blob/$TAG/NOTICE.md#web-vault) names its source.
+          The web vault is Vaultwarden's build of the Bitwarden web client, under the GPL-3.0. Its source is attached
+          as \`web-vault-*-source-*.tar.gz\`; [NOTICE.md](https://github.com/$GH_REPO/blob/$TAG/NOTICE.md#web-vault)
+          says where it comes from.
           EOF
           gh release create "$TAG" build/* --draft --verify-tag --title "Vaultwarphpen ${TAG#v}" --generate-notes --notes-file "$RUNNER_TEMP/notes.md"

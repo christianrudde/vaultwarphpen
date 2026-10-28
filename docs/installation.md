@@ -100,7 +100,10 @@ clones it, installs the dependencies with `composer install --no-dev --optimize-
 the web vault with `php artisan vaultwarden:web-vault`, leaves out what only development needs (the
 tests, the CI files, the parity matrix and schema snapshots, the tool settings) and writes
 `build/vaultwarphpen-<version>.tar.gz`, `.zip` and `.sha256`. The version is the tag without its `v`, or
-the first 8 characters of the commit. The archives are reproducible: entries sorted, every file with the
+the first 8 characters of the commit. Next to them it puts the source of the web vault, which the GPL-3.0
+asks to go along with it: GitHub's archives of the tags that `web_vault_source` in `parity/reference.json`
+pins, as `web-vault-<version>-source-*.tar.gz` (see [NOTICE.md](../NOTICE.md#web-vault)); the `.sha256`
+covers them too. The archives are reproducible: entries sorted, every file with the
 time of the commit, no owners, and modes reduced to 0644 and 0755. The same commit built with the same
 Composer version (the workflow uses 2.10.3) gives the same bytes, so a release can be checked by
 building it again.

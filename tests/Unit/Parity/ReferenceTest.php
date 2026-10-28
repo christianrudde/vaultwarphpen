@@ -25,6 +25,10 @@ class ReferenceTest extends TestCase
 
         $this->assertMatchesRegularExpression('/^\d{4}\.\d+\.\d+$/', $reference->webVault);
         $this->assertMatchesRegularExpression('/^sha256:[0-9a-f]{64}$/', $reference->webVaultDigest);
+        $this->assertSame(['vaultwarden/vw_web_builds', 'dani-garcia/bw_web_builds'], array_keys($reference->webVaultSource));
+        foreach ($reference->webVaultSource as $tag) {
+            $this->assertStringStartsWith("v{$reference->webVault}", $tag);
+        }
     }
 
     private function reference(string $webVault, string $digest): Reference

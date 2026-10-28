@@ -61,9 +61,11 @@ environment variables, so the official Bitwarden clients and existing Vaultwarde
   `composer create-project` and `composer setup` run it after `key:generate` and `vaultwarden:migrate`.
 - Release archives: `php86 artisan release:build [ref]` clones the ref, installs it without dev
   dependencies and with the web vault, drops `ReleaseBuild::LEFT_OUT` and writes reproducible tar.gz
-  and zip archives (`App\Release\ArchiveWriter`) with a `.sha256` to `build/`. `release.yml` runs it
-  for `v*` tags and attaches them to the release (a draft if there is none). When a new top-level
-  file or folder is only for development, add it to `LEFT_OUT`.
+  and zip archives (`App\Release\ArchiveWriter`) with a `.sha256` to `build/`, next to the web vault's
+  source archives (the tags of `web_vault_source` in `parity/reference.json`, GPL-3.0 section 6).
+  `release.yml` runs it for `v*` tags and attaches them to the release (a draft if there is none). When a
+  new top-level file or folder is only for development, add it to `LEFT_OUT`. When the web vault pin
+  moves, move `web_vault_source` with it; `NoticeTest` checks that NOTICE.md names those tags.
 - Uploads: Vaultwarden takes files up to 525 MB, so PHP needs `upload_max_filesize=525M` and a
   `post_max_size` above it (or `0`). PHP cuts uploaded file names at the last slash, which encrypted
   names contain; read them with `getClientOriginalPath()` (see `App\Http\Data\UploadData`).
@@ -81,7 +83,7 @@ Everything is measured against one pinned Vaultwarden commit.
 
 - `parity/reference.json` pins the commit, release and web vault version, with the digest of the web
   vault's Docker image. Both come from Vaultwarden's `docker/DockerSettings.yaml`; `parity:generate`
-  checks them.
+  checks them. `web_vault_source` names the tags of vw_web_builds and bw_web_builds that build it.
 - `php artisan parity:fetch` checks that commit out into `reference/vaultwarden` (git-ignored).
 - `php artisan parity:sync` copies Vaultwarden's SQL migrations to `database/vaultwarden/<dialect>`,
   its Handlebars templates to `resources/vaultwarden/templates` and `global_domains.json` to

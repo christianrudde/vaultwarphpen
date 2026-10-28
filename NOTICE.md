@@ -86,17 +86,24 @@ The release archives (built by `php artisan release:build` and attached to the
 The libraries bundled into its scripts keep their notices in the `*.LICENSE.txt` files next to them. The
 web vault is a separate program that the browser runs; the archives only bring it along with Vaultwarphpen.
 
-Its Corresponding Source, as section 6 of the GPL-3.0 calls it, is:
+Its Corresponding Source, as section 6 of the GPL-3.0 calls it, is at these tags, which
+`web_vault_source` in `parity/reference.json` pins:
 
-- the source of the web client: <https://github.com/vaultwarden/vw_web_builds/tree/v2026.8.0>,
+- the source of the web client: <https://github.com/vaultwarden/vw_web_builds/tree/v2026.8.0+0>,
   Vaultwarden's fork of [bitwarden/clients](https://github.com/bitwarden/clients) (tag `web-v2026.8.0`)
   with its changes for Vaultwarden
 - the scripts that build it with `npm run dist:oss:selfhost`, which leaves out the code under the
   Bitwarden License: <https://github.com/dani-garcia/bw_web_builds/tree/v2026.8.0>
 
+So that the source stays available with the archives, whatever happens to those repositories, every
+release carries GitHub's archives of both tags next to its own: `web-vault-<version>-source-vw_web_builds.tar.gz`
+and `web-vault-<version>-source-bw_web_builds.tar.gz`. The libraries the web client is built with come
+from npm in the versions its `package-lock.json` names.
+
 The archives take the build from the image `ghcr.io/dani-garcia/bw_web_builds` (also
 `docker.io/vaultwarden/web-vault`) with the digest that `parity/reference.json` pins, as `php artisan
-vaultwarden:web-vault` does.
+vaultwarden:web-vault` does. The image names no source of its own; the tags above are the ones
+bw_web_builds published with that build.
 
 ## Web libraries of the admin panel
 

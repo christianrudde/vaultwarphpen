@@ -3,16 +3,20 @@
 namespace Tests\Feature\Console;
 
 use App\Console\Commands\ReleaseBuild;
+use App\Support\Downloader;
 use Illuminate\Process\PendingProcess;
 use Illuminate\Support\Facades\Process;
 use PharData;
 use PharFileInfo;
 use RecursiveIteratorIterator;
+use RuntimeException;
+use Tests\Fakes\DownloaderFake;
 use Tests\TestCase;
 
 /**
- * release:build with git, Composer and the web vault faked: the checkout is a
- * few files of the repository, Composer and the web vault leave a file each.
+ * release:build with git, Composer, the web vault and GitHub faked: the checkout
+ * is a few files of the repository, Composer and the web vault leave a file
+ * each, and GitHub answers with the source archives of the web vault.
  */
 class ReleaseBuildTest extends TestCase
 {
@@ -24,12 +28,24 @@ class ReleaseBuildTest extends TestCase
      */
     private const array KEPT = ['.env.example', 'LICENSE.txt', 'LICENSES/GPL-3.0.txt', 'NOTICE.md', 'artisan', 'database/vaultwarden/sqlite', 'parity/reference.json'];
 
+    private const array SOURCES = [
+        'https://github.com/vaultwarden/vw_web_builds/archive/refs/tags/v2026.8.0%2B0.tar.gz' => 'web-vault-2026.8.0-source-vw_web_builds.tar.gz',
+        'https://github.com/dani-garcia/bw_web_builds/archive/refs/tags/v2026.8.0.tar.gz' => 'web-vault-2026.8.0-source-bw_web_builds.tar.gz',
+    ];
+
     private string $output;
+
+    private DownloaderFake $downloads;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->output = "{$this->dataFolder}/build";
+        $this->downloads = new DownloaderFake;
+        foreach (array_keys(self::SOURCES) as $url) {
+            $this->downloads->responses[$url] = [200, "\x1f\x8b{$url}"];
+        }
+        $this->app->instance(Downloader::class, $this->downloads);
 
         Process::fake([
             "*'rev-parse'*" => self::COMMIT."\n",
@@ -40,7 +56,7 @@ class ReleaseBuildTest extends TestCase
                 $staging = (string) end($command);
                 foreach ([...self::KEPT, 'tests/Unit/ExampleTest.php', '.github/workflows/tests.yml', 'parity/matrix.json', 'parity/schema/sqlite.json', 'AGENTS.md'] as $path) {
                     @mkdir(dirname("{$staging}/{$path}"), recursive: true);
-                    file_put_contents("{$staging}/{$path}", $path);
+                    file_put_contents("{$staging}/{$path}", $path === 'parity/reference.json' ? (string) file_get_contents(base_path($path)) : $path);
                 }
                 mkdir("{$staging}/.git");
 
@@ -72,12 +88,19 @@ class ReleaseBuildTest extends TestCase
             ->expectsOutputToContain('Built vaultwarphpen-1.0.0 from '.self::COMMIT)
             ->assertSuccessful();
 
-        $this->assertSame(['.', '..', 'vaultwarphpen-1.0.0.sha256', 'vaultwarphpen-1.0.0.tar.gz', 'vaultwarphpen-1.0.0.zip'], scandir($this->output));
-        $this->assertSame(
-            hash_file('sha256', "{$this->output}/vaultwarphpen-1.0.0.tar.gz")."  vaultwarphpen-1.0.0.tar.gz\n"
-            .hash_file('sha256', "{$this->output}/vaultwarphpen-1.0.0.zip")."  vaultwarphpen-1.0.0.zip\n",
-            file_get_contents("{$this->output}/vaultwarphpen-1.0.0.sha256"),
-        );
+        $this->assertSame([
+            '.', '..',
+            'vaultwarphpen-1.0.0.sha256', 'vaultwarphpen-1.0.0.tar.gz', 'vaultwarphpen-1.0.0.zip',
+            'web-vault-2026.8.0-source-bw_web_builds.tar.gz', 'web-vault-2026.8.0-source-vw_web_builds.tar.gz',
+        ], scandir($this->output));
+        $sums = '';
+        foreach (['vaultwarphpen-1.0.0.tar.gz', 'vaultwarphpen-1.0.0.zip', ...array_values(self::SOURCES)] as $file) {
+            $sums .= hash_file('sha256', "{$this->output}/{$file}")."  {$file}\n";
+        }
+        $this->assertSame($sums, file_get_contents("{$this->output}/vaultwarphpen-1.0.0.sha256"));
+        foreach (self::SOURCES as $url => $file) {
+            $this->assertSame("\x1f\x8b{$url}", file_get_contents("{$this->output}/{$file}"));
+        }
 
         // Phar names the entries below the real path of the archive.
         $prefix = 'phar://'.realpath("{$this->output}/vaultwarphpen-1.0.0.tar.gz").'/vaultwarphpen-1.0.0/';
@@ -106,6 +129,15 @@ class ReleaseBuildTest extends TestCase
         $this->command('release:build', ['--output' => $this->output, '--composer' => '/usr/bin/composer'])->assertSuccessful();
 
         $this->assertFileExists("{$this->output}/vaultwarphpen-01234567.tar.gz");
+    }
+
+    public function test_it_fails_without_the_source_of_the_web_vault(): void
+    {
+        $this->downloads->responses = [];
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('GitHub answered 404 without an archive for vaultwarden/vw_web_builds v2026.8.0+0.');
+        $this->command('release:build', ['--output' => $this->output, '--composer' => '/usr/bin/composer'])->run();
     }
 
     public function test_it_refuses_an_unknown_ref(): void

@@ -4,5 +4,9 @@
     "committed_at": "2026-10-25T20:42:35+01:00",
     "release": "1.37.4",
     "web_vault": "2026.8.0",
-    "web_vault_digest": "sha256:632375471c7c06a799335cd74dfeaef63f92f45f9cd322c337ae7ad70081e48a"
+    "web_vault_digest": "sha256:632375471c7c06a799335cd74dfeaef63f92f45f9cd322c337ae7ad70081e48a",
+    "web_vault_source": {
+        "vaultwarden/vw_web_builds": "v2026.8.0+0",
+        "dani-garcia/bw_web_builds": "v2026.8.0"
+    }
 }

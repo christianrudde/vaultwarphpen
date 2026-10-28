@@ -39,9 +39,13 @@ class NoticeTest extends TestCase
 
     public function test_the_source_of_the_web_vault_in_the_release_archives_is_named_for_the_pinned_version(): void
     {
-        $version = Reference::load(dirname(__DIR__, 2))->webVault;
+        $reference = Reference::load(dirname(__DIR__, 2));
 
-        foreach (["https://github.com/vaultwarden/vw_web_builds/tree/v{$version}", "https://github.com/dani-garcia/bw_web_builds/tree/v{$version}", "`web-v{$version}`"] as $source) {
+        $sources = ["`web-v{$reference->webVault}`"];
+        foreach ($reference->webVaultSource as $repository => $tag) {
+            $sources[] = "<https://github.com/{$repository}/tree/{$tag}>";
+        }
+        foreach ($sources as $source) {
             $this->assertStringContainsString($source, $this->notice, "NOTICE.md must name {$source}, the source of the web vault the release archives include (GPL-3.0 section 6).");
         }
     }
