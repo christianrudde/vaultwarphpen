@@ -5,6 +5,7 @@ namespace Tests\Feature\Config;
 use App\Config\Config;
 use App\Templates\TemplateRenderer;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Tests\Attributes\Parity;
 use Tests\TestCase;
 
@@ -62,6 +63,48 @@ class AppConfigTest extends TestCase
 
         file_put_contents("{$this->base}/custom/404.hbs", 'second {{urlpath}}');
         $this->assertSame('second /x', $renderer->render('404', ['urlpath' => '/x']));
+    }
+
+    #[Parity('config:LOG_LEVEL')]
+    public function test_the_log_channels_follow_log_level(): void
+    {
+        $this->logTo("{$this->base}/laravel.log");
+        $this->useConfig(['LOG_LEVEL' => 'WARN,vaultwarden::api::icons=debug']);
+
+        Log::info('not logged');
+        Log::warning('logged');
+
+        $log = (string) file_get_contents("{$this->base}/laravel.log");
+        $this->assertStringNotContainsString('not logged', $log);
+        $this->assertStringContainsString('.WARNING: logged', $log);
+    }
+
+    #[Parity('config:LOG_LEVEL')]
+    public function test_log_level_off_logs_nothing(): void
+    {
+        $this->logTo("{$this->base}/laravel.log");
+        $this->useConfig(['LOG_LEVEL' => 'off']);
+
+        Log::emergency('not logged');
+
+        $this->assertFileDoesNotExist("{$this->base}/laravel.log");
+    }
+
+    public function test_an_invalid_configuration_is_logged_with_the_default_levels(): void
+    {
+        $this->logTo("{$this->base}/laravel.log");
+        $this->changeVaultwardenEnvironment(['LOG_LEVEL' => 'verbose']);
+
+        Log::debug('logged');
+
+        $log = (string) file_get_contents("{$this->base}/laravel.log");
+        $this->assertStringContainsString('.DEBUG: logged', $log);
+        $this->assertStringNotContainsString('Unable to create configured logger', $log);
+    }
+
+    private function logTo(string $path): void
+    {
+        config(['logging.default' => 'single', 'logging.channels.single.path' => $path]);
     }
 
     /**

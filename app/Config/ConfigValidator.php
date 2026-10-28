@@ -3,6 +3,7 @@
 namespace App\Config;
 
 use App\Database\DatabaseUrl;
+use App\Logging\LogLevel;
 use App\Support\CronSchedule;
 use App\Support\EmailAddress;
 use App\Support\IpNetwork;
@@ -96,6 +97,9 @@ final class ConfigValidator
             }
             fclose($handle);
         }
+
+        // Not validate_config, but init_logging (src/main.rs) refuses to start just the same.
+        LogLevel::parse($config->string('log_level'));
 
         $domain = strtolower($config->string('domain'));
         if (! str_starts_with($domain, 'http://') && ! str_starts_with($domain, 'https://')) {

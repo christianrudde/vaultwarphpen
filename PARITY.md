@@ -9,7 +9,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | Area | Total | ✅ | 🟨 | ⬜ | ➖ | With tests |
 |---|--:|--:|--:|--:|--:|--:|
 | Routes | 294 | 145 | 64 | 84 | 1 | 209 |
-| Settings | 153 | 65 | 88 | 0 | 0 | 153 |
+| Settings | 153 | 66 | 87 | 0 | 0 | 153 |
 | Scheduled jobs | 9 | 9 | 0 | 0 | 0 | 9 |
 | Database tables | 28 | 28 | 0 | 0 | 0 | 28 |
 | Templates | 74 | 33 | 41 | 0 | 0 | 74 |
@@ -397,7 +397,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `LOG_TIMESTAMP_FORMAT` | src/config.rs:754 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `USE_SYSLOG` | src/config.rs:756 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `LOG_FILE` | src/config.rs:758 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `LOG_LEVEL` | src/config.rs:761 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `LOG_LEVEL` | src/config.rs:761 | 4 | Validated like init_logging (src/main.rs) and applied to every Laravel log channel (App\Logging\LogLevel): trace becomes debug, warn becomes warning, off logs nothing. Levels for single modules are accepted, but only the global level applies. |
 | ✅ | `ENABLE_DB_WAL` | src/config.rs:765 | 2 | Read like Vaultwarden (environment, *_FILE, config.json, default) and used: DATABASE_URL drives the default connection, the templates folder and reload drive the renderer. |
 | 🟨 | `DB_CONNECTION_RETRIES` | src/config.rs:768 | 1 | Read and validated like Vaultwarden; PHP opens one connection per request, so there is no pool to size yet. |
 | 🟨 | `DATABASE_TIMEOUT` | src/config.rs:771 | 1 | Read and validated like Vaultwarden; PHP opens one connection per request, so there is no pool to size yet. |

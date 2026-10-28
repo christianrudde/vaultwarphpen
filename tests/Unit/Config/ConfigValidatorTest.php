@@ -66,6 +66,7 @@ class ConfigValidatorTest extends TestCase
         yield 'schedule' => [['TRASH_PURGE_SCHEDULE' => '0 5 0 * *'], '`TRASH_PURGE_SCHEDULE` is not a valid cron expression'];
         yield 'rate limit' => [['LOGIN_RATELIMIT_MAX_BURST' => '0'], '`LOGIN_RATELIMIT_MAX_BURST` must be at least 1'];
         yield 'argon2 admin token' => [['ADMIN_TOKEN' => '$argon2id$broken token'], 'The configured Argon2 PHC in `ADMIN_TOKEN` is invalid'];
+        yield 'log level' => [['LOG_LEVEL' => 'Warning'], 'LOG_LEVEL should follow the format info,vaultwarden::api::icons=debug, invalid: warning'];
     }
 
     /**
@@ -94,6 +95,7 @@ class ConfigValidatorTest extends TestCase
         yield 'schedules' => [['SEND_PURGE_SCHEDULE' => '', 'TRASH_PURGE_SCHEDULE' => '0 */15 8-18 * * Mon-Fri', 'EVENT_CLEANUP_SCHEDULE' => '@daily']];
         yield 'argon2 admin token' => [['ADMIN_TOKEN' => '$argon2id$v=19$m=65540,t=3,p=4$MmeKRnGK5RW5mJS7h3TOL89GrpLPXJPAtTK8FTqj9HM$DqsstvoSAETl9YhnsXbf43WeaUwJC6JhViIvuPoig78']];
         yield 'disabled admin token' => [['DISABLE_ADMIN_TOKEN' => 'true', 'ADMIN_TOKEN' => '$argon2id$broken token']];
+        yield 'log level for modules' => [['LOG_LEVEL' => 'info,vaultwarden::api::icons=debug']];
     }
 
     /**

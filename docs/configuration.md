@@ -49,8 +49,12 @@ no effect so far. The `config:` items in [PARITY.md](../PARITY.md) show the stat
 - **The database pool settings** `DATABASE_MAX_CONNS`, `DATABASE_MIN_CONNS`, `DATABASE_IDLE_TIMEOUT`,
   `DATABASE_TIMEOUT` and `DB_CONNECTION_RETRIES` are validated but have no effect: PHP opens one
   connection per request.
-- **`LOG_LEVEL`** is read by Laravel as well. Laravel knows neither `trace`, `warn` nor `off`; until
-  Vaultwarden's logging is ported, use `debug`, `info` or `error`, which both understand.
+- **Logging** goes through Laravel's log (`storage/logs/laravel.log`, or wherever `LOG_CHANNEL` sends
+  it), not to standard output. `LOG_LEVEL` takes Vaultwarden's values and sets the level of every
+  channel: `trace` and `debug` become Laravel's `debug`, `warn` becomes `warning`, and `off` turns the
+  log off. Levels for single modules, as in `info,vaultwarden::api::icons=debug`, are checked like
+  Vaultwarden does, but only the first level counts. `EXTENDED_LOGGING`, `LOG_TIMESTAMP_FORMAT`,
+  `USE_SYSLOG` and `LOG_FILE` have no effect yet.
 - **Scheduled jobs** run in a process of their own (`php artisan vaultwarden:schedule`) or from cron
   (`--once`), not inside the web server ([Installation](installation.md#scheduled-jobs)).
   `JOB_POLL_INTERVAL_MS` sets how often the process checks; with cron, cron decides, but `0` still

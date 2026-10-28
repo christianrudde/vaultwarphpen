@@ -14,9 +14,11 @@ use App\Auth\PublicToken;
 use App\Auth\RsaKeys;
 use App\Auth\SendHeaders;
 use App\Config\Config;
+use App\Config\ConfigException;
 use App\Database\DatabaseUrl;
 use App\Database\SqlStatements;
 use App\Database\VaultwardenMigrator;
+use App\Logging\LogLevel;
 use App\Mail\SendmailTransport;
 use App\Mail\SmtpTransport;
 use App\Mail\Transport as MailTransport;
@@ -99,6 +101,19 @@ class AppServiceProvider extends ServiceProvider
 
                 return $connection;
             });
+        });
+
+        // LOG_LEVEL is Vaultwarden's setting and sets the level of every channel, like init_logging.
+        // With an invalid configuration, which keeps Vaultwarden from starting, the channels keep
+        // the levels of config/logging.php, so that the error can still be logged.
+        $this->app->afterResolving('log', function (): void {
+            try {
+                $level = LogLevel::parse($this->app->make(Config::class)->string('log_level'));
+            } catch (ConfigException) {
+                return;
+            }
+
+            LogLevel::configure($this->app->make('config'), $level);
         });
     }
 
