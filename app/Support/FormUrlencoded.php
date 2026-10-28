@@ -22,7 +22,7 @@ final class FormUrlencoded
         return implode('&', $parts);
     }
 
-    private static function component(string $value): string
+    public static function component(string $value): string
     {
         return str_replace(['%2A', '~', '%20'], ['*', '%7E', '+'], rawurlencode($value));
     }

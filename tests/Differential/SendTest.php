@@ -172,7 +172,7 @@ class SendTest extends DifferentialTestCase
      * @param  array<string, mixed>  $changes
      * @return array<string, mixed>
      */
-    private static function text(array $changes = []): array
+    public static function text(array $changes = []): array
     {
         return [
             'type' => 0,

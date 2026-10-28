@@ -3,15 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Auth\Headers;
+use App\Config\Config;
+use App\Config\FeatureFlags;
+use App\Http\ApiError;
 use App\Http\Data\Body;
+use App\Http\Data\Query;
 use App\Http\HttpStatus;
 use App\Http\Json;
 use App\Models\User;
 use App\Support\Dates;
+use App\Support\FormUrlencoded;
+use App\Support\HttpClient;
 use App\Support\JsonValue;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use LogicException;
+use stdClass;
 
 /**
  * src/api/core/mod.rs
@@ -44,6 +51,93 @@ final readonly class CoreController
     public function version(): Response
     {
         return Json::response(config()->string('vaultwarden.version'));
+    }
+
+    /**
+     * GET /api/config: what the clients learn of the server. The server is
+     * named Vaultwarphpen, so that users find the source and report bugs
+     * here (AGPL section 13); the rest is as Vaultwarden says it.
+     */
+    public function config(Config $config): Response
+    {
+        $domain = $config->string('domain');
+        $featureStates = FeatureFlags::parse($config->string('experimental_client_feature_flags'), 'valid');
+        $featureStates['pm-19148-innovation-archive'] = true;
+
+        return Json::response(Json::sorted([
+            // The clients compare it with Bitwarden server versions.
+            'version' => '2026.6.0',
+            'gitHash' => null,
+            'server' => ['name' => 'Vaultwarphpen', 'url' => 'https://github.com/christianrudde/vaultwarphpen'],
+            'settings' => [
+                'disableUserRegistration' => $config->isSignupDisabled(),
+                'suppressOnboardingInterstitials' => $config->bool('client_suppress_onboarding'),
+            ],
+            'environment' => [
+                'vault' => $domain,
+                'api' => "{$domain}/api",
+                'identity' => "{$domain}/identity",
+                'notifications' => "{$domain}/notifications",
+                'sso' => '',
+                'cloudRegion' => null,
+            ],
+            'push' => ['pushTechnology' => 0, 'vapidPublicKey' => null],
+            'featureStates' => $featureStates,
+            'communication' => null,
+            'object' => 'config',
+        ]));
+    }
+
+    /**
+     * GET /api/hibp/breach?username=: the breaches HaveIBeenPwned knows, with
+     * HIBP_API_KEY; without it, a pointer to the manual check.
+     */
+    public function hibpBreach(Request $request, Config $config): Response
+    {
+        // Without the parameter the route does not match.
+        $username = FormUrlencoded::component(Query::first($request, 'username') ?? throw new HttpStatus(404, 'No username.'));
+        app(Headers::class);
+
+        $apiKey = $config->optionalString('hibp_api_key');
+        if ($apiKey === null) {
+            return Json::response([Json::sorted([
+                'name' => 'HaveIBeenPwned',
+                'title' => 'Manual HIBP Check',
+                'domain' => 'haveibeenpwned.com',
+                'breachDate' => '2019-08-18T00:00:00Z',
+                'addedDate' => '2019-08-18T00:00:00Z',
+                'description' => "Go to: <a href=\"https://haveibeenpwned.com/account/{$username}\" target=\"_blank\" rel=\"noreferrer\">https://haveibeenpwned.com/account/{$username}</a> for a manual check.<br/><br/>HaveIBeenPwned API key not set!<br/>Go to <a href=\"https://haveibeenpwned.com/API/Key\" target=\"_blank\" rel=\"noreferrer\">https://haveibeenpwned.com/API/Key</a> to purchase an API key from HaveIBeenPwned.<br/><br/>",
+                'logoPath' => 'vw_static/hibp.png',
+                'pwnCount' => 0,
+                'dataClasses' => ['Error - No API key set!'],
+            ])]);
+        }
+
+        try {
+            [$status, $body] = HttpClient::send('GET', "https://haveibeenpwned.com/api/v3/breachedaccount/{$username}?truncateResponse=false&includeUnverified=false",
+                ['hibp-api-key' => $apiKey]);
+        } catch (ApiError) {
+            throw ApiError::message('Req');
+        }
+        // No breaches.
+        if ($status === 404) {
+            throw ApiError::empty(404);
+        }
+        [$ok, $value] = JsonValue::decode($body);
+        if ($status >= 400 || ! $ok) {
+            throw ApiError::message('Req');
+        }
+
+        return Json::response($value);
+    }
+
+    /**
+     * GET /api/webauthn: the passkeys for logging in, which Vaultwarden does
+     * not support; an empty list keeps key rotation working.
+     */
+    public function getApiWebauthn(Headers $headers): Response
+    {
+        return Json::response(Json::sorted(['object' => 'list', 'data' => [], 'continuationToken' => null]));
     }
 
     /**
@@ -86,7 +180,7 @@ final readonly class CoreController
         $user->equivalent_domains = Json::encode($equivalent);
         $user->save();
 
-        return Json::response(new \stdClass);
+        return Json::response(new stdClass);
     }
 
     /**

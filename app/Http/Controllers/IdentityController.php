@@ -24,6 +24,7 @@ use App\Http\EmptyResponse;
 use App\Http\HttpStatus;
 use App\Http\Json;
 use App\Mail\Mail;
+use App\Models\AuthRequest;
 use App\Models\Device;
 use App\Models\Event;
 use App\Models\Invitation;
@@ -308,17 +309,26 @@ final readonly class IdentityController
             ?? throw ApiError::message('Username or password is incorrect. Try again', logMessage: "IP: {$ip}. Username: {$logUsername}.");
         $userId = $user->uuid;
 
+        $failed = "IP: {$ip}. Username: {$logUsername}.";
         if ($authRequest !== null) {
-            throw ApiError::message('Login with a device is not implemented yet');
-        }
-        if (! $user->checkValidPassword($password)) {
-            throw ApiError::message('Username or password is incorrect. Try again', logMessage: "IP: {$ip}. Username: {$logUsername}.", event: Event::USER_FAILED_LOG_IN);
+            // A login with a device: the access code of an approved request stands in for the password.
+            $request = AuthRequest::findByUuidAndUser($authRequest, $user->uuid)
+                ?? throw ApiError::message('Auth request not found. Try again.', logMessage: $failed, event: Event::USER_FAILED_LOG_IN);
+            $expired = Dates::now() >= $request->creation_date->modify('+5 minutes');
+            if ($request->user_uuid !== $user->uuid || $request->approved !== true || $request->authentication_date !== null || $expired
+                || $ip !== $request->request_ip || ! $request->checkAccessCode($password)) {
+                throw ApiError::message('Username or access code is incorrect. Try again', logMessage: $failed, event: Event::USER_FAILED_LOG_IN);
+            }
+        } elseif (! $user->checkValidPassword($password)) {
+            throw ApiError::message('Username or password is incorrect. Try again', logMessage: $failed, event: Event::USER_FAILED_LOG_IN);
         }
         if (! $user->enabled) {
             throw ApiError::message('This user has been disabled', logMessage: "IP: {$ip}. Username: {$logUsername}.", event: Event::USER_FAILED_LOG_IN);
         }
 
-        $this->accounts->kdfUpgrade($user, $password);
+        if ($authRequest === null) {
+            $this->accounts->kdfUpgrade($user, $password);
+        }
 
         if ($user->verified_at === null && $this->config->mailEnabled() && $this->config->bool('signups_verify')) {
             $this->remindToVerify($user);
@@ -329,6 +339,11 @@ final readonly class IdentityController
 
         $loginDevice = $this->getDevice($user, ...$device);
         $twofactorToken = $this->twofactorAuth($user, $loginDevice, $twoFactor, $clientId, $ip);
+
+        // A request works for one login; marked after 2FA, so that the prompt does not use it up.
+        if ($authRequest !== null && ! AuthRequest::setAuthenticationDate($authRequest)) {
+            throw ApiError::message('Username or access code is incorrect. Try again', logMessage: $failed, event: Event::USER_FAILED_LOG_IN);
+        }
 
         return $this->authenticatedResponse($user, $loginDevice, AuthTokens::new($loginDevice, $user, AuthMethod::Password, $clientId, $this->jwt), $ip, $twofactorToken);
     }

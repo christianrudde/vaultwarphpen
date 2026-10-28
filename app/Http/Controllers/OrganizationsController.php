@@ -633,7 +633,7 @@ final readonly class OrganizationsController
         // For members invited before the inviter was stored.
         $membership->invited_by_email ??= is_string($claims['invited_by_email']) ? $claims['invited_by_email'] : null;
 
-        $this->acceptOrgInvite($headers->user, $membership, $resetPasswordKey);
+        self::acceptOrgInvite($headers->user, $membership, $resetPasswordKey);
 
         return new EmptyResponse;
     }
@@ -1502,7 +1502,7 @@ final readonly class OrganizationsController
      *
      * @throws ApiError
      */
-    private function acceptOrgInvite(User $user, Membership $member, ?string $resetPasswordKey): void
+    public static function acceptOrgInvite(User $user, Membership $member, ?string $resetPasswordKey): void
     {
         if ($member->status !== Membership::STATUS_INVITED) {
             throw ApiError::message('User already accepted the invitation');
@@ -1512,7 +1512,7 @@ final readonly class OrganizationsController
         OrgPolicy::checkUserAllowed($member, 'join');
         $member->save();
 
-        if ($this->config->mailEnabled()) {
+        if (app(Config::class)->mailEnabled()) {
             $org = Organization::findByUuid($member->org_uuid) ?? throw ApiError::message('Organization not found.');
             // The member must be confirmed by hand now.
             Mail::sendInviteAccepted($user->email, $member->invited_by_email ?? $org->billing_email, $org->name);

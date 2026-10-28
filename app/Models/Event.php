@@ -53,6 +53,8 @@ final class Event extends Model
 
     public const int USER_CLIENT_EXPORTED_VAULT = 1007;
 
+    public const int USER_REQUESTED_DEVICE_APPROVAL = 1010;
+
     public const int CIPHER_CREATED = 1100;
 
     public const int CIPHER_UPDATED = 1101;
@@ -102,6 +104,10 @@ final class Event extends Model
     public const int ORGANIZATION_USER_REVOKED = 1511;
 
     public const int ORGANIZATION_USER_RESTORED = 1512;
+
+    public const int ORGANIZATION_USER_APPROVED_AUTH_REQUEST = 1513;
+
+    public const int ORGANIZATION_USER_REJECTED_AUTH_REQUEST = 1514;
 
     public const int ORGANIZATION_USER_LEFT = 1516;
 

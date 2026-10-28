@@ -8,11 +8,11 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 
 | Area | Total | ✅ | 🟨 | ⬜ | ➖ | With tests |
 |---|--:|--:|--:|--:|--:|--:|
-| Routes | 294 | 145 | 64 | 84 | 1 | 209 |
-| Settings | 153 | 66 | 87 | 0 | 0 | 153 |
+| Routes | 294 | 175 | 69 | 49 | 1 | 244 |
+| Settings | 153 | 67 | 86 | 0 | 0 | 153 |
 | Scheduled jobs | 9 | 9 | 0 | 0 | 0 | 9 |
 | Database tables | 28 | 28 | 0 | 0 | 0 | 28 |
-| Templates | 74 | 33 | 41 | 0 | 0 | 74 |
+| Templates | 74 | 43 | 31 | 0 | 0 | 74 |
 | Static assets | 21 | 0 | 0 | 21 | 0 | 0 |
 
 ## Routes
@@ -34,12 +34,12 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | GET `/api/settings/domains` | src/api/core/mod.rs:75 | 1 | Compared with Vaultwarden in tests/Differential/SyncTest. |
 | ✅ | POST `/api/settings/domains` | src/api/core/mod.rs:112 | 1 | Compared with Vaultwarden in tests/Differential/SyncTest. |
 | ✅ | PUT `/api/settings/domains` | src/api/core/mod.rs:138 | 1 | Compared with Vaultwarden in tests/Differential/SyncTest. |
-| ⬜ | GET `/api/hibp/breach` | src/api/core/mod.rs:148 | 0 |  |
+| 🟨 | GET `/api/hibp/breach` | src/api/core/mod.rs:148 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. Only the answer without HIBP_API_KEY is compared; with a key the request goes to haveibeenpwned.com through App\Support\HttpClient. |
 | ✅ | GET `/api/alive` | src/api/core/mod.rs:183 | 2 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
 | ✅ | GET `/api/now` | src/api/core/mod.rs:188 | 2 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
 | ✅ | GET `/api/version` | src/api/core/mod.rs:193 | 2 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
-| ⬜ | GET `/api/config` | src/api/core/mod.rs:210 | 0 | Deliberate difference to come: the server object names Vaultwarphpen and links to its repository instead of Vaultwarden (AGPL section 13; see AGENTS.md and docs/configuration.md). |
-| ⬜ | GET `/api/webauthn` | src/api/core/mod.rs:198 | 0 |  |
+| ✅ | GET `/api/config` | src/api/core/mod.rs:210 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. The server object names Vaultwarphpen and links to this repository (AGPL section 13), and gitHash is null; both are left out of the comparison. |
+| ✅ | GET `/api/webauthn` | src/api/core/mod.rs:198 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
 | 🟨 | GET `/api/accounts/profile` | src/api/core/accounts.rs:505 | 1 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Not yet: users in organizations (answered with an error until organizations are ported). |
 | 🟨 | PUT `/api/accounts/profile` | src/api/core/accounts.rs:517 | 1 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Not yet: users in organizations (answered with an error until organizations are ported). |
 | 🟨 | POST `/api/accounts/profile` | src/api/core/accounts.rs:522 | 1 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Not yet: users in organizations (answered with an error until organizations are ported). |
@@ -47,39 +47,39 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | GET `/api/users/{user_id}/public-key` | src/api/core/accounts.rs:565 | 1 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
 | ✅ | GET `/api/accounts/keys` | src/api/core/accounts.rs:580 | 1 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
 | ✅ | POST `/api/accounts/keys` | src/api/core/accounts.rs:598 | 1 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
-| ⬜ | POST `/api/accounts/password` | src/api/core/accounts.rs:633 | 0 |  |
-| ⬜ | POST `/api/accounts/set-password` | src/api/core/accounts.rs:444 | 0 |  |
-| ⬜ | POST `/api/accounts/kdf` | src/api/core/accounts.rs:766 | 0 |  |
-| ⬜ | POST `/api/accounts/key-management/rotate-user-account-keys` | src/api/core/accounts.rs:942 | 0 |  |
-| ⬜ | POST `/api/accounts/key-management/user-key-id` | src/api/core/accounts.rs:1073 | 0 |  |
-| ⬜ | POST `/api/accounts/security-stamp` | src/api/core/accounts.rs:1084 | 0 |  |
-| ⬜ | POST `/api/accounts/email-token` | src/api/core/accounts.rs:1108 | 0 |  |
-| ⬜ | POST `/api/accounts/email` | src/api/core/accounts.rs:1170 | 0 |  |
-| ⬜ | POST `/api/accounts/verify-email` | src/api/core/accounts.rs:1222 | 0 |  |
-| ⬜ | POST `/api/accounts/verify-email-token` | src/api/core/accounts.rs:1244 | 0 |  |
-| ⬜ | POST `/api/accounts/delete-recover` | src/api/core/accounts.rs:1274 | 0 |  |
-| ⬜ | POST `/api/accounts/delete-recover-token` | src/api/core/accounts.rs:1303 | 0 |  |
-| ⬜ | POST `/api/accounts/delete` | src/api/core/accounts.rs:1321 | 0 |  |
-| ⬜ | DELETE `/api/accounts` | src/api/core/accounts.rs:1326 | 0 |  |
+| ✅ | POST `/api/accounts/password` | src/api/core/accounts.rs:633 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
+| ✅ | POST `/api/accounts/set-password` | src/api/core/accounts.rs:444 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
+| ✅ | POST `/api/accounts/kdf` | src/api/core/accounts.rs:766 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
+| ✅ | POST `/api/accounts/key-management/rotate-user-account-keys` | src/api/core/accounts.rs:942 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
+| ✅ | POST `/api/accounts/key-management/user-key-id` | src/api/core/accounts.rs:1073 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
+| ✅ | POST `/api/accounts/security-stamp` | src/api/core/accounts.rs:1084 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
+| ✅ | POST `/api/accounts/email-token` | src/api/core/accounts.rs:1108 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
+| ✅ | POST `/api/accounts/email` | src/api/core/accounts.rs:1170 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
+| ✅ | POST `/api/accounts/verify-email` | src/api/core/accounts.rs:1222 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
+| ✅ | POST `/api/accounts/verify-email-token` | src/api/core/accounts.rs:1244 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
+| ✅ | POST `/api/accounts/delete-recover` | src/api/core/accounts.rs:1274 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
+| ✅ | POST `/api/accounts/delete-recover-token` | src/api/core/accounts.rs:1303 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
+| ✅ | POST `/api/accounts/delete` | src/api/core/accounts.rs:1321 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
+| ✅ | DELETE `/api/accounts` | src/api/core/accounts.rs:1326 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
 | ✅ | GET `/api/accounts/revision-date` | src/api/core/accounts.rs:1337 | 1 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
-| ⬜ | POST `/api/accounts/password-hint` | src/api/core/accounts.rs:1349 | 0 |  |
-| ⬜ | POST `/api/accounts/verify-password` | src/api/core/accounts.rs:1462 | 0 |  |
-| ⬜ | POST `/api/accounts/api-key` | src/api/core/accounts.rs:1494 | 0 |  |
-| ⬜ | POST `/api/accounts/rotate-api-key` | src/api/core/accounts.rs:1499 | 0 |  |
-| ⬜ | GET `/api/devices/knowndevice` | src/api/core/accounts.rs:1504 | 0 |  |
-| ⬜ | GET `/api/devices` | src/api/core/accounts.rs:1556 | 0 |  |
-| ⬜ | GET `/api/devices/identifier/{device_id}` | src/api/core/accounts.rs:1568 | 0 |  |
-| ⬜ | POST `/api/devices/identifier/{device_id}/token` | src/api/core/accounts.rs:1582 | 0 |  |
-| ⬜ | PUT `/api/devices/identifier/{device_id}/token` | src/api/core/accounts.rs:1587 | 0 |  |
-| ⬜ | PUT `/api/devices/identifier/{device_id}/clear-token` | src/api/core/accounts.rs:1614 | 0 |  |
-| ⬜ | POST `/api/devices/identifier/{device_id}/clear-token` | src/api/core/accounts.rs:1638 | 0 |  |
-| ⬜ | GET `/api/tasks` | src/api/core/accounts.rs:1643 | 0 |  |
-| ⬜ | POST `/api/auth-requests` | src/api/core/accounts.rs:1663 | 0 |  |
-| ⬜ | GET `/api/auth-requests/{auth_request_id}` | src/api/core/accounts.rs:1720 | 0 |  |
-| ⬜ | PUT `/api/auth-requests/{auth_request_id}` | src/api/core/accounts.rs:1753 | 0 |  |
-| ⬜ | GET `/api/auth-requests/{auth_request_id}/response` | src/api/core/accounts.rs:1826 | 0 |  |
-| ⬜ | GET `/api/auth-requests` | src/api/core/accounts.rs:1865 | 0 |  |
-| ⬜ | GET `/api/auth-requests/pending` | src/api/core/accounts.rs:1870 | 0 |  |
+| ✅ | POST `/api/accounts/password-hint` | src/api/core/accounts.rs:1349 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
+| ✅ | POST `/api/accounts/verify-password` | src/api/core/accounts.rs:1462 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
+| ✅ | POST `/api/accounts/api-key` | src/api/core/accounts.rs:1494 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
+| ✅ | POST `/api/accounts/rotate-api-key` | src/api/core/accounts.rs:1499 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
+| ✅ | GET `/api/devices/knowndevice` | src/api/core/accounts.rs:1504 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
+| ✅ | GET `/api/devices` | src/api/core/accounts.rs:1556 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
+| ✅ | GET `/api/devices/identifier/{device_id}` | src/api/core/accounts.rs:1568 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
+| 🟨 | POST `/api/devices/identifier/{device_id}/token` | src/api/core/accounts.rs:1582 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. Push notifications through Bitwarden's relay (PUSH_ENABLED) are not ported: with push on, devices are neither registered nor unregistered there. |
+| 🟨 | PUT `/api/devices/identifier/{device_id}/token` | src/api/core/accounts.rs:1587 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. Push notifications through Bitwarden's relay (PUSH_ENABLED) are not ported: with push on, devices are neither registered nor unregistered there. |
+| 🟨 | PUT `/api/devices/identifier/{device_id}/clear-token` | src/api/core/accounts.rs:1614 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. Push notifications through Bitwarden's relay (PUSH_ENABLED) are not ported: with push on, devices are neither registered nor unregistered there. |
+| 🟨 | POST `/api/devices/identifier/{device_id}/clear-token` | src/api/core/accounts.rs:1638 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. Push notifications through Bitwarden's relay (PUSH_ENABLED) are not ported: with push on, devices are neither registered nor unregistered there. |
+| ✅ | GET `/api/tasks` | src/api/core/accounts.rs:1643 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
+| ✅ | POST `/api/auth-requests` | src/api/core/accounts.rs:1663 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
+| ✅ | GET `/api/auth-requests/{auth_request_id}` | src/api/core/accounts.rs:1720 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
+| ✅ | PUT `/api/auth-requests/{auth_request_id}` | src/api/core/accounts.rs:1753 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
+| ✅ | GET `/api/auth-requests/{auth_request_id}/response` | src/api/core/accounts.rs:1826 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
+| ✅ | GET `/api/auth-requests` | src/api/core/accounts.rs:1865 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
+| ✅ | GET `/api/auth-requests/pending` | src/api/core/accounts.rs:1870 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
 | 🟨 | GET `/api/sync` | src/api/core/ciphers.rs:122 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
 | 🟨 | GET `/api/ciphers` | src/api/core/ciphers.rs:215 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
 | 🟨 | GET `/api/ciphers/{cipher_id}` | src/api/core/ciphers.rs:234 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
@@ -300,7 +300,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ⬜ | POST `/admin/users/{user_id}/invite/resend` | src/api/admin.rs:520 | 0 |  |
 | ⬜ | GET `/admin/diagnostics/http` | src/api/admin.rs:831 | 0 |  |
 | ✅ | POST `/events/collect` | src/api/core/events.rs:158 | 1 | Compared with Vaultwarden in tests/Differential/EventTest, with ORG_EVENTS_ENABLED on and off. |
-| 🟨 | POST `/identity/connect/token` | src/api/identity.rs:57 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Password (with KDF upgrade and the 2FA organization policy), refresh token, user and organization API key and Send access (send_access) logins, two-factor login with authenticator, email, YubiKey, Duo, WebAuthn, remembered device and recovery code; accounts, tokens and two-factor methods work across Vaultwarden and us on one database. Not yet: login with a device, SSO. |
+| 🟨 | POST `/identity/connect/token` | src/api/identity.rs:57 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Password (with KDF upgrade and the 2FA organization policy), refresh token, user and organization API key, Send access (send_access) and login with a device (auth requests); two-factor login with authenticator, email, YubiKey, Duo, WebAuthn, remembered device and recovery code; accounts, tokens and two-factor methods work across Vaultwarden and us on one database. Not yet: SSO. |
 | ✅ | POST `/identity/accounts/prelogin` | src/api/identity.rs:1019 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
 | ✅ | POST `/identity/accounts/prelogin/password` | src/api/identity.rs:1024 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
 | 🟨 | POST `/identity/accounts/register/send-verification-email` | src/api/identity.rs:1050 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Not yet: sending the verification mail (SMTP is not ported). |
@@ -390,7 +390,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `HTTP_REQUEST_BLOCK_NON_GLOBAL_IPS` | src/config.rs:731 | 2 | App\Support\HttpClient applies it to the requests Vaultwarden makes with make_http_request (Duo so far); the icon service is not ported yet. |
 | ✅ | `DISABLE_2FA_REMEMBER` | src/config.rs:735 | 2 | Ported (TwoFactorController and friends); tested with non-default values in tests/Feature/Api/TwoFactorTest. |
 | ✅ | `AUTHENTICATOR_DISABLE_TIME_DRIFT` | src/config.rs:739 | 2 | Ported (TwoFactorController and friends); tested with non-default values in tests/Feature/Api/TwoFactorTest. |
-| 🟨 | `EXPERIMENTAL_CLIENT_FEATURE_FLAGS` | src/config.rs:742 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `EXPERIMENTAL_CLIENT_FEATURE_FLAGS` | src/config.rs:742 | 3 | Read, defaulted and validated like Vaultwarden (App\Config); GET /api/config lists the supported flags (tests/Feature/Api/AccountManagementTest, compared in tests/Differential/AccountManagementTest). |
 | 🟨 | `REQUIRE_DEVICE_EMAIL` | src/config.rs:746 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | ✅ | `RELOAD_TEMPLATES` | src/config.rs:750 | 2 | Read like Vaultwarden (environment, *_FILE, config.json, default) and used: DATABASE_URL drives the default connection, the templates folder and reload drive the renderer. |
 | 🟨 | `EXTENDED_LOGGING` | src/config.rs:752 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
@@ -532,14 +532,14 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `admin/users` | src/static/templates/admin/users.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
 | ✅ | `email/admin_account_recovery` | src/static/templates/email/admin_account_recovery.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
 | ✅ | `email/admin_account_recovery.html` | src/static/templates/email/admin_account_recovery.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
-| 🟨 | `email/change_email` | src/static/templates/email/change_email.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/change_email.html` | src/static/templates/email/change_email.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/change_email_existing` | src/static/templates/email/change_email_existing.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/change_email_existing.html` | src/static/templates/email/change_email_existing.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| ✅ | `email/change_email` | src/static/templates/email/change_email.hbs | 2 | Compared with Vaultwarden in tests/Differential/AccountManagementTest: subject, text and HTML of the mail. |
+| ✅ | `email/change_email.html` | src/static/templates/email/change_email.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/AccountManagementTest: subject, text and HTML of the mail. |
+| ✅ | `email/change_email_existing` | src/static/templates/email/change_email_existing.hbs | 2 | Compared with Vaultwarden in tests/Differential/AccountManagementTest: subject, text and HTML of the mail. |
+| ✅ | `email/change_email_existing.html` | src/static/templates/email/change_email_existing.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/AccountManagementTest: subject, text and HTML of the mail. |
 | 🟨 | `email/change_email_invited` | src/static/templates/email/change_email_invited.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
 | 🟨 | `email/change_email_invited.html` | src/static/templates/email/change_email_invited.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/delete_account` | src/static/templates/email/delete_account.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/delete_account.html` | src/static/templates/email/delete_account.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| ✅ | `email/delete_account` | src/static/templates/email/delete_account.hbs | 2 | Compared with Vaultwarden in tests/Differential/AccountManagementTest: subject, text and HTML of the mail. |
+| ✅ | `email/delete_account.html` | src/static/templates/email/delete_account.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/AccountManagementTest: subject, text and HTML of the mail. |
 | ✅ | `email/email_footer` | src/static/templates/email/email_footer.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
 | ✅ | `email/email_footer_text` | src/static/templates/email/email_footer_text.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
 | ✅ | `email/email_header` | src/static/templates/email/email_header.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
@@ -567,8 +567,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | `email/new_device_logged_in.html` | src/static/templates/email/new_device_logged_in.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
 | ✅ | `email/protected_action` | src/static/templates/email/protected_action.hbs | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest: subject, text and HTML of the mail. |
 | ✅ | `email/protected_action.html` | src/static/templates/email/protected_action.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest: subject, text and HTML of the mail. |
-| 🟨 | `email/pw_hint_none` | src/static/templates/email/pw_hint_none.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/pw_hint_none.html` | src/static/templates/email/pw_hint_none.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| ✅ | `email/pw_hint_none` | src/static/templates/email/pw_hint_none.hbs | 2 | Compared with Vaultwarden in tests/Differential/AccountManagementTest: subject, text and HTML of the mail. |
+| ✅ | `email/pw_hint_none.html` | src/static/templates/email/pw_hint_none.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/AccountManagementTest: subject, text and HTML of the mail. |
 | 🟨 | `email/pw_hint_some` | src/static/templates/email/pw_hint_some.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
 | 🟨 | `email/pw_hint_some.html` | src/static/templates/email/pw_hint_some.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
 | ✅ | `email/recover_twofactor` | src/static/templates/email/recover_twofactor.hbs | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest: subject, text and HTML of the mail. |
@@ -589,8 +589,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `email/sso_change_email.html` | src/static/templates/email/sso_change_email.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
 | ✅ | `email/twofactor_email` | src/static/templates/email/twofactor_email.hbs | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest: subject, text and HTML of the mail. |
 | ✅ | `email/twofactor_email.html` | src/static/templates/email/twofactor_email.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest: subject, text and HTML of the mail. |
-| 🟨 | `email/verify_email` | src/static/templates/email/verify_email.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/verify_email.html` | src/static/templates/email/verify_email.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| ✅ | `email/verify_email` | src/static/templates/email/verify_email.hbs | 2 | Compared with Vaultwarden in tests/Differential/AccountManagementTest: subject, text and HTML of the mail. |
+| ✅ | `email/verify_email.html` | src/static/templates/email/verify_email.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/AccountManagementTest: subject, text and HTML of the mail. |
 | 🟨 | `email/welcome` | src/static/templates/email/welcome.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
 | 🟨 | `email/welcome.html` | src/static/templates/email/welcome.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
 | 🟨 | `email/welcome_must_verify` | src/static/templates/email/welcome_must_verify.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |

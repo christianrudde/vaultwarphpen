@@ -41,6 +41,9 @@ Route::prefix('/api')->group(function (): void {
     Route::get('/alive', [CoreController::class, 'alive'])->name('core::alive');
     Route::get('/now', [CoreController::class, 'now'])->name('core::now');
     Route::get('/version', [CoreController::class, 'version'])->name('core::version');
+    Route::get('/config', [CoreController::class, 'config'])->name('core::config');
+    Route::get('/hibp/breach', [CoreController::class, 'hibpBreach'])->name('core::hibp_breach');
+    Route::get('/webauthn', [CoreController::class, 'getApiWebauthn'])->name('core::get_api_webauthn');
     Route::get('/settings/domains', [CoreController::class, 'getSettingsDomains'])->name('core::get_settings_domains');
     Route::post('/settings/domains', [CoreController::class, 'postSettingsDomains'])->name('core::post_settings_domains');
     Route::put('/settings/domains', [CoreController::class, 'postSettingsDomains'])->name('core::put_settings_domains');
@@ -54,6 +57,38 @@ Route::prefix('/api')->group(function (): void {
     Route::get('/accounts/keys', [AccountsController::class, 'getKeys'])->name('core::accounts::get_keys');
     Route::post('/accounts/keys', [AccountsController::class, 'postKeys'])->name('core::accounts::post_keys');
     Route::get('/accounts/revision-date', [AccountsController::class, 'revisionDate'])->name('core::accounts::revision_date');
+    Route::post('/accounts/set-password', [AccountsController::class, 'postSetPassword'])->name('core::accounts::post_set_password');
+    Route::post('/accounts/password', [AccountsController::class, 'postPassword'])->name('core::accounts::post_password');
+    Route::post('/accounts/kdf', [AccountsController::class, 'postKdf'])->name('core::accounts::post_kdf');
+    Route::post('/accounts/key-management/rotate-user-account-keys', [AccountsController::class, 'postRotatekey'])->name('core::accounts::post_rotatekey');
+    Route::post('/accounts/key-management/user-key-id', [AccountsController::class, 'postUserKey'])->name('core::accounts::post_user_key');
+    Route::post('/accounts/security-stamp', [AccountsController::class, 'postSstamp'])->name('core::accounts::post_sstamp');
+    Route::post('/accounts/email-token', [AccountsController::class, 'postEmailToken'])->name('core::accounts::post_email_token');
+    Route::post('/accounts/email', [AccountsController::class, 'postEmail'])->name('core::accounts::post_email');
+    Route::post('/accounts/verify-email', [AccountsController::class, 'postVerifyEmail'])->name('core::accounts::post_verify_email');
+    Route::post('/accounts/verify-email-token', [AccountsController::class, 'postVerifyEmailToken'])->name('core::accounts::post_verify_email_token');
+    Route::post('/accounts/delete-recover', [AccountsController::class, 'postDeleteRecover'])->name('core::accounts::post_delete_recover');
+    Route::post('/accounts/delete-recover-token', [AccountsController::class, 'postDeleteRecoverToken'])->name('core::accounts::post_delete_recover_token');
+    Route::post('/accounts/delete', [AccountsController::class, 'deleteAccount'])->name('core::accounts::post_delete_account');
+    Route::delete('/accounts', [AccountsController::class, 'deleteAccount'])->name('core::accounts::delete_account');
+    Route::post('/accounts/password-hint', [AccountsController::class, 'passwordHint'])->name('core::accounts::password_hint');
+    Route::post('/accounts/verify-password', [AccountsController::class, 'verifyPassword'])->name('core::accounts::verify_password');
+    Route::post('/accounts/api-key', [AccountsController::class, 'postApiKey'])->name('core::accounts::post_api_key');
+    Route::post('/accounts/rotate-api-key', [AccountsController::class, 'rotateApiKey'])->name('core::accounts::rotate_api_key');
+    Route::get('/devices/knowndevice', [AccountsController::class, 'getKnownDevice'])->name('core::accounts::get_known_device');
+    Route::get('/devices', [AccountsController::class, 'getAllDevices'])->name('core::accounts::get_all_devices');
+    Route::get('/devices/identifier/{deviceId}', [AccountsController::class, 'getDevice'])->name('core::accounts::get_device');
+    Route::post('/devices/identifier/{deviceId}/token', [AccountsController::class, 'putDeviceToken'])->name('core::accounts::post_device_token');
+    Route::put('/devices/identifier/{deviceId}/token', [AccountsController::class, 'putDeviceToken'])->name('core::accounts::put_device_token');
+    Route::put('/devices/identifier/{deviceId}/clear-token', [AccountsController::class, 'putClearDeviceToken'])->name('core::accounts::put_clear_device_token');
+    Route::post('/devices/identifier/{deviceId}/clear-token', [AccountsController::class, 'putClearDeviceToken'])->name('core::accounts::post_clear_device_token');
+    Route::get('/tasks', [AccountsController::class, 'getTasks'])->name('core::accounts::get_tasks');
+    Route::post('/auth-requests', [AccountsController::class, 'postAuthRequest'])->name('core::accounts::post_auth_request');
+    Route::get('/auth-requests/pending', [AccountsController::class, 'getAuthRequestsPending'])->name('core::accounts::get_auth_requests_pending');
+    Route::get('/auth-requests/{authRequestId}', [AccountsController::class, 'getAuthRequest'])->name('core::accounts::get_auth_request');
+    Route::put('/auth-requests/{authRequestId}', [AccountsController::class, 'putAuthRequest'])->name('core::accounts::put_auth_request');
+    Route::get('/auth-requests/{authRequestId}/response', [AccountsController::class, 'getAuthRequestResponse'])->name('core::accounts::get_auth_request_response');
+    Route::get('/auth-requests', [AccountsController::class, 'getAuthRequestsPending'])->name('core::accounts::get_auth_requests');
 
     // core::ciphers
     Route::get('/sync', [CiphersController::class, 'sync'])->name('core::ciphers::sync');

@@ -446,6 +446,14 @@ final class Membership extends Model
         return self::query()->where('external_id', $externalId)->where('org_uuid', $orgUuid)->first();
     }
 
+    /**
+     * @return Collection<int, self>
+     */
+    public static function findByUser(string $userUuid): Collection
+    {
+        return self::query()->where('user_uuid', $userUuid)->get();
+    }
+
     public static function findByUserAndOrg(string $userUuid, string $orgUuid): ?self
     {
         return self::query()->where('user_uuid', $userUuid)->where('org_uuid', $orgUuid)->first();
