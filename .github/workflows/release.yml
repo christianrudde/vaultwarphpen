@@ -86,14 +86,16 @@ jobs:
         run: |
           if gh release view "$TAG" > /dev/null 2>&1; then
             gh release upload "$TAG" build/* --clobber
-          else
-            gh release create "$TAG" build/* --draft --verify-tag --title "Vaultwarphpen ${TAG#v}" --generate-notes --notes "$(cat <<EOF
+            exit
+          fi
+
+          # The notes come before the ones GitHub generates from the changes.
+          cat > "$RUNNER_TEMP/notes.md" <<EOF
           Archives for PHP hosts without Composer: the code with its dependencies in \`vendor/\` and the web vault
           that Vaultwarden ships in \`web-vault/\`. [Installing from a release archive](https://github.com/$GH_REPO/blob/$TAG/docs/installation.md#installing-from-a-release-archive)
-          describes the installation and the update; \`sha256sum -c vaultwarphpen-${TAG#v}.sha256\` checks a download.
+          describes the installation and the update; \`sha256sum --check vaultwarphpen-${TAG#v}.sha256\` checks the downloads.
 
           The web vault is Vaultwarden's build of the Bitwarden web client, under the GPL-3.0;
           [NOTICE.md](https://github.com/$GH_REPO/blob/$TAG/NOTICE.md#web-vault) names its source.
           EOF
-          )"
-          fi
+          gh release create "$TAG" build/* --draft --verify-tag --title "Vaultwarphpen ${TAG#v}" --generate-notes --notes-file "$RUNNER_TEMP/notes.md"
