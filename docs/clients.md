@@ -13,7 +13,10 @@ decrypted by the clients' own cryptography, as it is for users.
 - **The Bitwarden CLI** from npm, [`@bitwarden/cli`](https://www.npmjs.com/package/@bitwarden/cli), in the
   release of the web vault.
 
-Both versions, and Playwright's, are pinned in `tests/Clients/package.json` and `package-lock.json`.
+Both versions, and Playwright's, are pinned in `tests/Clients/package.json` and `package-lock.json`. The
+CLI pins its own dependencies exactly; where one of them has a known advisory, `overrides` in
+`package.json` takes the release that fixes it (`npm audit` stays clean, and so do Dependabot's alerts).
+Drop an override once the CLI brings that release itself.
 
 ## What they do
 

@@ -12,6 +12,7 @@ packages it runs on, so both are watched, not left to chance.
 | Composer packages | `composer audit` (Packagist: GitHub's and FriendsOfPHP's advisories, abandoned packages) | every CI run, and in the watch | failed CI run; issue per advisory |
 | Composer packages | `composer outdated`: minor and major updates | in the watch | one issue listing them |
 | GitHub Actions | Dependabot | alerts at once, updates monthly | Dependabot pull request |
+| npm packages of the client tests (`tests/Clients`, not shipped) | Dependabot alerts and security updates | when an advisory is published | Dependabot alert and pull request |
 | Vaultwarden releases | GitHub API | in the watch | issue per release after the pin |
 | Vaultwarden advisories | GitHub API | in the watch | issue per advisory |
 | Vaultwarden `main` | `git` in the reference checkout | in the watch | one issue while `main` is ahead of the pin |
