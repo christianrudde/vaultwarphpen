@@ -8,11 +8,11 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 
 | Area | Total | ✅ | 🟨 | ⬜ | ➖ | With tests |
 |---|--:|--:|--:|--:|--:|--:|
-| Routes | 294 | 91 | 71 | 131 | 1 | 162 |
-| Settings | 153 | 26 | 127 | 0 | 0 | 153 |
+| Routes | 294 | 100 | 63 | 130 | 1 | 163 |
+| Settings | 153 | 35 | 118 | 0 | 0 | 153 |
 | Scheduled jobs | 8 | 0 | 0 | 8 | 0 | 0 |
 | Database tables | 28 | 28 | 0 | 0 | 0 | 28 |
-| Templates | 74 | 0 | 74 | 0 | 0 | 74 |
+| Templates | 74 | 15 | 59 | 0 | 0 | 74 |
 | Static assets | 21 | 0 | 0 | 21 | 0 | 0 |
 
 ## Routes
@@ -185,12 +185,12 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | GET `/api/ciphers/organization-details` | src/api/core/organizations.rs:835 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
 | ⬜ | POST `/api/organizations/domain/sso/verified` | src/api/core/organizations.rs:871 | 0 |  |
 | ✅ | GET `/api/organizations/{org_id}/users` | src/api/core/organizations.rs:894 | 1 | Compared with Vaultwarden in tests/Differential (OrganizationTest, GroupTest), with groups on and off. |
-| 🟨 | POST `/api/organizations/{org_id}/users/invite` | src/api/core/organizations.rs:991 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest without mail; with SMTP configured it answers that sending mail is not implemented yet. |
-| 🟨 | POST `/api/organizations/{org_id}/users/{member_id}/reinvite` | src/api/core/organizations.rs:1178 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest without mail; with SMTP configured it answers that sending mail is not implemented yet. |
-| 🟨 | POST `/api/organizations/{org_id}/users/reinvite` | src/api/core/organizations.rs:1143 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest without mail; with SMTP configured it answers that sending mail is not implemented yet. |
-| 🟨 | POST `/api/organizations/{org_id}/users/{member_id}/confirm` | src/api/core/organizations.rs:1354 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest without mail; with SMTP configured it answers that sending mail is not implemented yet. |
-| 🟨 | POST `/api/organizations/{org_id}/users/confirm` | src/api/core/organizations.rs:1309 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest without mail; with SMTP configured it answers that sending mail is not implemented yet. |
-| ⬜ | POST `/api/organizations/{org_id}/users/{member_id}/accept` | src/api/core/organizations.rs:1241 | 0 |  |
+| ✅ | POST `/api/organizations/{org_id}/users/invite` | src/api/core/organizations.rs:991 | 2 | Compared with Vaultwarden in tests/Differential/MailTest, mails included, and without mail in OrganizationTest. |
+| ✅ | POST `/api/organizations/{org_id}/users/{member_id}/reinvite` | src/api/core/organizations.rs:1178 | 2 | Compared with Vaultwarden in tests/Differential/MailTest, mails included, and without mail in OrganizationTest. |
+| ✅ | POST `/api/organizations/{org_id}/users/reinvite` | src/api/core/organizations.rs:1143 | 2 | Compared with Vaultwarden in tests/Differential/MailTest, mails included, and without mail in OrganizationTest. |
+| ✅ | POST `/api/organizations/{org_id}/users/{member_id}/confirm` | src/api/core/organizations.rs:1354 | 2 | Compared with Vaultwarden in tests/Differential/MailTest, mails included, and without mail in OrganizationTest. |
+| ✅ | POST `/api/organizations/{org_id}/users/confirm` | src/api/core/organizations.rs:1309 | 2 | Compared with Vaultwarden in tests/Differential/MailTest, mails included, and without mail in OrganizationTest. |
+| ✅ | POST `/api/organizations/{org_id}/users/{member_id}/accept` | src/api/core/organizations.rs:1241 | 1 | Compared with Vaultwarden in tests/Differential/MailTest, mails included, and without mail in OrganizationTest. |
 | ✅ | GET `/api/organizations/{org_id}/users/mini-details` | src/api/core/organizations.rs:1435 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
 | ✅ | GET `/api/organizations/{org_id}/users/{member_id}` | src/api/core/organizations.rs:1452 | 1 | Compared with Vaultwarden in tests/Differential (OrganizationTest, GroupTest), with groups on and off. |
 | ✅ | PUT `/api/organizations/{org_id}/users/{member_id}` | src/api/core/organizations.rs:1485 | 1 | Compared with Vaultwarden in tests/Differential (OrganizationTest, GroupTest), with groups on and off. |
@@ -222,9 +222,9 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | DELETE `/api/organizations/{org_id}/groups/{group_id}` | src/api/core/organizations.rs:2644 | 1 | Compared with Vaultwarden in tests/Differential/GroupTest, with ORG_GROUPS_ENABLED on and off. |
 | ✅ | DELETE `/api/organizations/{org_id}/groups` | src/api/core/organizations.rs:2680 | 1 | Compared with Vaultwarden in tests/Differential/GroupTest, with ORG_GROUPS_ENABLED on and off. |
 | ✅ | GET `/api/organizations/{org_id}/groups/{group_id}/users` | src/api/core/organizations.rs:2718 | 1 | Compared with Vaultwarden in tests/Differential/GroupTest, with ORG_GROUPS_ENABLED on and off. |
-| 🟨 | PUT `/api/organizations/{org_id}/users/{user_id}/reset-password-enrollment` | src/api/core/organizations.rs:2988 | 1 | Compared with Vaultwarden in tests/Differential/AccountRecoveryTest without mail, which upstream requires for account recovery; sending mail is not ported, so with SMTP recovering stops at the mail. |
-| 🟨 | GET `/api/organizations/{org_id}/users/{member_id}/reset-password-details` | src/api/core/organizations.rs:2914 | 1 | Compared with Vaultwarden in tests/Differential/AccountRecoveryTest without mail, which upstream requires for account recovery; sending mail is not ported, so with SMTP recovering stops at the mail. |
-| 🟨 | PUT `/api/organizations/{org_id}/users/{member_id}/recover-account` | src/api/core/organizations.rs:2797 | 1 | Compared with Vaultwarden in tests/Differential/AccountRecoveryTest without mail, which upstream requires for account recovery; sending mail is not ported, so with SMTP recovering stops at the mail. |
+| ✅ | PUT `/api/organizations/{org_id}/users/{user_id}/reset-password-enrollment` | src/api/core/organizations.rs:2988 | 1 | Compared with Vaultwarden in tests/Differential/MailTest (with mail, mails included) and AccountRecoveryTest (without). |
+| ✅ | GET `/api/organizations/{org_id}/users/{member_id}/reset-password-details` | src/api/core/organizations.rs:2914 | 1 | Compared with Vaultwarden in tests/Differential/MailTest (with mail, mails included) and AccountRecoveryTest (without). |
+| 🟨 | PUT `/api/organizations/{org_id}/users/{member_id}/recover-account` | src/api/core/organizations.rs:2797 | 1 | Compared with Vaultwarden in tests/Differential/MailTest (with mail, mails included) and AccountRecoveryTest (without). With EMAIL_2FA_AUTO_FALLBACK, resetting two-factor login would activate email 2FA, which is not ported. |
 | ✅ | GET `/api/organizations/{org_id}/export` | src/api/core/organizations.rs:3046 | 1 | Compared with Vaultwarden in tests/Differential/ImportExportTest. |
 | ✅ | POST `/api/organizations/{org_id}/api-key` | src/api/core/organizations.rs:3095 | 1 | Compared with Vaultwarden in tests/Differential/ApiKeyTest, with the login of the key. |
 | ✅ | POST `/api/organizations/{org_id}/rotate-api-key` | src/api/core/organizations.rs:3105 | 1 | Compared with Vaultwarden in tests/Differential/ApiKeyTest, with the login of the key. |
@@ -270,7 +270,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | GET `/api/sends/{send_id}/{file_id}` | src/api/core/sends.rs:455 | 1 | Compared with Vaultwarden in tests/Differential/SendTest; the organization policies (Disable Send, Send Options) are covered by tests/Feature/Api/SendTest. No live notifications yet. |
 | ✅ | POST `/api/sends/file/v2` | src/api/core/sends.rs:224 | 1 | Compared with Vaultwarden in tests/Differential/SendTest; the organization policies (Disable Send, Send Options) are covered by tests/Feature/Api/SendTest. No live notifications yet. |
 | ✅ | POST `/api/sends/{send_id}/file/{file_id}` | src/api/core/sends.rs:296 | 1 | Compared with Vaultwarden in tests/Differential/SendTest; the organization policies (Disable Send, Send Options) are covered by tests/Feature/Api/SendTest. No live notifications yet. |
-| 🟨 | POST `/api/public/organization/import` | src/api/core/public.rs:53 | 1 | Compared with Vaultwarden in tests/Differential/ApiKeyTest without mail, with groups on and off; with SMTP the invitations fail as sending mail is not ported. |
+| ✅ | POST `/api/public/organization/import` | src/api/core/public.rs:53 | 1 | Compared with Vaultwarden in tests/Differential/ApiKeyTest (groups on and off) and MailTest (with mail, mails included). |
 | ⬜ | GET `/admin` | src/api/admin.rs:100 | 0 |  |
 | ⬜ | GET `/admin/users` | src/api/admin.rs:357 | 0 |  |
 | ⬜ | GET `/admin/users/{user_id}` | src/api/admin.rs:412 | 0 |  |
@@ -364,14 +364,14 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | `ORG_EVENTS_ENABLED` | src/config.rs:645 | 2 | Compared with Vaultwarden in tests/Differential/EventTest, with ORG_EVENTS_ENABLED on and off. |
 | 🟨 | `ORG_CREATION_USERS` | src/config.rs:648 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `INVITATIONS_ALLOWED` | src/config.rs:650 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `INVITATION_EXPIRATION_HOURS` | src/config.rs:653 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `INVITATION_EXPIRATION_HOURS` | src/config.rs:653 | 1 | Sets the lifetime of mailed tokens in App\Mail\Mail; not compared with Vaultwarden. |
 | 🟨 | `EMERGENCY_ACCESS_ALLOWED` | src/config.rs:655 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `EMAIL_CHANGE_ALLOWED` | src/config.rs:657 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | ✅ | `PASSWORD_ITERATIONS` | src/config.rs:660 | 2 | Read like Vaultwarden and used by registration and login. |
 | 🟨 | `PASSWORD_HINTS_ALLOWED` | src/config.rs:662 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `SHOW_PASSWORD_HINT` | src/config.rs:666 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `ADMIN_TOKEN` | src/config.rs:669 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `INVITATION_ORG_NAME` | src/config.rs:672 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `INVITATION_ORG_NAME` | src/config.rs:672 | 1 | Used when accepting invitations of the admin panel, which is not ported. |
 | 🟨 | `EVENTS_DAYS_RETAIN` | src/config.rs:675 | 1 | Event::cleanEvents is ported; the scheduled job that runs it is not. |
 | 🟨 | `CLIENT_SUPPRESS_ONBOARDING` | src/config.rs:680 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | ✅ | `IP_HEADER` | src/config.rs:687 | 2 | Read like Vaultwarden and used: DOMAIN for mount path, origin, CORS, Host and token issuers; the IP settings for the client IP; the CSP sources in the security headers. |
@@ -445,26 +445,26 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `DUO_IKEY` | src/config.rs:886 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `DUO_SKEY` | src/config.rs:888 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `DUO_HOST` | src/config.rs:890 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `_ENABLE_SMTP` | src/config.rs:896 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `USE_SENDMAIL` | src/config.rs:898 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SENDMAIL_COMMAND` | src/config.rs:900 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SMTP_HOST` | src/config.rs:902 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `_ENABLE_SMTP` | src/config.rs:896 | 2 | Used by App\Mail\SmtpTransport; compared with Vaultwarden in tests/Differential/MailTest, which sends through SMTP sinks. |
+| 🟨 | `USE_SENDMAIL` | src/config.rs:898 | 1 | Ported in App\Mail (SmtpTransport, SendmailTransport) like lettre; not compared with Vaultwarden, whose error texts come from lettre. |
+| 🟨 | `SENDMAIL_COMMAND` | src/config.rs:900 | 1 | Ported in App\Mail (SmtpTransport, SendmailTransport) like lettre; not compared with Vaultwarden, whose error texts come from lettre. |
+| ✅ | `SMTP_HOST` | src/config.rs:902 | 2 | Used by App\Mail\SmtpTransport; compared with Vaultwarden in tests/Differential/MailTest, which sends through SMTP sinks. |
 | 🟨 | `SMTP_SSL` | src/config.rs:904 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `SMTP_EXPLICIT_TLS` | src/config.rs:906 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SMTP_SECURITY` | src/config.rs:908 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SMTP_PORT` | src/config.rs:910 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SMTP_FROM` | src/config.rs:912 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SMTP_FROM_NAME` | src/config.rs:914 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SMTP_USERNAME` | src/config.rs:916 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SMTP_PASSWORD` | src/config.rs:918 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SMTP_AUTH_MECHANISM` | src/config.rs:920 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SMTP_TIMEOUT` | src/config.rs:922 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `HELO_NAME` | src/config.rs:924 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SMTP_EMBED_IMAGES` | src/config.rs:926 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `_SMTP_IMG_SRC` | src/config.rs:928 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SMTP_DEBUG` | src/config.rs:930 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SMTP_ACCEPT_INVALID_CERTS` | src/config.rs:932 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SMTP_ACCEPT_INVALID_HOSTNAMES` | src/config.rs:934 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `SMTP_SECURITY` | src/config.rs:908 | 2 | Used by App\Mail\SmtpTransport; compared with Vaultwarden in tests/Differential/MailTest, which sends through SMTP sinks. |
+| ✅ | `SMTP_PORT` | src/config.rs:910 | 2 | Used by App\Mail\SmtpTransport; compared with Vaultwarden in tests/Differential/MailTest, which sends through SMTP sinks. |
+| ✅ | `SMTP_FROM` | src/config.rs:912 | 2 | Used by App\Mail\SmtpTransport; compared with Vaultwarden in tests/Differential/MailTest, which sends through SMTP sinks. |
+| ✅ | `SMTP_FROM_NAME` | src/config.rs:914 | 2 | tests/Feature/Mail/MailTest. |
+| 🟨 | `SMTP_USERNAME` | src/config.rs:916 | 1 | Ported in App\Mail (SmtpTransport, SendmailTransport) like lettre; not compared with Vaultwarden, whose error texts come from lettre. |
+| 🟨 | `SMTP_PASSWORD` | src/config.rs:918 | 1 | Ported in App\Mail (SmtpTransport, SendmailTransport) like lettre; not compared with Vaultwarden, whose error texts come from lettre. |
+| 🟨 | `SMTP_AUTH_MECHANISM` | src/config.rs:920 | 1 | Ported in App\Mail (SmtpTransport, SendmailTransport) like lettre; not compared with Vaultwarden, whose error texts come from lettre. |
+| ✅ | `SMTP_TIMEOUT` | src/config.rs:922 | 2 | Used by App\Mail\SmtpTransport; compared with Vaultwarden in tests/Differential/MailTest, which sends through SMTP sinks. |
+| 🟨 | `HELO_NAME` | src/config.rs:924 | 1 | Ported in App\Mail (SmtpTransport, SendmailTransport) like lettre; not compared with Vaultwarden, whose error texts come from lettre. |
+| ✅ | `SMTP_EMBED_IMAGES` | src/config.rs:926 | 2 | tests/Feature/Mail/MailTest: the images inline with their content ids, as lettre embeds them. |
+| ✅ | `_SMTP_IMG_SRC` | src/config.rs:928 | 2 | tests/Feature/Mail/MailTest. |
+| 🟨 | `SMTP_DEBUG` | src/config.rs:930 | 1 | lettre logs the SMTP conversation with it; not ported. |
+| 🟨 | `SMTP_ACCEPT_INVALID_CERTS` | src/config.rs:932 | 1 | Ported in App\Mail (SmtpTransport, SendmailTransport) like lettre; not compared with Vaultwarden, whose error texts come from lettre. |
+| 🟨 | `SMTP_ACCEPT_INVALID_HOSTNAMES` | src/config.rs:934 | 1 | Ported in App\Mail (SmtpTransport, SendmailTransport) like lettre; not compared with Vaultwarden, whose error texts come from lettre. |
 | 🟨 | `_ENABLE_EMAIL_2FA` | src/config.rs:940 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `EMAIL_TOKEN_SIZE` | src/config.rs:942 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `EMAIL_EXPIRATION_TIME` | src/config.rs:944 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
@@ -529,71 +529,71 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `admin/organizations` | src/static/templates/admin/organizations.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
 | 🟨 | `admin/settings` | src/static/templates/admin/settings.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
 | 🟨 | `admin/users` | src/static/templates/admin/users.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/admin_account_recovery` | src/static/templates/email/admin_account_recovery.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/admin_account_recovery.html` | src/static/templates/email/admin_account_recovery.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/change_email` | src/static/templates/email/change_email.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/change_email.html` | src/static/templates/email/change_email.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/change_email_existing` | src/static/templates/email/change_email_existing.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/change_email_existing.html` | src/static/templates/email/change_email_existing.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/change_email_invited` | src/static/templates/email/change_email_invited.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/change_email_invited.html` | src/static/templates/email/change_email_invited.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/delete_account` | src/static/templates/email/delete_account.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/delete_account.html` | src/static/templates/email/delete_account.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/email_footer` | src/static/templates/email/email_footer.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/email_footer_text` | src/static/templates/email/email_footer_text.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/email_header` | src/static/templates/email/email_header.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/emergency_access_invite_accepted` | src/static/templates/email/emergency_access_invite_accepted.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/emergency_access_invite_accepted.html` | src/static/templates/email/emergency_access_invite_accepted.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/emergency_access_invite_confirmed` | src/static/templates/email/emergency_access_invite_confirmed.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/emergency_access_invite_confirmed.html` | src/static/templates/email/emergency_access_invite_confirmed.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/emergency_access_recovery_approved` | src/static/templates/email/emergency_access_recovery_approved.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/emergency_access_recovery_approved.html` | src/static/templates/email/emergency_access_recovery_approved.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/emergency_access_recovery_initiated` | src/static/templates/email/emergency_access_recovery_initiated.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/emergency_access_recovery_initiated.html` | src/static/templates/email/emergency_access_recovery_initiated.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/emergency_access_recovery_rejected` | src/static/templates/email/emergency_access_recovery_rejected.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/emergency_access_recovery_rejected.html` | src/static/templates/email/emergency_access_recovery_rejected.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/emergency_access_recovery_reminder` | src/static/templates/email/emergency_access_recovery_reminder.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/emergency_access_recovery_reminder.html` | src/static/templates/email/emergency_access_recovery_reminder.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/emergency_access_recovery_timed_out` | src/static/templates/email/emergency_access_recovery_timed_out.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/emergency_access_recovery_timed_out.html` | src/static/templates/email/emergency_access_recovery_timed_out.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/incomplete_2fa_login` | src/static/templates/email/incomplete_2fa_login.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/incomplete_2fa_login.html` | src/static/templates/email/incomplete_2fa_login.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/invite_accepted` | src/static/templates/email/invite_accepted.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/invite_accepted.html` | src/static/templates/email/invite_accepted.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/invite_confirmed` | src/static/templates/email/invite_confirmed.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/invite_confirmed.html` | src/static/templates/email/invite_confirmed.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/new_device_logged_in` | src/static/templates/email/new_device_logged_in.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/new_device_logged_in.html` | src/static/templates/email/new_device_logged_in.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/protected_action` | src/static/templates/email/protected_action.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/protected_action.html` | src/static/templates/email/protected_action.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/pw_hint_none` | src/static/templates/email/pw_hint_none.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/pw_hint_none.html` | src/static/templates/email/pw_hint_none.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/pw_hint_some` | src/static/templates/email/pw_hint_some.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/pw_hint_some.html` | src/static/templates/email/pw_hint_some.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/recover_twofactor` | src/static/templates/email/recover_twofactor.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/recover_twofactor.html` | src/static/templates/email/recover_twofactor.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/register_verify_email` | src/static/templates/email/register_verify_email.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/register_verify_email.html` | src/static/templates/email/register_verify_email.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/send_2fa_removed_from_org` | src/static/templates/email/send_2fa_removed_from_org.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/send_2fa_removed_from_org.html` | src/static/templates/email/send_2fa_removed_from_org.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/send_emergency_access_invite` | src/static/templates/email/send_emergency_access_invite.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/send_emergency_access_invite.html` | src/static/templates/email/send_emergency_access_invite.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/send_org_invite` | src/static/templates/email/send_org_invite.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/send_org_invite.html` | src/static/templates/email/send_org_invite.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/send_single_org_removed_from_org` | src/static/templates/email/send_single_org_removed_from_org.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/send_single_org_removed_from_org.html` | src/static/templates/email/send_single_org_removed_from_org.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/smtp_test` | src/static/templates/email/smtp_test.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/smtp_test.html` | src/static/templates/email/smtp_test.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/sso_change_email` | src/static/templates/email/sso_change_email.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/sso_change_email.html` | src/static/templates/email/sso_change_email.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/twofactor_email` | src/static/templates/email/twofactor_email.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/twofactor_email.html` | src/static/templates/email/twofactor_email.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/verify_email` | src/static/templates/email/verify_email.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/verify_email.html` | src/static/templates/email/verify_email.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/welcome` | src/static/templates/email/welcome.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/welcome.html` | src/static/templates/email/welcome.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/welcome_must_verify` | src/static/templates/email/welcome_must_verify.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
-| 🟨 | `email/welcome_must_verify.html` | src/static/templates/email/welcome_must_verify.html.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
+| ✅ | `email/admin_account_recovery` | src/static/templates/email/admin_account_recovery.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
+| ✅ | `email/admin_account_recovery.html` | src/static/templates/email/admin_account_recovery.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
+| 🟨 | `email/change_email` | src/static/templates/email/change_email.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/change_email.html` | src/static/templates/email/change_email.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/change_email_existing` | src/static/templates/email/change_email_existing.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/change_email_existing.html` | src/static/templates/email/change_email_existing.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/change_email_invited` | src/static/templates/email/change_email_invited.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/change_email_invited.html` | src/static/templates/email/change_email_invited.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/delete_account` | src/static/templates/email/delete_account.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/delete_account.html` | src/static/templates/email/delete_account.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| ✅ | `email/email_footer` | src/static/templates/email/email_footer.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
+| ✅ | `email/email_footer_text` | src/static/templates/email/email_footer_text.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
+| ✅ | `email/email_header` | src/static/templates/email/email_header.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
+| 🟨 | `email/emergency_access_invite_accepted` | src/static/templates/email/emergency_access_invite_accepted.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/emergency_access_invite_accepted.html` | src/static/templates/email/emergency_access_invite_accepted.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/emergency_access_invite_confirmed` | src/static/templates/email/emergency_access_invite_confirmed.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/emergency_access_invite_confirmed.html` | src/static/templates/email/emergency_access_invite_confirmed.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/emergency_access_recovery_approved` | src/static/templates/email/emergency_access_recovery_approved.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/emergency_access_recovery_approved.html` | src/static/templates/email/emergency_access_recovery_approved.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/emergency_access_recovery_initiated` | src/static/templates/email/emergency_access_recovery_initiated.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/emergency_access_recovery_initiated.html` | src/static/templates/email/emergency_access_recovery_initiated.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/emergency_access_recovery_rejected` | src/static/templates/email/emergency_access_recovery_rejected.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/emergency_access_recovery_rejected.html` | src/static/templates/email/emergency_access_recovery_rejected.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/emergency_access_recovery_reminder` | src/static/templates/email/emergency_access_recovery_reminder.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/emergency_access_recovery_reminder.html` | src/static/templates/email/emergency_access_recovery_reminder.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/emergency_access_recovery_timed_out` | src/static/templates/email/emergency_access_recovery_timed_out.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/emergency_access_recovery_timed_out.html` | src/static/templates/email/emergency_access_recovery_timed_out.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/incomplete_2fa_login` | src/static/templates/email/incomplete_2fa_login.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/incomplete_2fa_login.html` | src/static/templates/email/incomplete_2fa_login.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| ✅ | `email/invite_accepted` | src/static/templates/email/invite_accepted.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
+| ✅ | `email/invite_accepted.html` | src/static/templates/email/invite_accepted.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
+| ✅ | `email/invite_confirmed` | src/static/templates/email/invite_confirmed.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
+| ✅ | `email/invite_confirmed.html` | src/static/templates/email/invite_confirmed.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
+| ✅ | `email/new_device_logged_in` | src/static/templates/email/new_device_logged_in.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
+| ✅ | `email/new_device_logged_in.html` | src/static/templates/email/new_device_logged_in.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
+| 🟨 | `email/protected_action` | src/static/templates/email/protected_action.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/protected_action.html` | src/static/templates/email/protected_action.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/pw_hint_none` | src/static/templates/email/pw_hint_none.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/pw_hint_none.html` | src/static/templates/email/pw_hint_none.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/pw_hint_some` | src/static/templates/email/pw_hint_some.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/pw_hint_some.html` | src/static/templates/email/pw_hint_some.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/recover_twofactor` | src/static/templates/email/recover_twofactor.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/recover_twofactor.html` | src/static/templates/email/recover_twofactor.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/register_verify_email` | src/static/templates/email/register_verify_email.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/register_verify_email.html` | src/static/templates/email/register_verify_email.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| ✅ | `email/send_2fa_removed_from_org` | src/static/templates/email/send_2fa_removed_from_org.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
+| ✅ | `email/send_2fa_removed_from_org.html` | src/static/templates/email/send_2fa_removed_from_org.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
+| 🟨 | `email/send_emergency_access_invite` | src/static/templates/email/send_emergency_access_invite.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/send_emergency_access_invite.html` | src/static/templates/email/send_emergency_access_invite.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| ✅ | `email/send_org_invite` | src/static/templates/email/send_org_invite.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
+| ✅ | `email/send_org_invite.html` | src/static/templates/email/send_org_invite.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
+| 🟨 | `email/send_single_org_removed_from_org` | src/static/templates/email/send_single_org_removed_from_org.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/send_single_org_removed_from_org.html` | src/static/templates/email/send_single_org_removed_from_org.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/smtp_test` | src/static/templates/email/smtp_test.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/smtp_test.html` | src/static/templates/email/smtp_test.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/sso_change_email` | src/static/templates/email/sso_change_email.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/sso_change_email.html` | src/static/templates/email/sso_change_email.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/twofactor_email` | src/static/templates/email/twofactor_email.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/twofactor_email.html` | src/static/templates/email/twofactor_email.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/verify_email` | src/static/templates/email/verify_email.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/verify_email.html` | src/static/templates/email/verify_email.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/welcome` | src/static/templates/email/welcome.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/welcome.html` | src/static/templates/email/welcome.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/welcome_must_verify` | src/static/templates/email/welcome_must_verify.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/welcome_must_verify.html` | src/static/templates/email/welcome_must_verify.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
 | 🟨 | `scss/user.vaultwarden.scss` | src/static/templates/scss/user.vaultwarden.scss.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
 | 🟨 | `scss/vaultwarden.scss` | src/static/templates/scss/vaultwarden.scss.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
 

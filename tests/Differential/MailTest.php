@@ -20,8 +20,14 @@ class MailTest extends DifferentialTestCase
     #[Parity('template:email/invite_accepted*')]
     #[Parity('template:email/invite_confirmed*')]
     #[Parity('template:email/send_2fa_removed_from_org*')]
-    #[Parity('template:email/send_single_org_removed_from_org*')]
     #[Parity('template:email/new_device_logged_in*')]
+    #[Parity('template:email/email_*')]
+    #[Parity('config:_ENABLE_SMTP')]
+    #[Parity('config:SMTP_HOST')]
+    #[Parity('config:SMTP_PORT')]
+    #[Parity('config:SMTP_SECURITY')]
+    #[Parity('config:SMTP_FROM')]
+    #[Parity('config:SMTP_TIMEOUT')]
     public function test_invitations_by_mail(): void
     {
         $this->assertSameMailFlows(function (Server $server): array {

@@ -25,6 +25,8 @@ use Tests\TestCase;
  * transport, and the invitation flow they carry.
  */
 #[Parity('config:SMTP_EMBED_IMAGES')]
+#[Parity('config:SMTP_FROM_NAME')]
+#[Parity('config:_SMTP_IMG_SRC')]
 class MailTest extends TestCase
 {
     use UsesVaultwardenDatabase;
