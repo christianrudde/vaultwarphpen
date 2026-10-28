@@ -52,6 +52,12 @@ final readonly class Jwt
         'org_id' => 'string', 'member_id' => 'string', 'invited_by_email' => '?string'];
 
     /**
+     * The fields of EmergencyAccessInviteJwtClaims.
+     */
+    public const array EMERGENCY_ACCESS_INVITE_CLAIMS = ['nbf' => 'int', 'exp' => 'int', 'iss' => 'string', 'sub' => 'string', 'email' => 'string',
+        'emer_id' => 'string', 'grantor_name' => 'string', 'grantor_email' => 'string'];
+
+    /**
      * @param  array<string, 'int'|'string'|'?string'|'bool'>  $fields  The claims struct, in field order: jsonwebtoken
      *                                                                  deserializes it before it validates the token
      * @param  array{string, string, bool}|null  $nested  A field holding a struct that denies unknown fields:

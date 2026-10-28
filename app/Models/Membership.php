@@ -480,6 +480,16 @@ final class Membership extends Model
         return self::query()->where('user_uuid', $userUuid)->where('status', self::STATUS_INVITED)->get();
     }
 
+    /**
+     * Revoked, invited, accepted and confirmed.
+     *
+     * @return Collection<int, self>
+     */
+    public static function findAnyStateByUser(string $userUuid): Collection
+    {
+        return self::query()->where('user_uuid', $userUuid)->get();
+    }
+
     public static function countAcceptedAndConfirmedByUser(string $userUuid, string $excludedOrgUuid): int
     {
         return self::query()->where('user_uuid', $userUuid)->where('org_uuid', '!=', $excludedOrgUuid)

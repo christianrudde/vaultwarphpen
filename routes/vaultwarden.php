@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccountsController;
 use App\Http\Controllers\CiphersController;
 use App\Http\Controllers\CoreController;
+use App\Http\Controllers\EmergencyAccessController;
 use App\Http\Controllers\EventsController;
 use App\Http\Controllers\FoldersController;
 use App\Http\Controllers\IdentityController;
@@ -118,6 +119,26 @@ Route::prefix('/api')->group(function (): void {
     Route::put('/ciphers/{cipherId}/restore-admin', [CiphersController::class, 'restoreCipher'])->name('core::ciphers::restore_cipher_put_admin');
     Route::put('/ciphers/{cipherId}/archive', [CiphersController::class, 'archiveCipher'])->name('core::ciphers::archive_cipher_put');
     Route::put('/ciphers/{cipherId}/unarchive', [CiphersController::class, 'unarchiveCipher'])->name('core::ciphers::unarchive_cipher_put');
+
+    // core::emergency_access; the static segments before the emergency access id, which would take them too.
+    Route::get('/emergency-access/trusted', [EmergencyAccessController::class, 'getContacts'])->name('core::emergency_access::get_contacts');
+    Route::get('/emergency-access/granted', [EmergencyAccessController::class, 'getGrantees'])->name('core::emergency_access::get_grantees');
+    Route::post('/emergency-access/invite', [EmergencyAccessController::class, 'sendInvite'])->name('core::emergency_access::send_invite');
+    Route::get('/emergency-access/{emerId}', [EmergencyAccessController::class, 'getEmergencyAccess'])->name('core::emergency_access::get_emergency_access');
+    Route::put('/emergency-access/{emerId}', [EmergencyAccessController::class, 'putEmergencyAccess'])->name('core::emergency_access::put_emergency_access');
+    Route::post('/emergency-access/{emerId}', [EmergencyAccessController::class, 'postEmergencyAccess'])->name('core::emergency_access::post_emergency_access');
+    Route::delete('/emergency-access/{emerId}', [EmergencyAccessController::class, 'deleteEmergencyAccess'])->name('core::emergency_access::delete_emergency_access');
+    Route::post('/emergency-access/{emerId}/delete', [EmergencyAccessController::class, 'postDeleteEmergencyAccess'])->name('core::emergency_access::post_delete_emergency_access');
+    Route::post('/emergency-access/{emerId}/reinvite', [EmergencyAccessController::class, 'resendInvite'])->name('core::emergency_access::resend_invite');
+    Route::post('/emergency-access/{emerId}/accept', [EmergencyAccessController::class, 'acceptInvite'])->name('core::emergency_access::accept_invite');
+    Route::post('/emergency-access/{emerId}/confirm', [EmergencyAccessController::class, 'confirmEmergencyAccess'])->name('core::emergency_access::confirm_emergency_access');
+    Route::post('/emergency-access/{emerId}/initiate', [EmergencyAccessController::class, 'initiateEmergencyAccess'])->name('core::emergency_access::initiate_emergency_access');
+    Route::post('/emergency-access/{emerId}/approve', [EmergencyAccessController::class, 'approveEmergencyAccess'])->name('core::emergency_access::approve_emergency_access');
+    Route::post('/emergency-access/{emerId}/reject', [EmergencyAccessController::class, 'rejectEmergencyAccess'])->name('core::emergency_access::reject_emergency_access');
+    Route::post('/emergency-access/{emerId}/takeover', [EmergencyAccessController::class, 'takeoverEmergencyAccess'])->name('core::emergency_access::takeover_emergency_access');
+    Route::post('/emergency-access/{emerId}/password', [EmergencyAccessController::class, 'passwordEmergencyAccess'])->name('core::emergency_access::password_emergency_access');
+    Route::post('/emergency-access/{emerId}/view', [EmergencyAccessController::class, 'viewEmergencyAccess'])->name('core::emergency_access::view_emergency_access');
+    Route::get('/emergency-access/{emerId}/policies', [EmergencyAccessController::class, 'policiesEmergencyAccess'])->name('core::emergency_access::policies_emergency_access');
 
     // core::sends
     Route::get('/sends', [SendsController::class, 'getSends'])->name('core::sends::get_sends');

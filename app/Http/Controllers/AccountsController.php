@@ -119,7 +119,7 @@ final readonly class AccountsController
             if (! $this->config->bool('emergency_access_allowed')) {
                 throw ApiError::message('Emergency access is not enabled.');
             }
-            $claims = $this->jwt->decode((string) $data->acceptEmergencyAccessInviteToken, JwtIssuer::EmergencyAccessInvite);
+            $claims = $this->jwt->decode((string) $data->acceptEmergencyAccessInviteToken, JwtIssuer::EmergencyAccessInvite, fields: Jwt::EMERGENCY_ACCESS_INVITE_CLAIMS);
             if (($claims['email'] ?? null) !== $data->email) {
                 throw ApiError::message('Claim email does not match email');
             }
