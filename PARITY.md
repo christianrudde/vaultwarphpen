@@ -8,8 +8,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 
 | Area | Total | ✅ | 🟨 | ⬜ | ➖ | With tests |
 |---|--:|--:|--:|--:|--:|--:|
-| Routes | 294 | 276 | 15 | 2 | 1 | 291 |
-| Settings | 153 | 111 | 42 | 0 | 0 | 153 |
+| Routes | 294 | 278 | 15 | 0 | 1 | 293 |
+| Settings | 153 | 124 | 29 | 0 | 0 | 153 |
 | Scheduled jobs | 9 | 9 | 0 | 0 | 0 | 9 |
 | Database tables | 28 | 28 | 0 | 0 | 0 | 28 |
 | Templates | 74 | 62 | 12 | 0 | 0 | 74 |
@@ -309,8 +309,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | GET `/identity/connect/authorize` | src/api/identity.rs:1292 | 1 | Compared with Vaultwarden in tests/Differential/SsoTest against a fake OpenID provider (.github/scripts/fake-services.php); also tests/Feature/Api/SsoTest and tests/Unit/Auth/SsoTest. |
 | ✅ | GET `/identity/connect/oidc-signin` | src/api/identity.rs:1190 | 1 | Compared with Vaultwarden in tests/Differential/SsoTest against a fake OpenID provider (.github/scripts/fake-services.php); also tests/Feature/Api/SsoTest and tests/Unit/Auth/SsoTest. |
 | ✅ | GET `/identity/connect/oidc-signin` | src/api/identity.rs:1198 | 1 | Compared with Vaultwarden in tests/Differential/SsoTest against a fake OpenID provider (.github/scripts/fake-services.php); also tests/Feature/Api/SsoTest and tests/Unit/Auth/SsoTest. |
-| ⬜ | GET `/icons/{host}/icon.png` | src/api/icons.rs:111 | 0 |  |
-| ⬜ | GET `/icons/{host}/icon.png` | src/api/icons.rs:85 | 0 |  |
+| ✅ | GET `/icons/{host}/icon.png` | src/api/icons.rs:111 | 2 | IconsController::iconInternal with App\Icons (html5gum tokenizer, svg-hush, data-url ported); compared with Vaultwarden against fake websites in tests/Differential/IconsTest, cache files included. |
+| ✅ | GET `/icons/{host}/icon.png` | src/api/icons.rs:85 | 2 | IconsController::iconExternal; compared with Vaultwarden on the SSO pair (custom service, 308) in tests/Differential/IconsTest. |
 | ✅ | GET `/notifications/hub` | src/api/notifications.rs:130 | 2 | Served by the notifications daemon (php artisan vaultwarden:notifications, App\Notifications\Server), which passes the upgrade through NotificationsController; outside the daemon the route answers like WebSockets off. Handshake, errors, ping, echo and the updates of the nt.send_* call sites compared with Vaultwarden in tests/Differential/NotificationsTest; also tests/Feature/Notifications. |
 | ✅ | GET `/notifications/anonymous-hub` | src/api/notifications.rs:224 | 3 | Served by the notifications daemon like /notifications/hub, with the limit of 25 connections per address. The answer to a login with a device compared with Vaultwarden in tests/Differential/NotificationsTest; also tests/Feature/Notifications/DaemonTest. |
 
@@ -320,7 +320,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 |---|---|---|--:|---|
 | ✅ | `DATA_FOLDER` | src/config.rs:521 | 3 | Read like Vaultwarden (environment, *_FILE, config.json, default) and used: DATABASE_URL drives the default connection, the templates folder and reload drive the renderer. |
 | ✅ | `DATABASE_URL` | src/config.rs:523 | 3 | Read like Vaultwarden (environment, *_FILE, config.json, default) and used: DATABASE_URL drives the default connection, the templates folder and reload drive the renderer. |
-| 🟨 | `ICON_CACHE_FOLDER` | src/config.rs:525 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `ICON_CACHE_FOLDER` | src/config.rs:525 | 3 | Icons and .miss markers like the opendal fs operator; compared file by file in tests/Differential/IconsTest. |
 | ✅ | `ATTACHMENTS_FOLDER` | src/config.rs:527 | 2 | Attachments are stored and served from <ATTACHMENTS_FOLDER>/<cipher>/<id>, like the filesystem backend. |
 | ✅ | `SENDS_FOLDER` | src/config.rs:529 | 2 | Send files are stored and served from <SENDS_FOLDER>/<send>/<file id>, like the filesystem backend. |
 | 🟨 | `TMP_FOLDER` | src/config.rs:531 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
@@ -355,7 +355,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | `USER_SEND_LIMIT` | src/config.rs:614 | 2 | Enforced on file Sends like post_send_file_v2 (tests/Feature/Api/SendTest). |
 | ✅ | `TRASH_AUTO_DELETE_DAYS` | src/config.rs:619 | 2 | Cipher::purgeTrash, run by the trash_purge job; unset or 0 keeps the trash. Tested in tests/Feature/Scheduler/ScheduledJobsTest. |
 | ✅ | `INCOMPLETE_2FA_TIME_LIMIT` | src/config.rs:626 | 2 | Incomplete logins are recorded (TwoFactorIncomplete) and mailed about by the incomplete_2fa job; 0 turns both off. Tested in tests/Feature/Scheduler/ScheduledJobsTest. |
-| 🟨 | `DISABLE_ICON_DOWNLOAD` | src/config.rs:632 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `DISABLE_ICON_DOWNLOAD` | src/config.rs:632 | 2 | Serves cached icons only (App\Icons\IconService). |
 | ✅ | `SIGNUPS_ALLOWED` | src/config.rs:634 | 2 | Read like Vaultwarden and used by registration and login. |
 | ✅ | `SIGNUPS_VERIFY` | src/config.rs:637 | 2 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it; tested in tests/Feature/Api/LoginTest. |
 | ✅ | `SIGNUPS_VERIFY_RESEND_TIME` | src/config.rs:639 | 2 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it; tested in tests/Feature/Api/LoginTest. |
@@ -377,17 +377,17 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | `IP_HEADER` | src/config.rs:687 | 2 | Read like Vaultwarden and used: DOMAIN for mount path, origin, CORS, Host and token issuers; the IP settings for the client IP; the CSP sources in the security headers. |
 | ✅ | `_IP_HEADER_ENABLED` | src/config.rs:689 | 2 | Read like Vaultwarden and used: DOMAIN for mount path, origin, CORS, Host and token issuers; the IP settings for the client IP; the CSP sources in the security headers. |
 | ✅ | `IP_HEADER_TRUSTED_PROXIES` | src/config.rs:696 | 2 | Read like Vaultwarden and used: DOMAIN for mount path, origin, CORS, Host and token issuers; the IP settings for the client IP; the CSP sources in the security headers. |
-| 🟨 | `ICON_SERVICE` | src/config.rs:703 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `_ICON_SERVICE_URL` | src/config.rs:705 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `_ICON_SERVICE_CSP` | src/config.rs:707 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `ICON_REDIRECT_CODE` | src/config.rs:713 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `ICON_CACHE_TTL` | src/config.rs:715 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `ICON_CACHE_NEGTTL` | src/config.rs:717 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `ICON_DOWNLOAD_TIMEOUT` | src/config.rs:719 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `ICON_BLACKLIST_REGEX` | src/config.rs:722 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `ICON_BLACKLIST_NON_GLOBAL_IPS` | src/config.rs:724 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `HTTP_REQUEST_BLOCK_REGEX` | src/config.rs:728 | 1 | App\Support\HttpClient applies it to the requests Vaultwarden makes with make_http_request (Duo so far); the icon service is not ported yet. |
-| 🟨 | `HTTP_REQUEST_BLOCK_NON_GLOBAL_IPS` | src/config.rs:731 | 2 | App\Support\HttpClient applies it to the requests Vaultwarden makes with make_http_request (Duo so far); the icon service is not ported yet. |
+| ✅ | `ICON_SERVICE` | src/config.rs:703 | 3 | Mounts icon_internal or icon_external like icons::routes(). |
+| ✅ | `_ICON_SERVICE_URL` | src/config.rs:705 | 3 | The redirect target of icon_external. |
+| ✅ | `_ICON_SERVICE_CSP` | src/config.rs:707 | 2 | In the CSP of AppHeaders; compared on the SSO pair, which has a custom ICON_SERVICE. |
+| ✅ | `ICON_REDIRECT_CODE` | src/config.rs:713 | 3 | 301, 302, 307 or 308 for icon_external. |
+| ✅ | `ICON_CACHE_TTL` | src/config.rs:715 | 3 | Cache-Control of icons and the age of cached ones. |
+| ✅ | `ICON_CACHE_NEGTTL` | src/config.rs:717 | 3 | Cache-Control of the fallback icon and the age of .miss markers. |
+| ✅ | `ICON_DOWNLOAD_TIMEOUT` | src/config.rs:719 | 2 | One timeout per request of the icon client, body included (App\Support\HttpClient::get). |
+| ✅ | `ICON_BLACKLIST_REGEX` | src/config.rs:722 | 2 | Copied to HTTP_REQUEST_BLOCK_REGEX when that is unset (ConfigBuilder). |
+| ✅ | `ICON_BLACKLIST_NON_GLOBAL_IPS` | src/config.rs:724 | 2 | The default of HTTP_REQUEST_BLOCK_NON_GLOBAL_IPS. |
+| ✅ | `HTTP_REQUEST_BLOCK_REGEX` | src/config.rs:728 | 4 | App\Support\HttpClient::blockReason for names, addresses and resolved addresses, on every redirect. |
+| ✅ | `HTTP_REQUEST_BLOCK_NON_GLOBAL_IPS` | src/config.rs:731 | 5 | App\Support\HttpClient::blockReason for addresses and resolved names, on every redirect. |
 | ✅ | `DISABLE_2FA_REMEMBER` | src/config.rs:735 | 2 | Ported (TwoFactorController and friends); tested with non-default values in tests/Feature/Api/TwoFactorTest. |
 | ✅ | `AUTHENTICATOR_DISABLE_TIME_DRIFT` | src/config.rs:739 | 2 | Ported (TwoFactorController and friends); tested with non-default values in tests/Feature/Api/TwoFactorTest. |
 | ✅ | `EXPERIMENTAL_CLIENT_FEATURE_FLAGS` | src/config.rs:742 | 3 | Read, defaulted and validated like Vaultwarden (App\Config); GET /api/config lists the supported flags (tests/Feature/Api/AccountManagementTest, compared in tests/Differential/AccountManagementTest). |

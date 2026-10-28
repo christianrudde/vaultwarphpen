@@ -8,6 +8,7 @@ use App\Http\Controllers\CoreController;
 use App\Http\Controllers\EmergencyAccessController;
 use App\Http\Controllers\EventsController;
 use App\Http\Controllers\FoldersController;
+use App\Http\Controllers\IconsController;
 use App\Http\Controllers\IdentityController;
 use App\Http\Controllers\NotificationsController;
 use App\Http\Controllers\OrganizationsController;
@@ -335,6 +336,15 @@ Route::prefix('/identity')->group(function (): void {
     // Both oidcsignin and oidcsignin_error.
     Route::get('/connect/oidc-signin', [IdentityController::class, 'oidcSignin'])->name('identity::oidcsignin');
     Route::get('/connect/authorize', [IdentityController::class, 'authorize'])->name('identity::authorize');
+});
+
+// api::icons_routes(): Vaultwarden's own icon service, or a redirect to the external ICON_SERVICE.
+Route::prefix('/icons')->group(function (): void {
+    if (IconsController::internal(app(Config::class))) {
+        Route::get('/{host}/icon.png', [IconsController::class, 'iconInternal'])->name('icons::icon_internal');
+    } else {
+        Route::get('/{host}/icon.png', [IconsController::class, 'iconExternal'])->name('icons::icon_external');
+    }
 });
 
 // api::core_events_routes()

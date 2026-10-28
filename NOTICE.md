@@ -114,7 +114,7 @@ byte for byte. No code is copied from them. Versions are those locked in Vaultwa
 | [governor](https://github.com/boinkor-net/governor) | 0.10.4 | MIT | the GCRA rate limiter | `app/Support/RateLimiter.php` |
 | [data-encoding](https://github.com/ia0/data-encoding) | 2.11.1 | MIT | strict base64 decoding | `app/Models/Send.php`, `app/Auth/Sso/Sso.php` |
 | [openidconnect](https://github.com/ramosbugs/openidconnect-rs), [oauth2](https://github.com/ramosbugs/oauth2-rs) | 4.0.1, 5.0.0 | MIT; MIT or Apache-2.0 | the SSO client: discovery of the provider and its keys, the authorization URL, the token requests and their error messages, the checks of ID tokens and their signatures, the user info | `app/Auth/Sso` |
-| [url](https://github.com/servo/rust-url) | 2.5.8 | MIT or Apache-2.0 | WHATWG URL parsing of the settings, form encoding of links and requests | `app/Config/Url.php`, `app/Support/FormUrlencoded.php` |
+| [url](https://github.com/servo/rust-url) | 2.5.8 | MIT or Apache-2.0 | WHATWG URL parsing of the settings, form encoding of links and requests, hosts as `Host::parse` reads them | `app/Config/Url.php`, `app/Support/FormUrlencoded.php`, `app/Support/HttpClient.php` |
 | [lettre](https://github.com/lettre/lettre) | 0.11.23 | MIT | how mails are built (alternative text and HTML, related inline images) and sent by SMTP or sendmail | `app/Mail` |
 | [handlebars-rust](https://github.com/sunng87/handlebars-rust) | 6.4.4 | MIT | strict rendering, HTML escaping and the helpers of the templates | `app/Templates` |
 | [webauthn-rs](https://github.com/kanidm/webauthn-rs) with webauthn-rs-core, webauthn-rs-proto and base64urlsafedata | 0.5.5 | MPL-2.0 | passkey registration and authentication, the stored credential and state formats, attestation checks | `app/Auth/Webauthn` |
@@ -122,11 +122,32 @@ byte for byte. No code is copied from them. Versions are those locked in Vaultwa
 | [yubico_ng](https://github.com/BlackDex/yubico-rs) | 1.0.0 | MIT or Apache-2.0 | the Yubico Validation Protocol 2.0 client: signed requests, checked answers | `app/Support/Yubico.php` |
 | [cron](https://github.com/zslayton/cron) | 0.17.0 | MIT or Apache-2.0 | the syntax of the job schedules (seconds, names, steps, years, shorthands) and when they are next due | `app/Support/CronSchedule.php` |
 | [job_scheduler_ng](https://github.com/BlackDex/job_scheduler) | 2.5.0 | MIT or Apache-2.0 | when scheduled jobs run: at most once per tick, in UTC, the first tick only noting the time | `app/Scheduler` |
-| [reqwest](https://github.com/seanmonstar/reqwest), [rustls-native-certs](https://github.com/rustls/rustls-native-certs) | 0.13.5, 0.8.5 | MIT or Apache-2.0; Apache-2.0, ISC or MIT | outgoing requests: user agent, timeout, redirects, trusted roots from `SSL_CERT_FILE` | `app/Support/HttpClient.php` |
+| [reqwest](https://github.com/seanmonstar/reqwest), [rustls-native-certs](https://github.com/rustls/rustls-native-certs) | 0.13.5, 0.8.5 | MIT or Apache-2.0; Apache-2.0, ISC or MIT | outgoing requests: user agent, timeout, redirects, trusted roots from `SSL_CERT_FILE`; for icons the redirect policy with its block checks, the Referer and gzip and deflate | `app/Support/HttpClient.php`, `app/Icons/IconClient.php` |
+| [cookie_store](https://github.com/pfernie/cookie_store) | 0.22.1 | MIT or Apache-2.0 | the short-lived cookie jar of the icon service: which cookies are kept and sent where | `app/Support/CookieJar.php` |
 | [rocket_ws](https://github.com/rwf2/Rocket/tree/master/contrib/ws), [tungstenite](https://github.com/snapview/tungstenite-rs) | 0.1.1, 0.21.0 | MIT or Apache-2.0 | the WebSocket upgrade of the hubs and the framing that follows: masked client frames, fragments, control frames, size limits, what ends a connection | `app/Http/Controllers/NotificationsController.php`, `app/Notifications/WebSocketConnection.php` |
 | [rmpv](https://github.com/3Hren/msgpack-rust), [rmp](https://github.com/3Hren/msgpack-rust) | 1.3.1, 0.8.15 | MIT | MessagePack encoding of the SignalR messages, each value in its shortest form | `app/Support/MessagePack.php` |
 | [grass](https://github.com/connorskees/grass) (grass_compiler) | 0.13.4 | MIT | the compressed CSS of the web vault's style changes, compiled by scssphp, a PHP port of Dart Sass like grass | `app/Http/Controllers/WebController.php` |
 | [Rust standard library](https://github.com/rust-lang/rust) (core) | 1.99.1 (Vaultwarden's `rust-toolchain.toml`) | MIT or Apache-2.0 | `str::escape_debug` in error messages | `app/Support/EscapeDebug.php` |
+
+## The icon service's crates
+
+The icon service (`app/Icons`) chooses and cleans icons exactly as Vaultwarden does, so it starts from
+the crates Vaultwarden uses for that, at the versions locked in its `Cargo.lock`:
+
+- **[html5gum](https://github.com/untitaker/html5gum)** 0.8.4, MIT, license [below](#mit-license-html5gum):
+  [`app/Icons/HtmlTokenizer.php`](app/Icons/HtmlTokenizer.php) ports its tokenizer state by state, and
+  [`app/Icons/HtmlEntities.php`](app/Icons/HtmlEntities.php) is generated from its `src/entities.rs`, which
+  in turn comes from the WHATWG's [`entities.json`](https://html.spec.whatwg.org/entities.json) (HTML Living
+  Standard, © WHATWG, Apple, Google, Mozilla, Microsoft, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)).
+- **[svg-hush](https://github.com/cloudflare/svg-hush)** 0.9.7, MIT or Apache-2.0, used under the MIT license
+  [below](#mit-license-svg-hush): [`app/Icons/SvgFilter.php`](app/Icons/SvgFilter.php) ports its filter, and
+  [`app/Icons/SvgAttributes.php`](app/Icons/SvgAttributes.php) is generated from its `src/attrs.rs`.
+- **[xml-rs](https://github.com/kornelski/xml-rs)** (crate `xml`) 1.4.0, MIT, license [below](#mit-license-xml-rs):
+  [`app/Icons/XmlEventWriter.php`](app/Icons/XmlEventWriter.php) ports the indentation and escaping of its writer.
+  libxml2 reads the SVG instead of xml-rs's parser.
+- **[data-url](https://github.com/servo/rust-url)** 0.3.2 (part of rust-url), MIT or Apache-2.0, used under the
+  MIT license [below](#mit-license-data-url): [`app/Support/DataUrl.php`](app/Support/DataUrl.php) ports its
+  processing of `data:` URLs and its forgiving base64.
 
 ## Laravel
 
@@ -410,4 +431,96 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+```
+
+### MIT License (html5gum)
+
+```
+Copyright (c) 2021 Markus Unterwaditzer
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+### MIT License (svg-hush)
+
+```
+Copyright 2022 Cloudflare, Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
+
+### MIT License (xml-rs)
+
+```
+The MIT License (MIT)
+
+Copyright (c) 2014 Vladimir Matveev
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+### MIT License (data-url)
+
+```
+Copyright (c) 2013-2025 The rust-url developers
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
 ```

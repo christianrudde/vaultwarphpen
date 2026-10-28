@@ -33,8 +33,8 @@ pinned Vaultwarden version and whether it is ported. In short:
   mails over SMTP or sendmail; Vaultwarden's scheduled jobs; the admin panel; the web vault (from
   Vaultwarden's [builds](docs/installation.md#web-vault)); SSO with OpenID Connect; live
   notifications over WebSocket, served by an optional daemon ([installation](docs/installation.md#live-notifications)),
-  and mobile push through Bitwarden's relay.
-- **Not yet:** website icons.
+  and mobile push through Bitwarden's relay; website icons, fetched and cached like Vaultwarden's or
+  redirected to an external icon service.
 
 Every ported route is compared with Vaultwarden itself: the differential tests send the same requests
 to both servers and compare the answers.
@@ -42,7 +42,7 @@ to both servers and compare the answers.
 ## Requirements
 
 - PHP 8.5 or newer with the `openssl`, `sodium` and `mbstring` extensions and `pdo_sqlite`, `pdo_mysql`
-  or `pdo_pgsql` for the database
+  or `pdo_pgsql` for the database; website icons also need `xmlreader` and `zlib`, which PHP usually has
 - SQLite, MySQL/MariaDB or PostgreSQL
 - A web server that passes requests to PHP (Apache, nginx, Caddy, ...) and serves HTTPS
 

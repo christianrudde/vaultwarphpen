@@ -189,6 +189,13 @@ jobs:
         if: ${{ !cancelled() }}
         run: .github/scripts/token-parity.sh "${RUNNER_TEMP}/vaultwarden/vaultwarden"
 
+      - name: Prepare the fake websites
+        if: ${{ !cancelled() }}
+        # tests/Differential/IconsTest: the icon service fetches https://<name>/ and http://<name>/ itself.
+        run: |
+          sudo sysctl -w net.ipv4.ip_unprivileged_port_start=80
+          php .github/scripts/fake-websites.php --names | sed 's/^/127.0.0.1 /' | sudo tee -a /etc/hosts > /dev/null
+
       - name: Compare responses
         if: ${{ !cancelled() }}
         run: .github/scripts/differential.sh "${RUNNER_TEMP}/vaultwarden/vaultwarden"

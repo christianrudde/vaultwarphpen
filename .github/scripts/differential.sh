@@ -7,6 +7,7 @@
 # Usage: differential.sh <vaultwarden binary> [phpunit arguments...]
 # Ports 8000-8004 (Vaultwarden), 8080-8084 (PHP), 8090 (our notifications daemon), 2501-2502
 # (SMTP sinks) and 2503 (fake Yubico, Duo, OpenID and push relay services) must be free.
+# Ports 80 and 443 serve fake websites for the icon tests, where they can be bound.
 
 set -euo pipefail
 
@@ -64,6 +65,18 @@ duo_ikey=DIDIFFERENTIALGLOBAL
 features_env=(ORG_GROUPS_ENABLED=true ORG_EVENTS_ENABLED=true SSL_CERT_FILE="${work}/ca.pem" HTTP_REQUEST_BLOCK_NON_GLOBAL_IPS=false
     YUBICO_CLIENT_ID=1 YUBICO_SECRET_KEY=MDEyMzQ1Njc4OWFiY2RlZmdoaWo= YUBICO_SERVER=https://127.0.0.1:2503/wsapi/2.0/verify
     DUO_IKEY="${duo_ikey}" DUO_SKEY="$(php -r "echo substr(hash('sha256', 'duo:${duo_ikey}'), 0, 40);")" DUO_HOST=127.0.0.1:2503)
+# The icon service of this pair fetches the fake websites below (tests/Differential/IconsTest): hosts
+# starting with "blocked." are blocked, and slow icons give up after three seconds.
+features_env+=('HTTP_REQUEST_BLOCK_REGEX=^blocked\.' ICON_DOWNLOAD_TIMEOUT=3)
+# Websites with icons on ports 80 and 443, under names that resolve to 127.0.0.1 (.localhost, and
+# /etc/hosts in CI). Their certificate leaves out httponly.icons.localhost, whose HTTPS fails.
+openssl req -newkey rsa:2048 -nodes -subj '/CN=icons.localhost' -keyout "${work}/websites.key" -out "${work}/websites.csr" 2> /dev/null
+printf 'subjectAltName=IP:127.0.0.1,%s\nbasicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\n' \
+    "$(php .github/scripts/fake-websites.php --names | grep -v '^httponly\.' | sed 's/^/DNS:/' | paste -sd, -)" > "${work}/websites.ext"
+openssl x509 -req -in "${work}/websites.csr" -CA "${work}/ca.pem" -CAkey "${work}/ca.key" -CAcreateserial -days 2 \
+    -extfile "${work}/websites.ext" -out "${work}/websites.pem" 2> /dev/null
+php .github/scripts/fake-websites.php "${work}/websites.pem" "${work}/websites.key" "${work}/websites-state" > "${work}/websites.log" 2>&1 &
+pids+=($!)
 sso_secret=differential-sso-secret
 env YUBICO_SECRET_KEY=MDEyMzQ1Njc4OWFiY2RlZmdoaWo= SSO_CLIENT_SECRET="${sso_secret}" php .github/scripts/fake-services.php 2503 \
     "${work}/services.pem" "${work}/services.key" "${work}/services-state" > "${work}/services.log" 2>&1 &
@@ -90,6 +103,8 @@ pids+=($!)
 # A fifth pair logs in with SSO at the fake OpenID provider (tests/Differential/SsoTest).
 sso_env=(SSO_ENABLED=true SSO_AUTHORITY=https://127.0.0.1:2503/oidc SSO_CLIENT_ID=vaultwarden SSO_CLIENT_SECRET="${sso_secret}"
     SSO_SCOPES="email profile offline_access" SSL_CERT_FILE="${work}/ca.pem")
+# This pair sends icons to an external service of its own (tests/Differential/IconsTest).
+sso_env+=('ICON_SERVICE=https://icons.example.net/{}/icon.png?size=32' ICON_REDIRECT_CODE=308)
 env DATA_FOLDER="${work}/sso-reference" "${sso_env[@]}" ROCKET_PORT=8004 "${binary}" > "${work}/sso-reference.log" 2>&1 &
 pids+=($!)
 
@@ -152,6 +167,20 @@ for url in http://127.0.0.1:{8000,8001,8002,8003,8004,8080,8081,8082,8083,8084}/
     done
 done
 
+# Without ports 80 and 443 (on macOS, say) the tests of the icon service are skipped.
+for attempt in $(seq 20); do
+    if curl -sS --cacert "${work}/ca.pem" -o /dev/null https://links.icons.localhost/ 2> /dev/null; then
+        export VW_WEBSITES_STATE="${work}/websites-state" VW_REFERENCE_ICONS="${work}/reference/icon_cache" \
+            VW_SUBJECT_ICONS="${work}/subject/icon_cache" VW_FEATURES_REFERENCE_ICONS="${work}/features-reference/icon_cache" \
+            VW_FEATURES_SUBJECT_ICONS="${work}/features-subject/icon_cache"
+        break
+    fi
+    if [[ "${attempt}" == 20 ]]; then
+        echo "The fake websites did not answer; the icon tests are skipped."
+        cat "${work}/websites.log"
+    fi
+    sleep 0.5
+done
 status=0
 VW_REFERENCE_URL=http://127.0.0.1:8000 VW_SUBJECT_URL=http://127.0.0.1:8080 VW_SUBJECT_NOTIFICATIONS_URL=http://127.0.0.1:8090 \
     VW_SHARED_REFERENCE_URL=http://127.0.0.1:8001 VW_SHARED_SUBJECT_URL=http://127.0.0.1:8081 \
