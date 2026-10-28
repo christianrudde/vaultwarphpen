@@ -129,6 +129,19 @@ final class Membership extends Model
     }
 
     /**
+     * Whether the external id changed; no empty ones in the database.
+     */
+    public function setExternalId(?string $externalId): bool
+    {
+        if ($this->external_id === $externalId) {
+            return false;
+        }
+        $this->external_id = $externalId === '' ? null : $externalId;
+
+        return true;
+    }
+
+    /**
      * The custom role is stored as a manager and shown as custom again.
      */
     public function typeManagerAsCustom(): int
@@ -401,6 +414,16 @@ final class Membership extends Model
         }
     }
 
+    /**
+     * @throws ApiError
+     */
+    public static function deleteAllByUser(string $userUuid): void
+    {
+        foreach (self::query()->where('user_uuid', $userUuid)->get() as $member) {
+            $member->deleteMembership();
+        }
+    }
+
     public static function findByUuid(string $uuid): ?self
     {
         return self::query()->where('uuid', $uuid)->first();
@@ -409,6 +432,18 @@ final class Membership extends Model
     public static function findByUuidAndOrg(string $uuid, string $orgUuid): ?self
     {
         return self::query()->where('uuid', $uuid)->where('org_uuid', $orgUuid)->first();
+    }
+
+    public static function findByEmailAndOrg(string $email, string $orgUuid): ?self
+    {
+        $user = User::findByMail($email);
+
+        return $user === null ? null : self::findByUserAndOrg($user->uuid, $orgUuid);
+    }
+
+    public static function findByExternalIdAndOrg(string $externalId, string $orgUuid): ?self
+    {
+        return self::query()->where('external_id', $externalId)->where('org_uuid', $orgUuid)->first();
     }
 
     public static function findByUserAndOrg(string $userUuid, string $orgUuid): ?self
@@ -457,6 +492,14 @@ final class Membership extends Model
     public static function findByOrg(string $orgUuid): Collection
     {
         return self::query()->where('org_uuid', $orgUuid)->get();
+    }
+
+    /**
+     * @return Collection<int, self>
+     */
+    public static function findConfirmedByOrg(string $orgUuid): Collection
+    {
+        return self::query()->where('org_uuid', $orgUuid)->where('status', self::STATUS_CONFIRMED)->get();
     }
 
     /**

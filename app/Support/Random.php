@@ -30,6 +30,22 @@ final class Random
     }
 
     /**
+     * crypto::get_random_string_alphanum: ASCII letters and digits.
+     *
+     * @param  int<1, max>  $chars
+     */
+    public static function alphanumeric(int $chars): string
+    {
+        $alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        $string = '';
+        for ($i = 0; $i < $chars; $i++) {
+            $string .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+        }
+
+        return $string;
+    }
+
+    /**
      * crypto::generate_id::<N>(): lower-case hex.
      *
      * @param  int<1, max>  $bytes

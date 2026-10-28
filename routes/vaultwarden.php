@@ -6,6 +6,7 @@ use App\Http\Controllers\CoreController;
 use App\Http\Controllers\FoldersController;
 use App\Http\Controllers\IdentityController;
 use App\Http\Controllers\OrganizationsController;
+use App\Http\Controllers\PublicController;
 use App\Http\Controllers\SendsController;
 use App\Http\Controllers\WebController;
 use Illuminate\Support\Facades\Route;
@@ -144,6 +145,15 @@ Route::prefix('/api')->group(function (): void {
     Route::get('/organizations/{orgId}/collections/{colId}/details', [OrganizationsController::class, 'getOrgCollectionDetail'])->name('core::organizations::get_org_collection_detail');
     Route::get('/organizations/{orgId}/collections/{colId}/users', [OrganizationsController::class, 'getCollectionUsers'])->name('core::organizations::get_collection_users');
 
+    Route::post('/organizations/{orgId}/api-key', [OrganizationsController::class, 'postApiKey'])->name('core::organizations::post_api_key');
+    Route::post('/organizations/{orgId}/rotate-api-key', [OrganizationsController::class, 'rotateApiKey'])->name('core::organizations::rotate_api_key');
+    Route::get('/organizations/{orgId}/policies', [OrganizationsController::class, 'listPolicies'])->name('core::organizations::list_policies');
+    Route::get('/organizations/{orgId}/policies/token', [OrganizationsController::class, 'listPoliciesToken'])->name('core::organizations::list_policies_token');
+    Route::get('/organizations/00000000-01DC-01DC-01DC-000000000000/policies/master-password', [OrganizationsController::class, 'getDummyMasterPasswordPolicy'])->name('core::organizations::get_dummy_master_password_policy');
+    Route::get('/organizations/{orgId}/policies/master-password', [OrganizationsController::class, 'getMasterPasswordPolicy'])->name('core::organizations::get_master_password_policy');
+    Route::get('/organizations/{orgId}/policies/{polType}', [OrganizationsController::class, 'getPolicy'])->name('core::organizations::get_policy');
+    Route::put('/organizations/{orgId}/policies/{polType}', [OrganizationsController::class, 'putPolicy'])->name('core::organizations::put_policy');
+
     Route::get('/organizations/{orgId}/groups', [OrganizationsController::class, 'getGroups'])->name('core::organizations::get_groups');
     Route::get('/organizations/{orgId}/groups/details', [OrganizationsController::class, 'getGroupsDetails'])->name('core::organizations::get_groups_details');
     Route::post('/organizations/{orgId}/groups', [OrganizationsController::class, 'postGroups'])->name('core::organizations::post_groups');
@@ -172,6 +182,9 @@ Route::prefix('/api')->group(function (): void {
     Route::put('/organizations/{orgId}/users/{memberId}/revoke', [OrganizationsController::class, 'revokeMember'])->name('core::organizations::revoke_member');
     Route::put('/organizations/{orgId}/users/{memberId}/restore', [OrganizationsController::class, 'restoreMember'])->name('core::organizations::restore_member');
     Route::put('/organizations/{orgId}/users/{memberId}/restore/vnext', [OrganizationsController::class, 'restoreMember'])->name('core::organizations::restore_member_vnext');
+    Route::put('/organizations/{orgId}/users/{memberId}/recover-account', [OrganizationsController::class, 'putRecoverAccount'])->name('core::organizations::put_recover_account');
+    Route::get('/organizations/{orgId}/users/{memberId}/reset-password-details', [OrganizationsController::class, 'getResetPasswordDetails'])->name('core::organizations::get_reset_password_details');
+    Route::put('/organizations/{orgId}/users/{userId}/reset-password-enrollment', [OrganizationsController::class, 'putResetPasswordEnrollment'])->name('core::organizations::put_reset_password_enrollment');
 
     // core::folders
     Route::get('/folders', [FoldersController::class, 'getFolders'])->name('core::folders::get_folders');
@@ -181,6 +194,9 @@ Route::prefix('/api')->group(function (): void {
     Route::put('/folders/{folderId}', [FoldersController::class, 'putFolder'])->name('core::folders::put_folder');
     Route::post('/folders/{folderId}/delete', [FoldersController::class, 'deleteFolderPost'])->name('core::folders::delete_folder_post');
     Route::delete('/folders/{folderId}', [FoldersController::class, 'deleteFolder'])->name('core::folders::delete_folder');
+
+    // core::public
+    Route::post('/public/organization/import', [PublicController::class, 'ldapImport'])->name('core::public::ldap_import');
 });
 
 // api::identity_routes()

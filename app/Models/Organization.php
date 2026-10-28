@@ -132,19 +132,11 @@ final class Organization extends Model
         OrgCollection::deleteAllByOrganization($this->uuid);
         Membership::deleteAllByOrganization($this->uuid);
 
-        try {
-            OrgPolicy::query()->where('org_uuid', $this->uuid)->delete();
-        } catch (QueryException) {
-            throw ApiError::message('Error deleting organization policy');
-        }
+        OrgPolicy::deleteAllByOrganization($this->uuid);
 
         Group::deleteAllByOrganization($this->uuid);
 
-        try {
-            DB::table('organization_api_key')->where('org_uuid', $this->uuid)->delete();
-        } catch (QueryException) {
-            throw ApiError::message('Error removing organization api key from organization');
-        }
+        OrganizationApiKey::deleteAllByOrganization($this->uuid);
 
         try {
             self::query()->where('uuid', $this->uuid)->delete();

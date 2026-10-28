@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Auth\AdminHeaders;
 use App\Auth\Headers;
+use App\Auth\Jwt;
+use App\Auth\JwtIssuer;
 use App\Auth\ManagerHeaders;
 use App\Auth\ManagerHeadersLoose;
 use App\Auth\OrgHeaders;
@@ -11,41 +13,60 @@ use App\Auth\OrgMemberHeaders;
 use App\Auth\OwnerHeaders;
 use App\Config\Config;
 use App\Http\ApiError;
+use App\Http\Data\AuthenticationData;
 use App\Http\Data\Body;
 use App\Http\Data\Fields;
 use App\Http\Data\NumberOrString;
 use App\Http\Data\PasswordOrOtpData;
 use App\Http\Data\Query;
+use App\Http\Data\UnlockData;
 use App\Http\EmptyResponse;
 use App\Http\HttpStatus;
 use App\Http\Json;
+use App\Mail\Mail;
 use App\Models\Cipher;
 use App\Models\CollectionCipher;
 use App\Models\CollectionGroup;
 use App\Models\CollectionUser;
+use App\Models\Device;
 use App\Models\Group;
 use App\Models\GroupUser;
 use App\Models\Invitation;
 use App\Models\Membership;
 use App\Models\Organization;
+use App\Models\OrganizationApiKey;
 use App\Models\OrgCollection;
 use App\Models\OrgPolicy;
+use App\Models\TwoFactor;
 use App\Models\User;
+use App\Support\Dates;
+use App\Support\JsonValue;
 use App\Support\Uuid;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use stdClass;
 
 /**
- * src/api/core/organizations.rs: organizations, their members, collections
- * and groups. Policies, account recovery, API keys, import and export are
- * not ported yet; nor are the invitation mails, so the accept route that
- * their links lead to is missing too.
+ * src/api/core/organizations.rs: organizations, their members, collections,
+ * groups, policies, account recovery and API keys. Import and export are
+ * not ported yet; nor are the mails (account recovery needs them), so the
+ * accept route that the invitation links lead to is missing too.
  */
 final readonly class OrganizationsController
 {
+    /**
+     * admin::FAKE_ADMIN_UUID: the organization of invitations from the admin panel.
+     */
+    private const string FAKE_ADMIN_UUID = '00000000-0000-0000-0000-000000000000';
+
+    /**
+     * sso::FAKE_SSO_IDENTIFIER
+     */
+    private const string FAKE_SSO_IDENTIFIER = '00000000-01DC-01DC-01DC-000000000000';
+
     public function __construct(
         private Config $config,
+        private Jwt $jwt,
     ) {}
 
     /**
@@ -814,6 +835,156 @@ final readonly class OrganizationsController
     }
 
     /**
+     * PUT /api/organizations/{org_id}/users/{member_id}/recover-account: an
+     * admin sets a new master password for an enrolled member, or removes
+     * their two-factor login. The member gets a mail first.
+     */
+    public function putRecoverAccount(AdminHeaders $headers, Request $request, string $orgId, string $memberId): EmptyResponse
+    {
+        $orgId = Uuid::parameter($request, $orgId);
+        $memberId = Uuid::parameter($request, $memberId);
+        $body = Body::json($request);
+        $newMasterPasswordHash = $body->optionalString('newMasterPasswordHash');
+        $key = $body->optionalString('key');
+        $authentication = $body->optionalObject('authenticationData');
+        $authentication = $authentication === null ? null : AuthenticationData::fromFields($authentication);
+        $unlock = $body->optionalObject('unlockData');
+        $unlock = $unlock === null ? null : UnlockData::fromFields($unlock);
+        $resetMasterPassword = $body->defaultBool('resetMasterPassword');
+        $resetTwoFactor = $body->defaultBool('resetTwoFactor');
+        $orgId = $this->orgId($request, $orgId, $headers);
+
+        $org = Organization::findByUuid($orgId) ?? throw ApiError::message('Required organization not found');
+        $member = Membership::findByUuidAndOrg($memberId, $org->uuid) ?? throw ApiError::message("User to reset isn't member of required organization");
+        $user = User::findByUuid($member->user_uuid) ?? throw ApiError::message('User not found');
+        $this->checkResetPasswordApplicableAndPermissions($orgId, $memberId, $headers);
+
+        if ($member->reset_password_key === null) {
+            throw ApiError::message('Password reset not or not correctly enrolled');
+        }
+        if ($member->status !== Membership::STATUS_CONFIRMED) {
+            throw ApiError::message('Organization user must be confirmed for password reset functionality');
+        }
+
+        $fallbackEmail = $resetTwoFactor && $this->config->mailEnabled() && $this->config->bool('email_2fa_auto_fallback') && $user->verified()
+            && TwoFactor::findByUserAndType($user->uuid, TwoFactor::TYPE_EMAIL) === null;
+
+        // Checked before the mail, so that a rejected request does not tell the user of a reset.
+        $newPassword = null;
+        if ($resetMasterPassword) {
+            if ($authentication !== null && $unlock !== null) {
+                $authentication->check($user, $unlock);
+                if (! $authentication->kdf->matchesUser($user)) {
+                    throw ApiError::message('KDF settings do not match the user account');
+                }
+                $newPassword = [$authentication->masterPasswordAuthenticationHash, $unlock->masterKeyWrappedUserKey];
+            } elseif ($newMasterPasswordHash !== null && $key !== null) {
+                $newPassword = [$newMasterPasswordHash, $key];
+            } else {
+                throw ApiError::message('Unprocessable request', 422, 'Missing fields to reset password');
+            }
+        }
+
+        // The mail goes first: it proves the mail settings work and tells the user.
+        try {
+            Mail::send('admin_account_recovery', $user->email, ['user_name' => $user->displayName(), 'org_name' => $org->name,
+                'reset_master_password' => $resetMasterPassword, 'reset_two_factor' => $resetTwoFactor, 'fallback_2fa_email' => $fallbackEmail]);
+        } catch (ApiError $error) {
+            throw ApiError::message("Error sending user reset password email: {$error->getMessage()}");
+        }
+
+        if ($newPassword !== null) {
+            $user->setPassword($newPassword[0], $newPassword[1], true, null);
+        }
+        if ($resetTwoFactor) {
+            TwoFactor::deleteAllByUser($user->uuid);
+            Device::clearTwofactorRememberByUser($user->uuid);
+            // Email two-factor login is not ported, so the fallback cannot be activated.
+            OrgPolicy::enforceTwoFactorForUser($user);
+        }
+        $user->save();
+
+        return new EmptyResponse;
+    }
+
+    /**
+     * GET /api/organizations/{org_id}/users/{member_id}/reset-password-details:
+     * what an admin needs to set a new master password.
+     */
+    public function getResetPasswordDetails(AdminHeaders $headers, Request $request, string $orgId, string $memberId): Response
+    {
+        $orgId = $this->orgId($request, $orgId, $headers);
+        $memberId = Uuid::parameter($request, $memberId);
+
+        $org = Organization::findByUuid($orgId) ?? throw ApiError::message('Required organization not found');
+        $member = Membership::findByUuidAndOrg($memberId, $orgId) ?? throw ApiError::message("User to reset isn't member of required organization");
+        $user = User::findByUuid($member->user_uuid) ?? throw ApiError::message('User not found');
+        $this->checkResetPasswordApplicableAndPermissions($orgId, $memberId, $headers);
+
+        return Json::response(Json::sorted([
+            'object' => 'organizationUserResetPasswordDetails',
+            'organizationUserId' => $memberId,
+            'kdf' => $user->client_kdf_type,
+            'kdfIterations' => $user->client_kdf_iter,
+            'kdfMemory' => $user->client_kdf_memory,
+            'kdfParallelism' => $user->client_kdf_parallelism,
+            'masterPasswordSalt' => $user->masterPasswordSalt(),
+            'resetPasswordKey' => $member->reset_password_key,
+            'encryptedPrivateKey' => $org->private_key,
+        ]));
+    }
+
+    /**
+     * PUT /api/organizations/{org_id}/users/{user_id}/reset-password-enrollment:
+     * a member enrolls in account recovery with a key, or withdraws.
+     */
+    public function putResetPasswordEnrollment(OrgMemberHeaders $headers, Request $request, string $orgId, string $userId): EmptyResponse
+    {
+        $orgId = Uuid::parameter($request, $orgId);
+        $userId = Uuid::parameter($request, $userId);
+        $body = Body::json($request);
+        $resetPasswordKey = $body->optionalString('resetPasswordKey');
+        $masterPasswordHash = $body->optionalString('masterPasswordHash');
+        $otp = $body->optionalString('otp');
+
+        if ($userId !== $headers->user->uuid) {
+            throw ApiError::message("User to enroll isn't member of required organization", logMessage: 'The user_id and acting user do not match');
+        }
+        $membership = $headers->membership;
+        $this->checkResetPasswordApplicable($orgId);
+
+        $resetPasswordKey = $resetPasswordKey === '' ? null : $resetPasswordKey;
+        if ($resetPasswordKey === null && $this->orgIsResetPasswordAutoEnroll($orgId)) {
+            throw ApiError::message("Reset password can't be withdrawn due to an enterprise policy");
+        }
+        if ($resetPasswordKey !== null) {
+            (new PasswordOrOtpData($masterPasswordHash, $otp))->validate($headers->user, true, $this->config);
+        }
+
+        $membership->reset_password_key = $resetPasswordKey;
+        $membership->save();
+
+        return new EmptyResponse;
+    }
+
+    /**
+     * POST /api/organizations/{org_id}/api-key: the organization's key for
+     * the directory connector, made on first request.
+     */
+    public function postApiKey(OwnerHeaders $headers, Request $request, string $orgId): Response
+    {
+        return $this->apiKey($headers, $request, $orgId, false);
+    }
+
+    /**
+     * POST /api/organizations/{org_id}/rotate-api-key
+     */
+    public function rotateApiKey(OwnerHeaders $headers, Request $request, string $orgId): Response
+    {
+        return $this->apiKey($headers, $request, $orgId, true);
+    }
+
+    /**
      * GET /api/organizations/{org_id}/groups: for members with full access,
      * also through a group, or who manage a collection, to assign groups.
      */
@@ -935,6 +1106,144 @@ final readonly class OrganizationsController
     }
 
     /**
+     * GET /api/organizations/{org_id}/policies
+     */
+    public function listPolicies(AdminHeaders $headers, Request $request, string $orgId): Response
+    {
+        $orgId = $this->orgId($request, $orgId, $headers);
+        $policies = OrgPolicy::findByOrg($orgId)->map(static fn (OrgPolicy $policy): array => $policy->toApi())->all();
+
+        return Json::response(Json::sorted(['data' => array_values($policies), 'object' => 'list', 'continuationToken' => null]));
+    }
+
+    /**
+     * GET /api/organizations/{org_id}/policies/token?token=: for the invited,
+     * who have no account yet; the invitation token is the authorization.
+     */
+    public function listPoliciesToken(Request $request, string $orgId): Response
+    {
+        $orgId = Uuid::parameter($request, $orgId);
+        // Without the token the route does not match; the next one cannot parse "token" as a type.
+        $token = Query::first($request, 'token') ?? throw new HttpStatus(404, 'No token.');
+
+        $claims = $this->jwt->decode($token, JwtIssuer::Invite);
+        // InviteJwtClaims: deserializing fails on missing fields.
+        foreach (['sub', 'email', 'org_id', 'member_id'] as $claim) {
+            if (! is_string($claims[$claim] ?? null)) {
+                throw ApiError::message('Error decoding JWT: Error(Json)');
+            }
+        }
+        if ($claims['org_id'] !== $orgId) {
+            throw ApiError::message("Token doesn't match request organization");
+        }
+
+        // Invited through the admin panel.
+        if ($orgId === self::FAKE_ADMIN_UUID) {
+            return Json::response(new stdClass);
+        }
+
+        $policies = OrgPolicy::findByOrg($orgId)->map(static fn (OrgPolicy $policy): array => $policy->toApi())->all();
+
+        return Json::response(Json::sorted(['data' => array_values($policies), 'object' => 'list', 'continuationToken' => null]));
+    }
+
+    /**
+     * GET /api/organizations/00000000-01DC-01DC-01DC-000000000000/policies/master-password:
+     * the SSO enrollment asks with this fake organization id.
+     */
+    public function getDummyMasterPasswordPolicy(): Response
+    {
+        return Json::response($this->defaultMasterPasswordPolicy(self::FAKE_SSO_IDENTIFIER)->toApi());
+    }
+
+    /**
+     * GET /api/organizations/{org_id}/policies/master-password: the
+     * organization's, or the one SSO configures.
+     */
+    public function getMasterPasswordPolicy(OrgMemberHeaders $headers, Request $request, string $orgId): Response
+    {
+        $orgId = Uuid::parameter($request, $orgId);
+        $policy = OrgPolicy::findByOrgAndType($orgId, OrgPolicy::TYPE_MASTER_PASSWORD) ?? $this->defaultMasterPasswordPolicy($orgId);
+
+        return Json::response($policy->toApi());
+    }
+
+    /**
+     * GET /api/organizations/{org_id}/policies/{pol_type}: a disabled one when there is none.
+     */
+    public function getPolicy(AdminHeaders $headers, Request $request, string $orgId, string $polType): Response
+    {
+        $orgId = Uuid::parameter($request, $orgId);
+        $type = self::i32Parameter($request, $polType);
+        $orgId = $this->orgId($request, $orgId, $headers);
+        if (! in_array($type, OrgPolicy::TYPES, true)) {
+            throw ApiError::message('Invalid or unsupported policy type');
+        }
+
+        $policy = OrgPolicy::findByOrgAndType($orgId, $type) ?? OrgPolicy::new($orgId, $type, false, 'null');
+
+        return Json::response($policy->toApi());
+    }
+
+    /**
+     * PUT /api/organizations/{org_id}/policies/{pol_type}: enabling the 2FA
+     * and single organization policies revokes the members they now exclude.
+     */
+    public function putPolicy(AdminHeaders $headers, Request $request, string $orgId, string $polType): Response
+    {
+        $orgId = Uuid::parameter($request, $orgId);
+        $type = self::i32Parameter($request, $polType);
+        $policyData = Body::json($request)->object('policy');
+        $enabled = $policyData->bool('enabled');
+        $data = $policyData->value('data');
+        $orgId = $this->orgId($request, $orgId, $headers);
+
+        if (! in_array($type, OrgPolicy::TYPES, true)) {
+            throw ApiError::message('Invalid or unsupported policy type');
+        }
+
+        // Bitwarden requires the single organization policy for account recovery; here only when configured.
+        if ($this->config->bool('enforce_single_org_with_reset_pw_policy')) {
+            if ($type === OrgPolicy::TYPE_RESET_PASSWORD && $enabled
+                && OrgPolicy::findByOrgAndType($orgId, OrgPolicy::TYPE_SINGLE_ORG)?->enabled !== true) {
+                throw ApiError::message('Single Organization policy is not enabled. It is mandatory for this policy to be enabled.');
+            }
+            if ($type === OrgPolicy::TYPE_SINGLE_ORG && ! $enabled
+                && OrgPolicy::findByOrgAndType($orgId, OrgPolicy::TYPE_RESET_PASSWORD)?->enabled === true) {
+                throw ApiError::message('Account recovery policy is enabled. It is not allowed to disable this policy.');
+            }
+        }
+
+        if ($type === OrgPolicy::TYPE_TWO_FACTOR_AUTHENTICATION && $enabled) {
+            OrgPolicy::enforceTwoFactorForOrg($orgId);
+        }
+
+        if ($type === OrgPolicy::TYPE_SINGLE_ORG && $enabled) {
+            foreach (Membership::findByOrg($orgId) as $member) {
+                // Members below admin who joined; invited and revoked ones are checked when they try again.
+                if ($member->typeBelow(Membership::TYPE_ADMIN) && $member->status !== Membership::STATUS_INVITED
+                    && Membership::countAcceptedAndConfirmedByUser($member->user_uuid, $member->org_uuid) > 0) {
+                    if ($this->config->mailEnabled()) {
+                        $org = Organization::findByUuid($member->org_uuid) ?? throw new \LogicException("Organization {$member->org_uuid} is missing");
+                        $user = User::findByUuid($member->user_uuid) ?? throw new \LogicException("User {$member->user_uuid} is missing");
+                        Mail::send('send_single_org_removed_from_org', $user->email, ['org_name' => $org->name]);
+                    }
+                    $member->revoke();
+                    $member->save();
+                }
+            }
+        }
+
+        $policy = OrgPolicy::findByOrgAndType($orgId, $type) ?? OrgPolicy::new($orgId, $type, false, '{}');
+        $policy->enabled = $enabled;
+        // serde_json::to_string of an Option<Value>: keys sorted, none as null.
+        $policy->data = Json::encode(Json::sorted($data));
+        $policy->save();
+
+        return Json::response($policy->toApi());
+    }
+
+    /**
      * get_groups_data
      *
      * @throws ApiError|HttpStatus
@@ -956,6 +1265,126 @@ final readonly class OrganizationsController
             : [];
 
         return Json::response(Json::sorted(['data' => $groups, 'object' => 'list', 'continuationToken' => null]));
+    }
+
+    /**
+     * The owner confirms with password or OTP; saving failures panic upstream.
+     *
+     * @throws ApiError|HttpStatus
+     */
+    private function apiKey(OwnerHeaders $headers, Request $request, string $orgId, bool $rotate): Response
+    {
+        $orgId = Uuid::parameter($request, $orgId);
+        $data = PasswordOrOtpData::fromFields(Body::json($request));
+        $orgId = $this->orgId($request, $orgId, $headers);
+        $data->validate($headers->user, true, $this->config);
+
+        $apiKey = OrganizationApiKey::findByOrgUuid($orgId);
+        try {
+            if ($apiKey === null) {
+                $apiKey = OrganizationApiKey::new($orgId, OrganizationApiKey::generate());
+                $apiKey->save();
+            } elseif ($rotate) {
+                $apiKey->api_key = OrganizationApiKey::generate();
+                $apiKey->revision_date = Dates::now();
+                $apiKey->save();
+            }
+        } catch (ApiError $error) {
+            throw new \LogicException($rotate ? 'Error rotating organization API Key' : 'Error creating organization API Key', previous: $error);
+        }
+
+        return Json::response(Json::sorted(['apiKey' => $apiKey->api_key, 'revisionDate' => Dates::format($apiKey->revision_date), 'object' => 'apiKey']));
+    }
+
+    /**
+     * Account recovery needs mail and the enabled policy; admins may only
+     * recover members up to admins, owners anyone.
+     *
+     * @throws ApiError
+     */
+    private function checkResetPasswordApplicableAndPermissions(string $orgId, string $memberId, AdminHeaders $headers): void
+    {
+        $this->checkResetPasswordApplicable($orgId);
+
+        $target = Membership::findByUuidAndOrg($memberId, $orgId) ?? throw ApiError::message('Reset target user not found');
+        $allowed = match ($headers->membership->atype) {
+            Membership::TYPE_OWNER => true,
+            Membership::TYPE_ADMIN => $target->typeBelow(Membership::TYPE_OWNER),
+            default => false,
+        };
+        if (! $allowed) {
+            throw ApiError::message("No permission to reset this user's password");
+        }
+    }
+
+    /**
+     * @throws ApiError
+     */
+    private function checkResetPasswordApplicable(string $orgId): void
+    {
+        if (! $this->config->mailEnabled()) {
+            throw ApiError::message('Password reset is not supported on an email-disabled instance.');
+        }
+        $policy = OrgPolicy::findByOrgAndType($orgId, OrgPolicy::TYPE_RESET_PASSWORD) ?? throw ApiError::message('Policy not found');
+        if (! $policy->enabled) {
+            throw ApiError::message('Reset password policy not enabled');
+        }
+    }
+
+    /**
+     * OrgPolicy::org_is_reset_password_auto_enroll: inactive without mail.
+     */
+    private function orgIsResetPasswordAutoEnroll(string $orgId): bool
+    {
+        if (! $this->config->mailEnabled()) {
+            return false;
+        }
+        $policy = OrgPolicy::findByOrgAndType($orgId, OrgPolicy::TYPE_RESET_PASSWORD);
+        if ($policy === null) {
+            return false;
+        }
+
+        // ResetPasswordDataModel { autoEnrollEnabled (alias AutoEnrollEnabled): bool }
+        [$ok, $data] = JsonValue::decode($policy->data);
+        $values = $ok && $data instanceof stdClass ? array_values(array_intersect_key(get_object_vars($data), ['autoEnrollEnabled' => true, 'AutoEnrollEnabled' => true])) : [];
+        if (count($values) !== 1 || ! is_bool($values[0])) {
+            logger()->error("Failed to deserialize ResetPasswordDataModel: {$policy->data}");
+
+            return false;
+        }
+
+        return $policy->enabled && $values[0];
+    }
+
+    /**
+     * The master password policy SSO_MASTER_PASSWORD_POLICY sets while SSO is
+     * enabled; a disabled one otherwise.
+     */
+    private function defaultMasterPasswordPolicy(string $orgId): OrgPolicy
+    {
+        $configured = $this->config->optionalString('sso_master_password_policy');
+        [$ok, $value] = $configured === null ? [false, null] : JsonValue::decode($configured);
+        if ($ok && $value instanceof stdClass && $this->config->bool('sso_enabled')) {
+            return OrgPolicy::new($orgId, OrgPolicy::TYPE_MASTER_PASSWORD, true, Json::encode(Json::sorted($value)));
+        }
+
+        return OrgPolicy::new($orgId, OrgPolicy::TYPE_MASTER_PASSWORD, false, 'null');
+    }
+
+    /**
+     * An i32 path parameter, as Rust parses it; a bad one forwards like a bad UUID.
+     *
+     * @throws HttpStatus
+     */
+    private static function i32Parameter(Request $request, string $value): int
+    {
+        $digits = preg_match('/^([+-]?)(\d+)$/D', $value, $matches) ? ltrim($matches[2], '0') : null;
+        $number = $digits !== null && strlen($digits) <= 10 ? (int) ($matches[1] === '-' ? "-{$digits}" : $digits) : null;
+        if ($number === null || $number < -2_147_483_648 || $number > 2_147_483_647) {
+            throw new HttpStatus(in_array($request->getMethod(), ['GET', 'HEAD'], true) ? 404 : 422, 'Path parameter is not an i32.');
+        }
+
+        return $number;
     }
 
     /**

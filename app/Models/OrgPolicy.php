@@ -5,15 +5,19 @@ namespace App\Models;
 use App\Config\Config;
 use App\Http\ApiError;
 use App\Http\Json;
+use App\Mail\Mail;
 use App\Support\Dates;
 use App\Support\JsonValue;
+use App\Support\Random;
 use DateTimeImmutable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Query\JoinClause;
+use Illuminate\Database\QueryException;
 use stdClass;
 
 /**
- * An organization policy (src/db/models/org_policy.rs); so far the queries the login and Sends need.
+ * An organization policy (src/db/models/org_policy.rs). An organization has
+ * at most one of each type.
  *
  * @property string $uuid
  * @property string $org_uuid
@@ -28,6 +32,8 @@ final class OrgPolicy extends Model
 
     public const int TYPE_MASTER_PASSWORD = 1;
 
+    public const int TYPE_PASSWORD_GENERATOR = 2;
+
     public const int TYPE_SINGLE_ORG = 3;
 
     public const int TYPE_PERSONAL_OWNERSHIP = 5;
@@ -37,6 +43,11 @@ final class OrgPolicy extends Model
     public const int TYPE_SEND_OPTIONS = 7;
 
     public const int TYPE_RESET_PASSWORD = 8;
+
+    /**
+     * OrgPolicyType: the types Vaultwarden supports.
+     */
+    public const array TYPES = [0, 1, 2, 3, 5, 6, 7, 8, 14, 15, 16, 17, 20];
 
     protected $table = 'org_policies';
 
@@ -49,6 +60,61 @@ final class OrgPolicy extends Model
             'enabled' => 'boolean',
             'revision_date' => Casts\NaiveDateTime::class,
         ];
+    }
+
+    public static function new(string $orgUuid, int $type, bool $enabled, string $data): self
+    {
+        $policy = new self([
+            'uuid' => Random::uuid(),
+            'org_uuid' => $orgUuid,
+            'atype' => $type,
+            'enabled' => $enabled,
+            'data' => $data,
+            'revision_date' => null,
+        ]);
+        $policy->revision_date = Dates::now();
+
+        return $policy;
+    }
+
+    /**
+     * Upstream's REPLACE INTO: another policy of the type goes.
+     *
+     * @param  array<string, mixed>  $options
+     *
+     * @throws ApiError
+     */
+    public function save(array $options = []): bool
+    {
+        $this->revision_date = Dates::now();
+        try {
+            self::query()->where('org_uuid', $this->org_uuid)->where('atype', $this->atype)->where('uuid', '!=', $this->uuid)->delete();
+        } catch (QueryException) {
+            throw ApiError::message('Error saving org_policy');
+        }
+        $this->upsertRow(['uuid'], 'Error saving org_policy');
+
+        return true;
+    }
+
+    /**
+     * @return Collection<int, self>
+     */
+    public static function findByOrg(string $orgUuid): Collection
+    {
+        return self::query()->where('org_uuid', $orgUuid)->get();
+    }
+
+    /**
+     * @throws ApiError
+     */
+    public static function deleteAllByOrganization(string $orgUuid): void
+    {
+        try {
+            self::query()->where('org_uuid', $orgUuid)->delete();
+        } catch (QueryException) {
+            throw ApiError::message('Error deleting org_policy');
+        }
     }
 
     /**
@@ -214,6 +280,49 @@ final class OrgPolicy extends Model
         $singleOrg = self::findByOrgAndType($member->org_uuid, self::TYPE_SINGLE_ORG);
         if ($singleOrg !== null && $singleOrg->enabled && Membership::countAcceptedAndConfirmedByUser($member->user_uuid, $member->org_uuid) > 0) {
             throw ApiError::message("Cannot {$action} because the organization policy forbids being part of other organization (membership {$member->uuid})");
+        }
+    }
+
+    /**
+     * two_factor::enforce_2fa_policy: the user, now without two-factor login,
+     * is revoked from organizations below admin that require it.
+     *
+     * @throws ApiError
+     */
+    public static function enforceTwoFactorForUser(User $user): void
+    {
+        foreach (Membership::findByUserAndPolicy($user->uuid, self::TYPE_TWO_FACTOR_AUTHENTICATION) as $member) {
+            if (! $member->typeBelow(Membership::TYPE_ADMIN)) {
+                continue;
+            }
+            if (app(Config::class)->mailEnabled()) {
+                $org = Organization::findByUuid($member->org_uuid) ?? throw new \LogicException("Organization {$member->org_uuid} is missing");
+                Mail::send('send_2fa_removed_from_org', $user->email, ['org_name' => $org->name]);
+            }
+            $member->revoke();
+            $member->save();
+        }
+    }
+
+    /**
+     * two_factor::enforce_2fa_policy_for_org: confirmed members below admin
+     * without two-factor login are revoked.
+     *
+     * @throws ApiError
+     */
+    public static function enforceTwoFactorForOrg(string $orgUuid): void
+    {
+        $org = Organization::findByUuid($orgUuid) ?? throw new \LogicException("Organization {$orgUuid} is missing");
+        foreach (Membership::findConfirmedByOrg($orgUuid) as $member) {
+            if (! $member->typeBelow(Membership::TYPE_ADMIN) || TwoFactor::findByUser($member->user_uuid)->isNotEmpty()) {
+                continue;
+            }
+            if (app(Config::class)->mailEnabled()) {
+                $user = User::findByUuid($member->user_uuid) ?? throw new \LogicException("User {$member->user_uuid} is missing");
+                Mail::send('send_2fa_removed_from_org', $user->email, ['org_name' => $org->name]);
+            }
+            $member->revoke();
+            $member->save();
         }
     }
 

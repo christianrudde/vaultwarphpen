@@ -10,6 +10,7 @@ use App\Auth\ManagerHeadersLoose;
 use App\Auth\OrgHeaders;
 use App\Auth\OrgMemberHeaders;
 use App\Auth\OwnerHeaders;
+use App\Auth\PublicToken;
 use App\Auth\RsaKeys;
 use App\Auth\SendHeaders;
 use App\Config\Config;
@@ -52,6 +53,11 @@ class AppServiceProvider extends ServiceProvider
                 $this->app->make(Jwt::class),
             ));
         }
+        $this->app->bind(PublicToken::class, fn (): PublicToken => PublicToken::fromRequest(
+            $this->app->make(Request::class),
+            $this->app->make(Config::class),
+            $this->app->make(Jwt::class),
+        ));
         $this->app->bind(SendHeaders::class, fn (): SendHeaders => SendHeaders::fromRequest(
             $this->app->make(Request::class),
             $this->app->make(Jwt::class),

@@ -21,6 +21,8 @@ final class TwoFactor extends Model
 {
     protected $table = 'twofactor';
 
+    public const int TYPE_EMAIL = 1;
+
     /**
      * TwoFactorType::ProtectedActions: the code mailed for a protected action.
      */
@@ -69,6 +71,18 @@ final class TwoFactor extends Model
         $this->upsertRow(['uuid'], 'Error saving twofactor');
 
         return true;
+    }
+
+    /**
+     * @throws ApiError
+     */
+    public static function deleteAllByUser(string $userUuid): void
+    {
+        try {
+            self::query()->where('user_uuid', $userUuid)->delete();
+        } catch (QueryException) {
+            throw ApiError::message('Error deleting twofactors');
+        }
     }
 
     /**

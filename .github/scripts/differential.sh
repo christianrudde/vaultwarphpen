@@ -69,6 +69,7 @@ status=0
 VW_REFERENCE_URL=http://127.0.0.1:8000 VW_SUBJECT_URL=http://127.0.0.1:8080 \
     VW_SHARED_REFERENCE_URL=http://127.0.0.1:8001 VW_SHARED_SUBJECT_URL=http://127.0.0.1:8081 \
     VW_GROUPS_REFERENCE_URL=http://127.0.0.1:8002 VW_GROUPS_SUBJECT_URL=http://127.0.0.1:8082 \
+    VW_RSA_KEY="${work}/subject/rsa_key.pem" \
     vendor/bin/phpunit --testsuite Differential "$@" || status=$?
 if [[ "${status}" != 0 ]]; then
     for log in "${work}"/*.log; do

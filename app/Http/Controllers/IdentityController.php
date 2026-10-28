@@ -20,7 +20,7 @@ use App\Http\Json;
 use App\Mail\Mail;
 use App\Models\Device;
 use App\Models\Invitation;
-use App\Models\Membership;
+use App\Models\OrganizationApiKey;
 use App\Models\OrgPolicy;
 use App\Models\Send;
 use App\Models\TwoFactor;
@@ -291,7 +291,7 @@ final readonly class IdentityController
         $this->limiter->check('login', $ip);
 
         if ($scope === AuthMethod::OrgApiKey->scope()) {
-            throw ApiError::message('Organization API key login is not implemented yet');
+            return $this->organizationApiKeyLogin($clientId, $clientSecret, $ip);
         }
         if ($scope !== AuthMethod::UserApiKey->scope()) {
             throw ApiError::message('Scope not supported');
@@ -403,7 +403,7 @@ final readonly class IdentityController
     private function twofactorAuth(User $user, Device $device, string $ip): void
     {
         if (TwoFactor::findByUser($user->uuid)->isEmpty()) {
-            $this->enforceTwofactorPolicy($user);
+            OrgPolicy::enforceTwoFactorForUser($user);
 
             return;
         }
@@ -412,24 +412,30 @@ final readonly class IdentityController
     }
 
     /**
-     * two_factor::enforce_2fa_policy: members below admin of organizations
-     * that require 2FA are revoked.
+     * identity::organization_api_key_login: a token for the public API, for
+     * one hour; no device, no refresh.
      */
-    private function enforceTwofactorPolicy(User $user): void
+    private function organizationApiKeyLogin(string $clientId, string $clientSecret, string $ip): Response
     {
-        foreach (Membership::findByUserAndPolicy($user->uuid, OrgPolicy::TYPE_TWO_FACTOR_AUTHENTICATION) as $member) {
-            if (! $member->typeBelow(Membership::TYPE_ADMIN)) {
-                continue;
-            }
-            if ($this->config->mailEnabled()) {
-                Mail::send('send_2fa_removed_from_org', $user->email);
-            }
-            $member->revoke();
-            $member->save();
-            if ($this->config->bool('org_events_enabled')) {
-                logger()->warning('Organization events are not implemented yet.');
-            }
+        $orgId = str_starts_with($clientId, 'organization.') ? substr($clientId, strlen('organization.')) : throw ApiError::message('Malformed client_id', logMessage: "IP: {$ip}.");
+        $apiKey = OrganizationApiKey::findByOrgUuid($orgId) ?? throw ApiError::message('Invalid client_id', logMessage: "IP: {$ip}.");
+        if (! $apiKey->checkValidApiKey($clientSecret)) {
+            throw ApiError::message('Incorrect client_secret', logMessage: "IP: {$ip}. Organization: {$apiKey->org_uuid}.");
         }
+
+        // OrgApiKeyLoginJwtClaims
+        $now = time();
+        $token = $this->jwt->encode([
+            'nbf' => $now,
+            'exp' => $now + 3600,
+            'iss' => $this->jwt->issuer(JwtIssuer::OrgApiKey),
+            'sub' => $apiKey->uuid,
+            'client_id' => "organization.{$apiKey->org_uuid}",
+            'client_sub' => $apiKey->org_uuid,
+            'scope' => [AuthMethod::OrgApiKey->scope()],
+        ]);
+
+        return Json::response(Json::sorted(['access_token' => $token, 'expires_in' => 3600, 'token_type' => 'Bearer', 'scope' => AuthMethod::OrgApiKey->scope()]));
     }
 
     /**

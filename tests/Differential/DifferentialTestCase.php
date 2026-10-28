@@ -50,6 +50,8 @@ abstract class DifferentialTestCase extends TestCase
         // Send access ids (a UUID in base64url) and password hashes.
         '/^[A-Za-z0-9_-]{22}$/' => '<access id>',
         '/^[A-Za-z0-9_-]{43}$/' => '<hash>',
+        // Organization API keys.
+        '/^[A-Za-z0-9]{30}$/' => '<api key>',
         // Each server builds URLs with its own address.
         '#http://127\.0\.0\.1:\d+#' => '<host>',
     ];
@@ -128,6 +130,26 @@ abstract class DifferentialTestCase extends TestCase
         );
 
         $this->assertSame(self::normalizedBody($reference), self::normalizedBody($subject), "Body of {$label}");
+    }
+
+    /**
+     * A token signed with the RSA key all servers share (VW_RSA_KEY), as if
+     * the servers had issued it for their default domain.
+     *
+     * @param  array<string, mixed>  $claims  In the field order of the Rust claims struct; iss is set
+     */
+    protected function signedToken(string $issuer, array $claims): string
+    {
+        $key = file_get_contents((string) getenv('VW_RSA_KEY'));
+        if (! getenv('VW_RSA_KEY') || $key === false) {
+            $this->markTestSkipped('Set VW_RSA_KEY to sign tokens.');
+        }
+        $claims['iss'] = "http://localhost|{$issuer}";
+        $base64 = static fn (string $data): string => rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
+        $input = $base64('{"typ":"JWT","alg":"RS256"}').'.'.$base64((string) json_encode($claims, JSON_UNESCAPED_SLASHES));
+        openssl_sign($input, $signature, $key, OPENSSL_ALGO_SHA256);
+
+        return $input.'.'.$base64(is_string($signature) ? $signature : '');
     }
 
     /**
