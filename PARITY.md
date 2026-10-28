@@ -8,8 +8,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 
 | Area | Total | ✅ | 🟨 | ⬜ | ➖ | With tests |
 |---|--:|--:|--:|--:|--:|--:|
-| Routes | 294 | 213 | 67 | 13 | 1 | 280 |
-| Settings | 153 | 94 | 59 | 0 | 0 | 153 |
+| Routes | 294 | 220 | 66 | 7 | 1 | 286 |
+| Settings | 153 | 101 | 52 | 0 | 0 | 153 |
 | Scheduled jobs | 9 | 9 | 0 | 0 | 0 | 9 |
 | Database tables | 28 | 28 | 0 | 0 | 0 | 28 |
 | Templates | 74 | 62 | 12 | 0 | 0 | 74 |
@@ -183,7 +183,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | DELETE `/api/organizations/{org_id}/collections` | src/api/core/organizations.rs:714 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
 | ✅ | POST `/api/ciphers/bulk-collections` | src/api/core/organizations.rs:1872 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
 | ✅ | GET `/api/ciphers/organization-details` | src/api/core/organizations.rs:835 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
-| ⬜ | POST `/api/organizations/domain/sso/verified` | src/api/core/organizations.rs:871 | 0 |  |
+| ✅ | POST `/api/organizations/domain/sso/verified` | src/api/core/organizations.rs:871 | 1 | Compared with Vaultwarden in tests/Differential/SsoTest against a fake OpenID provider (.github/scripts/fake-services.php); also tests/Feature/Api/SsoTest and tests/Unit/Auth/SsoTest. |
 | ✅ | GET `/api/organizations/{org_id}/users` | src/api/core/organizations.rs:894 | 1 | Compared with Vaultwarden in tests/Differential (OrganizationTest, GroupTest), with groups on and off. |
 | ✅ | POST `/api/organizations/{org_id}/users/invite` | src/api/core/organizations.rs:991 | 2 | Compared with Vaultwarden in tests/Differential/MailTest, mails included, and without mail in OrganizationTest. |
 | ✅ | POST `/api/organizations/{org_id}/users/{member_id}/reinvite` | src/api/core/organizations.rs:1178 | 2 | Compared with Vaultwarden in tests/Differential/MailTest, mails included, and without mail in OrganizationTest. |
@@ -229,7 +229,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | POST `/api/organizations/{org_id}/api-key` | src/api/core/organizations.rs:3095 | 1 | Compared with Vaultwarden in tests/Differential/ApiKeyTest, with the login of the key. |
 | ✅ | POST `/api/organizations/{org_id}/rotate-api-key` | src/api/core/organizations.rs:3105 | 1 | Compared with Vaultwarden in tests/Differential/ApiKeyTest, with the login of the key. |
 | ⬜ | GET `/api/organizations/{_org_id}/billing/vnext/warnings` | src/api/core/organizations.rs:2172 | 0 |  |
-| ⬜ | GET `/api/organizations/{identifier}/auto-enroll-status` | src/api/core/organizations.rs:330 | 0 |  |
+| ✅ | GET `/api/organizations/{identifier}/auto-enroll-status` | src/api/core/organizations.rs:330 | 1 | Compared with Vaultwarden in tests/Differential/SsoTest against a fake OpenID provider (.github/scripts/fake-services.php); also tests/Feature/Api/SsoTest and tests/Unit/Auth/SsoTest. |
 | ⬜ | GET `/api/organizations/{_org_id}/billing/vnext/self-host/metadata` | src/api/core/organizations.rs:2182 | 0 |  |
 | ✅ | GET `/api/two-factor` | src/api/core/two_factor/mod.rs:86 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest (the test computes the codes), with logins that need the code. |
 | ✅ | POST `/api/two-factor/get-recover` | src/api/core/two_factor/mod.rs:104 | 1 | Compared with Vaultwarden in tests/Differential/TwoFactorTest on the servers with mail (codes read from the mails) and without; expiry and attempt limits in tests/Feature/Api/TwoFactorTest. |
@@ -300,15 +300,15 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | POST `/admin/users/{user_id}/invite/resend` | src/api/admin.rs:520 | 3 | Compared with Vaultwarden in tests/Differential/AdminTest, with and without mail; the mails as well. |
 | ✅ | GET `/admin/diagnostics/http` | src/api/admin.rs:831 | 2 | Compared with Vaultwarden in tests/Differential/AdminTest. |
 | ✅ | POST `/events/collect` | src/api/core/events.rs:158 | 1 | Compared with Vaultwarden in tests/Differential/EventTest, with ORG_EVENTS_ENABLED on and off. |
-| 🟨 | POST `/identity/connect/token` | src/api/identity.rs:57 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Password (with KDF upgrade and the 2FA organization policy), refresh token, user and organization API key, Send access (send_access) and login with a device (auth requests); two-factor login with authenticator, email, YubiKey, Duo, WebAuthn, remembered device and recovery code; accounts, tokens and two-factor methods work across Vaultwarden and us on one database. Not yet: SSO. |
+| ✅ | POST `/identity/connect/token` | src/api/identity.rs:57 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Password (with KDF upgrade and the 2FA organization policy), refresh token, user and organization API key, Send access (send_access), login with a device (auth requests) and SSO (authorization_code, with sign-up, linking by email and refresh through the provider); two-factor login with authenticator, email, YubiKey, Duo, WebAuthn, remembered device and recovery code; accounts, tokens and two-factor methods work across Vaultwarden and us on one database. |
 | ✅ | POST `/identity/accounts/prelogin` | src/api/identity.rs:1019 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
 | ✅ | POST `/identity/accounts/prelogin/password` | src/api/identity.rs:1024 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
 | 🟨 | POST `/identity/accounts/register/send-verification-email` | src/api/identity.rs:1050 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. With mail and SIGNUPS_VERIFY the token is mailed instead (register_verify_email); not compared, since the mail servers of the differential tests run without SIGNUPS_VERIFY. |
 | 🟨 | POST `/identity/accounts/register/finish` | src/api/identity.rs:1099 | 3 | Compared with Vaultwarden in tests/Differential: normal, organization and emergency access registrations (RegistrationTest, EmergencyAccessTest) and the welcome mail (MailTest). The welcome_must_verify mail of SIGNUPS_VERIFY is not compared. |
-| ⬜ | GET `/identity/sso/prevalidate` | src/api/identity.rs:1176 | 0 |  |
-| ⬜ | GET `/identity/connect/authorize` | src/api/identity.rs:1292 | 0 |  |
-| ⬜ | GET `/identity/connect/oidc-signin` | src/api/identity.rs:1190 | 0 |  |
-| ⬜ | GET `/identity/connect/oidc-signin` | src/api/identity.rs:1198 | 0 |  |
+| ✅ | GET `/identity/sso/prevalidate` | src/api/identity.rs:1176 | 1 | Compared with Vaultwarden in tests/Differential/SsoTest against a fake OpenID provider (.github/scripts/fake-services.php); also tests/Feature/Api/SsoTest and tests/Unit/Auth/SsoTest. |
+| ✅ | GET `/identity/connect/authorize` | src/api/identity.rs:1292 | 1 | Compared with Vaultwarden in tests/Differential/SsoTest against a fake OpenID provider (.github/scripts/fake-services.php); also tests/Feature/Api/SsoTest and tests/Unit/Auth/SsoTest. |
+| ✅ | GET `/identity/connect/oidc-signin` | src/api/identity.rs:1190 | 1 | Compared with Vaultwarden in tests/Differential/SsoTest against a fake OpenID provider (.github/scripts/fake-services.php); also tests/Feature/Api/SsoTest and tests/Unit/Auth/SsoTest. |
+| ✅ | GET `/identity/connect/oidc-signin` | src/api/identity.rs:1198 | 1 | Compared with Vaultwarden in tests/Differential/SsoTest against a fake OpenID provider (.github/scripts/fake-services.php); also tests/Feature/Api/SsoTest and tests/Unit/Auth/SsoTest. |
 | ⬜ | GET `/icons/{host}/icon.png` | src/api/icons.rs:111 | 0 |  |
 | ⬜ | GET `/icons/{host}/icon.png` | src/api/icons.rs:85 | 0 |  |
 | ⬜ | GET `/notifications/hub` | src/api/notifications.rs:130 | 0 |  |
@@ -420,23 +420,23 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | `_MAX_NOTE_SIZE` | src/config.rs:819 | 2 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it; tested in tests/Feature/Api/CipherTest. |
 | ✅ | `ENFORCE_SINGLE_ORG_WITH_RESET_PW_POLICY` | src/config.rs:824 | 2 | tests/Feature/Api/SingleOrgResetPolicyTest. |
 | 🟨 | `DNS_PREFER_IPV6` | src/config.rs:828 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SSO_ENABLED` | src/config.rs:834 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SSO_ONLY` | src/config.rs:836 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SSO_SIGNUPS_ALLOWED` | src/config.rs:838 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SSO_SIGNUPS_MATCH_EMAIL` | src/config.rs:840 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SSO_ALLOW_UNKNOWN_EMAIL_VERIFICATION` | src/config.rs:842 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SSO_CLIENT_ID` | src/config.rs:844 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SSO_CLIENT_SECRET` | src/config.rs:846 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SSO_AUTHORITY` | src/config.rs:848 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SSO_SCOPES` | src/config.rs:850 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SSO_AUTHORIZE_EXTRA_PARAMS` | src/config.rs:852 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SSO_PKCE` | src/config.rs:854 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SSO_AUDIENCE_TRUSTED` | src/config.rs:856 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SSO_CALLBACK_PATH` | src/config.rs:858 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SSO_MASTER_PASSWORD_POLICY` | src/config.rs:860 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SSO_AUTH_ONLY_NOT_SESSION` | src/config.rs:862 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SSO_CLIENT_CACHE_EXPIRATION` | src/config.rs:864 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SSO_DEBUG_TOKENS` | src/config.rs:866 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `SSO_ENABLED` | src/config.rs:834 | 2 | Read, defaulted and validated like Vaultwarden (App\Config); Compared with Vaultwarden in tests/Differential/SsoTest against a fake OpenID provider (.github/scripts/fake-services.php); also tests/Feature/Api/SsoTest and tests/Unit/Auth/SsoTest. |
+| 🟨 | `SSO_ONLY` | src/config.rs:836 | 1 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it (App\Auth\Sso, App\Http\Controllers\IdentityController); compared with Vaultwarden only with its default value in tests/Differential/SsoTest. |
+| 🟨 | `SSO_SIGNUPS_ALLOWED` | src/config.rs:838 | 1 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it (App\Auth\Sso, App\Http\Controllers\IdentityController); compared with Vaultwarden only with its default value in tests/Differential/SsoTest. |
+| 🟨 | `SSO_SIGNUPS_MATCH_EMAIL` | src/config.rs:840 | 1 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it (App\Auth\Sso, App\Http\Controllers\IdentityController); compared with Vaultwarden only with its default value in tests/Differential/SsoTest. |
+| 🟨 | `SSO_ALLOW_UNKNOWN_EMAIL_VERIFICATION` | src/config.rs:842 | 1 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it (App\Auth\Sso, App\Http\Controllers\IdentityController); compared with Vaultwarden only with its default value in tests/Differential/SsoTest. |
+| ✅ | `SSO_CLIENT_ID` | src/config.rs:844 | 2 | Read, defaulted and validated like Vaultwarden (App\Config); Compared with Vaultwarden in tests/Differential/SsoTest against a fake OpenID provider (.github/scripts/fake-services.php); also tests/Feature/Api/SsoTest and tests/Unit/Auth/SsoTest. |
+| ✅ | `SSO_CLIENT_SECRET` | src/config.rs:846 | 2 | Read, defaulted and validated like Vaultwarden (App\Config); Compared with Vaultwarden in tests/Differential/SsoTest against a fake OpenID provider (.github/scripts/fake-services.php); also tests/Feature/Api/SsoTest and tests/Unit/Auth/SsoTest. |
+| ✅ | `SSO_AUTHORITY` | src/config.rs:848 | 2 | Read, defaulted and validated like Vaultwarden (App\Config); Compared with Vaultwarden in tests/Differential/SsoTest against a fake OpenID provider (.github/scripts/fake-services.php); also tests/Feature/Api/SsoTest and tests/Unit/Auth/SsoTest. |
+| ✅ | `SSO_SCOPES` | src/config.rs:850 | 2 | Read, defaulted and validated like Vaultwarden (App\Config); Compared with Vaultwarden in tests/Differential/SsoTest against a fake OpenID provider (.github/scripts/fake-services.php); also tests/Feature/Api/SsoTest and tests/Unit/Auth/SsoTest. |
+| 🟨 | `SSO_AUTHORIZE_EXTRA_PARAMS` | src/config.rs:852 | 1 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it (App\Auth\Sso, App\Http\Controllers\IdentityController); compared with Vaultwarden only with its default value in tests/Differential/SsoTest. |
+| ✅ | `SSO_PKCE` | src/config.rs:854 | 2 | Read, defaulted and validated like Vaultwarden (App\Config); Compared with Vaultwarden in tests/Differential/SsoTest against a fake OpenID provider (.github/scripts/fake-services.php); also tests/Feature/Api/SsoTest and tests/Unit/Auth/SsoTest. |
+| 🟨 | `SSO_AUDIENCE_TRUSTED` | src/config.rs:856 | 1 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it (App\Auth\Sso, App\Http\Controllers\IdentityController); compared with Vaultwarden only with its default value in tests/Differential/SsoTest. |
+| ✅ | `SSO_CALLBACK_PATH` | src/config.rs:858 | 2 | Read, defaulted and validated like Vaultwarden (App\Config); Compared with Vaultwarden in tests/Differential/SsoTest against a fake OpenID provider (.github/scripts/fake-services.php); also tests/Feature/Api/SsoTest and tests/Unit/Auth/SsoTest. |
+| 🟨 | `SSO_MASTER_PASSWORD_POLICY` | src/config.rs:860 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the master password policy of SSO logins and of the fake SSO organization (App\Auth\MasterPasswordPolicy); not compared with a policy set. |
+| 🟨 | `SSO_AUTH_ONLY_NOT_SESSION` | src/config.rs:862 | 1 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it (App\Auth\Sso, App\Http\Controllers\IdentityController); compared with Vaultwarden only with its default value in tests/Differential/SsoTest. |
+| 🟨 | `SSO_CLIENT_CACHE_EXPIRATION` | src/config.rs:864 | 1 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it (App\Auth\Sso, App\Http\Controllers\IdentityController); compared with Vaultwarden only with its default value in tests/Differential/SsoTest. |
+| 🟨 | `SSO_DEBUG_TOKENS` | src/config.rs:866 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the tokens of the provider are not logged. |
 | ✅ | `_ENABLE_YUBICO` | src/config.rs:872 | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest against a fake Yubico server over HTTPS (.github/scripts/fake-services.php), with logins; also tests/Feature/Api/TwoFactorServicesTest. |
 | ✅ | `YUBICO_CLIENT_ID` | src/config.rs:874 | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest against a fake Yubico server over HTTPS (.github/scripts/fake-services.php), with logins; also tests/Feature/Api/TwoFactorServicesTest. |
 | ✅ | `YUBICO_SECRET_KEY` | src/config.rs:876 | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest against a fake Yubico server over HTTPS (.github/scripts/fake-services.php), with logins; also tests/Feature/Api/TwoFactorServicesTest. |
@@ -510,8 +510,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | `users_collections` | src/db/schema.rs:225 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
 | ✅ | `users_organizations` | src/db/schema.rs:235 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
 | ✅ | `organization_api_key` | src/db/schema.rs:250 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
-| ✅ | `sso_auth` | src/db/schema.rs:260 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
-| ✅ | `sso_users` | src/db/schema.rs:275 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `sso_auth` | src/db/schema.rs:260 | 3 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
+| ✅ | `sso_users` | src/db/schema.rs:275 | 3 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
 | ✅ | `emergency_access` | src/db/schema.rs:282 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
 | ✅ | `groups` | src/db/schema.rs:299 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
 | ✅ | `groups_users` | src/db/schema.rs:311 | 2 | Schema equals the databases Vaultwarden creates (parity/schema, checked in CI on SQLite, MySQL 8.4 and PostgreSQL 17); Vaultwarden and our migrator accept each other's databases. |
@@ -585,8 +585,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | `email/send_single_org_removed_from_org.html` | src/static/templates/email/send_single_org_removed_from_org.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
 | ✅ | `email/smtp_test` | src/static/templates/email/smtp_test.hbs | 2 | Sent by POST /admin/test/smtp; compared with Vaultwarden in tests/Differential/AdminTest. |
 | ✅ | `email/smtp_test.html` | src/static/templates/email/smtp_test.html.hbs | 2 | Sent by POST /admin/test/smtp; compared with Vaultwarden in tests/Differential/AdminTest. |
-| 🟨 | `email/sso_change_email` | src/static/templates/email/sso_change_email.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/sso_change_email.html` | src/static/templates/email/sso_change_email.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/sso_change_email` | src/static/templates/email/sso_change_email.hbs | 1 | App\Mail\Mail renders it (tests/Feature/Mail/MailTest) and the SSO login sends it when the provider reports another address than the account has; not compared with Vaultwarden. |
+| 🟨 | `email/sso_change_email.html` | src/static/templates/email/sso_change_email.html.hbs | 1 | App\Mail\Mail renders it (tests/Feature/Mail/MailTest) and the SSO login sends it when the provider reports another address than the account has; not compared with Vaultwarden. |
 | ✅ | `email/twofactor_email` | src/static/templates/email/twofactor_email.hbs | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest: subject, text and HTML of the mail. |
 | ✅ | `email/twofactor_email.html` | src/static/templates/email/twofactor_email.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest: subject, text and HTML of the mail. |
 | ✅ | `email/verify_email` | src/static/templates/email/verify_email.hbs | 2 | Compared with Vaultwarden in tests/Differential/AccountManagementTest: subject, text and HTML of the mail. |

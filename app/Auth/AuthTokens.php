@@ -2,6 +2,7 @@
 
 namespace App\Auth;
 
+use App\Auth\Sso\Sso;
 use App\Config\Config;
 use App\Http\ApiError;
 use App\Models\Device;
@@ -47,6 +48,16 @@ final readonly class AuthTokens
     }
 
     /**
+     * Tokens with claims made elsewhere, as for SSO sessions.
+     *
+     * @param  array<string, mixed>  $refreshClaims  RefreshJwtClaims in field order
+     */
+    public static function withClaims(array $refreshClaims, LoginClaims $accessClaims, AuthMethod $method, Jwt $jwt): self
+    {
+        return new self($refreshClaims, $accessClaims, $method, $jwt);
+    }
+
+    /**
      * auth::refresh_tokens: new tokens for the device of a valid refresh token.
      *
      * @return array{Device, self}
@@ -56,7 +67,8 @@ final readonly class AuthTokens
     public static function refresh(string $refreshToken, ?string $clientId, string $ip, Jwt $jwt, Config $config): array
     {
         try {
-            [$method, $deviceToken] = self::refreshClaims($jwt->decode($refreshToken, JwtIssuer::Login));
+            $claims = $jwt->decode($refreshToken, JwtIssuer::Login);
+            [$method, $deviceToken] = self::refreshClaims($claims);
         } catch (Throwable $error) {
             logger()->error("Failed to decode refresh_token from {$ip}: {$error->getMessage()}");
 
@@ -72,7 +84,7 @@ final readonly class AuthTokens
         $sso = $config->bool('sso_enabled');
         $tokens = match (true) {
             $method === AuthMethod::Sso && $sso && $config->bool('sso_auth_only_not_session') => self::new($device, $user, $method, $clientId, $jwt),
-            $method === AuthMethod::Sso && $sso => throw ApiError::message('SSO refresh is not implemented yet'),
+            $method === AuthMethod::Sso && $sso => (new Sso($config, $jwt))->exchangeRefreshToken($device, $user, $clientId, $claims),
             $method === AuthMethod::Sso => throw ApiError::message('SSO is now disabled, Login again using email and master password'),
             $method === AuthMethod::Password && $sso && $config->bool('sso_only') => throw ApiError::message('SSO is now required, Login again'),
             $method === AuthMethod::Password => self::new($device, $user, $method, $clientId, $jwt),

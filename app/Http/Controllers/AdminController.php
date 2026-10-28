@@ -6,6 +6,7 @@ use App\Auth\AdminToken;
 use App\Auth\ClientIp;
 use App\Auth\Jwt;
 use App\Auth\JwtIssuer;
+use App\Auth\Secure;
 use App\Config\Config;
 use App\Config\ConfigBuilder;
 use App\Config\ConfigException;
@@ -851,13 +852,7 @@ final readonly class AdminController
      */
     private function isSecure(Request $request): bool
     {
-        $protocol = $request->headers->get('X-Forwarded-Proto');
-        if ($protocol === null) {
-            // ROCKET_TLS: the server terminates TLS itself.
-            return getenv('ROCKET_TLS') !== false || $request->server('HTTPS', 'off') !== 'off';
-        }
-
-        return $protocol === 'https';
+        return Secure::https($request);
     }
 
     /**

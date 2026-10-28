@@ -15,7 +15,7 @@ final class HttpClient
 {
     /**
      * @param  array<string, string>  $headers
-     * @return array{int, string} The status and the body
+     * @return array{int, string, array<string, string>} The status, the body and the headers of the last response, by lower case name
      *
      * @throws ApiError When the host is blocked or the request fails
      */
@@ -64,13 +64,18 @@ final class HttpClient
 
         // After redirects the headers of each response follow one another.
         $status = 0;
+        $last = [];
         foreach ($responseHeaders as $header) {
             if (preg_match('#^HTTP/\S+\s+(\d{3})#', $header, $match) === 1) {
                 $status = (int) $match[1];
+                $last = [];
+            } elseif (str_contains($header, ':')) {
+                [$name, $value] = explode(':', $header, 2);
+                $last[strtolower(trim($name))] = trim($value);
             }
         }
 
-        return [$status, $response];
+        return [$status, $response, $last];
     }
 
     /**

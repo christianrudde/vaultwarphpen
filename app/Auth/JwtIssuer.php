@@ -20,4 +20,6 @@ enum JwtIssuer: string
     case TwoFactorRemember = '2faremember';
     // The user verification tokens of the two-factor settings.
     case TwoFactorAuth = 'api.2fa';
+    // sso::SSO_JWT_ISSUER, of the token GET /identity/sso/prevalidate hands out.
+    case Sso = 'sso';
 }

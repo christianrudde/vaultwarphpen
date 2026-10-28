@@ -454,6 +454,14 @@ final class Membership extends Model
         return self::query()->where('user_uuid', $userUuid)->get();
     }
 
+    /**
+     * The membership that is not revoked with the strongest type: owners first.
+     */
+    public static function findMainUserOrg(string $userUuid): ?self
+    {
+        return self::query()->where('user_uuid', $userUuid)->where('status', '!=', self::STATUS_REVOKED)->orderBy('atype')->first();
+    }
+
     public static function findByUserAndOrg(string $userUuid, string $orgUuid): ?self
     {
         return self::query()->where('user_uuid', $userUuid)->where('org_uuid', $orgUuid)->first();

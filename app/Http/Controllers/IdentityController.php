@@ -10,6 +10,8 @@ use App\Auth\Jwt;
 use App\Auth\JwtIssuer;
 use App\Auth\LoginClaims;
 use App\Auth\MasterPasswordPolicy;
+use App\Auth\Secure;
+use App\Auth\Sso\Sso;
 use App\Config\Config;
 use App\Http\Accept;
 use App\Http\ApiError;
@@ -19,10 +21,13 @@ use App\Http\Controllers\TwoFactor\TwoFactorController;
 use App\Http\Controllers\TwoFactor\WebauthnController;
 use App\Http\Controllers\TwoFactor\YubikeyController;
 use App\Http\Data\Body;
+use App\Http\Data\Query;
 use App\Http\Data\RegisterData;
 use App\Http\EmptyResponse;
 use App\Http\HttpStatus;
 use App\Http\Json;
+use App\Http\Redirect;
+use App\Http\RocketCookie;
 use App\Mail\Mail;
 use App\Models\AuthRequest;
 use App\Models\Device;
@@ -31,12 +36,15 @@ use App\Models\Invitation;
 use App\Models\OrganizationApiKey;
 use App\Models\OrgPolicy;
 use App\Models\Send;
+use App\Models\SsoAuth;
+use App\Models\SsoUser;
 use App\Models\TwoFactor;
 use App\Models\TwoFactorIncomplete;
 use App\Models\User;
 use App\Support\CheckedInt;
 use App\Support\Dates;
 use App\Support\EscapeDebug;
+use App\Support\FormUrlencoded;
 use App\Support\RateLimiter;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -47,6 +55,11 @@ use stdClass;
  */
 final readonly class IdentityController
 {
+    /**
+     * SSO_BINDING_COOKIE: binds an SSO login to the browser that started it.
+     */
+    private const string SSO_BINDING_COOKIE = 'VW_SSO_BINDING';
+
     public function __construct(
         private Config $config,
         private Jwt $jwt,
@@ -127,7 +140,24 @@ final readonly class IdentityController
                 ip: $ip,
                 userId: $userId,
             ),
-            $grantType === 'authorization_code' && $this->config->bool('sso_enabled') => throw ApiError::message('SSO sign-in is not implemented yet'),
+            $grantType === 'authorization_code' && $this->config->bool('sso_enabled') => $this->ssoLogin(
+                clientId: $required('client_id', 'client_id cannot be blank'),
+                code: $required('code', 'code cannot be blank'),
+                codeVerifier: $required('code_verifier', 'code verifier cannot be blank'),
+                device: [
+                    $required('device_identifier', 'device_identifier cannot be blank'),
+                    $required('device_name', 'device_name cannot be blank'),
+                    $required('device_type', 'device_type cannot be blank'),
+                ],
+                scope: $field('scope'),
+                twoFactor: [
+                    'provider' => CheckedInt::parseI32((string) $field('two_factor_provider')),
+                    'token' => $field('two_factor_token'),
+                    'remember' => CheckedInt::parseI32((string) $field('two_factor_remember')),
+                ],
+                ip: $ip,
+                userId: $userId,
+            ),
             $grantType === 'authorization_code' => throw ApiError::message('SSO sign-in is not available'),
             $grantType === 'send_access' => $this->sendAccessLogin(
                 fn (): string => $required('client_id', 'client_id cannot be blank'),
@@ -191,6 +221,27 @@ final readonly class IdentityController
             'token_type' => 'Bearer',
             'scope' => 'api.send.access',
         ]));
+    }
+
+    /**
+     * GET /identity/sso/prevalidate: a short token the clients pass on to
+     * /identity/connect/authorize (sso::encode_ssotoken_claims).
+     *
+     * @throws ApiError
+     */
+    public function prevalidate(): Response
+    {
+        if (! $this->config->bool('sso_enabled')) {
+            throw ApiError::message('SSO sign-in is not available');
+        }
+        $now = Dates::now()->getTimestamp();
+
+        return Json::response(['token' => $this->jwt->encode([
+            'nbf' => $now,
+            'exp' => $now + 120,
+            'iss' => $this->jwt->issuer(JwtIssuer::Sso),
+            'sub' => 'vaultwarden',
+        ])]);
     }
 
     /**
@@ -346,6 +397,208 @@ final readonly class IdentityController
         }
 
         return $this->authenticatedResponse($user, $loginDevice, AuthTokens::new($loginDevice, $user, AuthMethod::Password, $clientId, $this->jwt), $ip, $twofactorToken);
+    }
+
+    /**
+     * identity::sso_login: the code from the provider logs in the user it
+     * names, linked by its identity or matched by email, or signs one up.
+     * The two-factor login comes before the code is used up.
+     *
+     * @param  array{string, string, string}  $device  Identifier, name and type
+     * @param  array{provider: ?int, token: ?string, remember: ?int}  $twoFactor
+     * @param  ?string  $userId  Set once the user is logged in
+     *
+     * @param-out string $userId
+     *
+     * @throws ApiError
+     */
+    private function ssoLogin(string $clientId, string $code, string $codeVerifier, array $device, ?string $scope, array $twoFactor, string $ip, ?string &$userId): Response
+    {
+        AuthMethod::Sso->checkScope($scope);
+        $this->limiter->check('login', $ip);
+
+        $sso = new Sso($this->config, $this->jwt);
+        [$auth, $infos] = $sso->exchangeCode($code, $codeVerifier);
+        $failed = static fn (string $message): ApiError => ApiError::message($message, event: Event::USER_FAILED_LOG_IN);
+
+        $userWithSso = SsoUser::findByIdentifier($infos->identifier);
+        if ($userWithSso === null) {
+            $byMail = SsoUser::findByMail($infos->email);
+            if ($byMail !== null) {
+                [$user, $linked] = $byMail;
+                if ($linked !== null) {
+                    logger()->error("Login failure ({$infos->identifier}), existing SSO user ({$user->uuid}) with same email ({$user->email})");
+                    throw $failed('Existing SSO user with same email');
+                }
+                if ($user->private_key === null && ! $this->config->bool('sso_signups_allowed') && ! $this->config->isEmailDomainAllowed($user->email)
+                    && ! $this->config->mailEnabled() && Invitation::findByMail($user->email) === null) {
+                    logger()->error("Login failure ({$infos->identifier}), no invitation with email ({$user->email}) was found");
+                    throw $failed('Missing invitation');
+                }
+                if ($user->private_key !== null && ! $this->config->bool('sso_signups_match_email')) {
+                    logger()->error("Login failure ({$infos->identifier}), existing non SSO user ({$user->uuid}) with same email ({$user->email}) and association is disabled");
+                    throw $failed('Existing non SSO user with same email');
+                }
+                if ($infos->emailVerified === null && ! $this->config->bool('sso_allow_unknown_email_verification')) {
+                    logger()->error("Login failure ({$infos->identifier}), existing non SSO user ({$user->uuid}) with same email ({$user->email}) and email verification status is unknown");
+                    throw $failed('Email verification status is unknown');
+                }
+                if ($infos->emailVerified === false) {
+                    logger()->error("Login failure ({$infos->identifier}), existing non SSO user ({$user->uuid}) with same email ({$user->email}) and email is not verified");
+                    throw $failed('Email is not verified by the SSO provider');
+                }
+                $userWithSso = [$user, null];
+            }
+        }
+
+        $now = Dates::now();
+        $twofactorToken = null;
+        if ($userWithSso === null) {
+            if (! $this->config->isSsoSignupAllowed($infos->email)) {
+                throw $failed($this->config->string('signups_domains_whitelist') === '' ? 'Signups are disabled. You will need an invitation' : 'Email domain not allowed');
+            }
+            if ($infos->emailVerified === null && ! $this->config->bool('sso_allow_unknown_email_verification')) {
+                throw $failed("Your provider does not send email verification status.\nYou will need to change the server configuration (check `SSO_ALLOW_UNKNOWN_EMAIL_VERIFICATION`) to log in.");
+            }
+            if ($infos->emailVerified === false) {
+                throw $failed('You need to verify your email with your provider before you can log in');
+            }
+
+            $user = User::new($infos->email, $infos->userName);
+            $user->verified_at = $now;
+            $user->save();
+            $ssoUser = null;
+            $loginDevice = $this->getDevice($user, ...$device);
+        } else {
+            [$user, $ssoUser] = $userWithSso;
+            if (! $user->enabled) {
+                throw ApiError::message('This user has been disabled', logMessage: "IP: {$ip}. Username: {$user->email}.", event: Event::USER_FAILED_LOG_IN);
+            }
+
+            $loginDevice = $this->getDevice($user, ...$device);
+            $twofactorToken = $this->twofactorAuth($user, $loginDevice, $twoFactor, $clientId, $ip);
+
+            if ($user->private_key === null) {
+                // An invited user, whose stub account is completed now.
+                $user->verified_at = $now;
+                if ($infos->userName !== null) {
+                    $user->name = $infos->userName;
+                }
+                $user->save();
+            }
+
+            if ($user->email !== $infos->email) {
+                if ($this->config->mailEnabled()) {
+                    Mail::sendSsoChangeEmail($infos->email);
+                }
+                logger()->info("User {$user->uuid} email changed in SSO provider from {$user->email} to {$infos->email}");
+            }
+        }
+
+        $userId = $user->uuid;
+        $tokens = $sso->redeem($loginDevice, $user, $clientId, $ssoUser, $auth, $infos);
+
+        return $this->authenticatedResponse($user, $loginDevice, $tokens, $ip, $twofactorToken);
+    }
+
+    /**
+     * GET /identity/connect/authorize: the clients start an SSO login here
+     * and are sent on to the provider. A cookie binds the login to this
+     * browser until the provider sends it back.
+     *
+     * @throws ApiError
+     */
+    public function authorize(Request $request): Response
+    {
+        // AuthorizeData: names without case, client_id and redirect_uri also without the underscore.
+        $query = $request->server->get('QUERY_STRING');
+        $pairs = FormUrlencoded::parse(is_string($query) ? $query : '');
+        $field = static function (string ...$names) use ($pairs): ?string {
+            foreach ($pairs as [$name, $value]) {
+                if (in_array(strtolower($name), $names, true)) {
+                    return $value;
+                }
+            }
+
+            return null;
+        };
+        $clientId = $field('client_id', 'clientid');
+        $redirectUri = $field('redirect_uri', 'redirecturi');
+        $state = $field('state');
+        $codeChallenge = $field('code_challenge');
+        $codeChallengeMethod = $field('code_challenge_method');
+        if ($clientId === null || $redirectUri === null || $state === null || $codeChallenge === null || $codeChallengeMethod === null) {
+            // The query guard forwards; the web vault's catch-all finds nothing.
+            throw new HttpStatus(WebController::webVaultEnabled($this->config) ? 404 : 422, 'Missing authorize data.');
+        }
+        if ($codeChallengeMethod !== 'S256') {
+            throw ApiError::message('Unsupported code challenge method');
+        }
+
+        $bindingToken = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
+        $url = (new Sso($this->config, $this->jwt))->authorizeUrl($state, $codeChallenge, $clientId, $redirectUri, hash('sha256', $bindingToken));
+
+        $response = new Redirect($url, 307);
+        $response->headers->setCookie(RocketCookie::session(self::SSO_BINDING_COOKIE, $bindingToken, $this->ssoCookiePath(),
+            SsoAuth::EXPIRATION * 60, Secure::https($request), RocketCookie::SAMESITE_LAX));
+
+        return $response;
+    }
+
+    /**
+     * GET /identity/connect/oidc-signin: the provider sends the browser back
+     * with a code, or with an error, which is then stored and passed on in
+     * place of the code. The browser must be the one that started.
+     *
+     * @throws ApiError
+     */
+    public function oidcSignin(Request $request): Response
+    {
+        // oidcsignin needs code and state, oidcsignin_error state and error.
+        $code = Query::first($request, 'code');
+        $state = Query::first($request, 'state');
+        $error = $code === null ? Query::first($request, 'error') : null;
+        if ($state === null || ($code === null && $error === null)) {
+            throw new HttpStatus(WebController::webVaultEnabled($this->config) ? 404 : 422, 'Missing code or error.');
+        }
+
+        $decoded = Sso::decodeState($state);
+        $auth = SsoAuth::find($decoded) ?? throw ApiError::message('Cannot retrieve sso_auth for '.EscapeDebug::of($decoded));
+
+        $cookie = $request->cookies->get(self::SSO_BINDING_COOKIE);
+        $provided = is_string($cookie) ? hash('sha256', $cookie) : null;
+        if ($auth->binding_hash === null || $provided === null || ! hash_equals($auth->binding_hash, $provided)) {
+            throw ApiError::message('SSO session binding mismatch for '.EscapeDebug::of($decoded));
+        }
+
+        // The error is stored, and the encoded state stands in for the code.
+        $code ??= $state;
+        $auth->code_response = $code;
+        $auth->setCodeResponseError($error, $error === null ? null : Query::first($request, 'error_description'));
+        $auth->updated_at = Dates::now();
+        $auth->save();
+
+        // Url::parse gives an http(s) URL without path the path /.
+        $redirectUri = $auth->redirect_uri;
+        if (preg_match('#^https?://[^/?\#]+$#Di', $redirectUri) === 1) {
+            $redirectUri .= '/';
+        }
+        $url = FormUrlencoded::appendPairs($redirectUri, [
+            ['code', $code],
+            ['state', $decoded],
+            ['scope', AuthMethod::Sso->scope()],
+            ['iss', $this->config->string('domain')],
+        ]);
+
+        $response = new Redirect($url, 307);
+        $response->headers->setCookie(RocketCookie::removal(self::SSO_BINDING_COOKIE, $this->ssoCookiePath()));
+
+        return $response;
+    }
+
+    private function ssoCookiePath(): string
+    {
+        return $this->config->string('domain_path').'/identity/connect/';
     }
 
     /**

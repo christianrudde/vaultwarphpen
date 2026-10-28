@@ -226,6 +226,8 @@ Route::prefix('/api')->group(function (): void {
     Route::get('/organizations/{orgId}/export', [OrganizationsController::class, 'getOrgExport'])->name('core::organizations::get_org_export');
     Route::post('/organizations/{orgId}/api-key', [OrganizationsController::class, 'postApiKey'])->name('core::organizations::post_api_key');
     Route::post('/organizations/{orgId}/rotate-api-key', [OrganizationsController::class, 'rotateApiKey'])->name('core::organizations::rotate_api_key');
+    Route::post('/organizations/domain/sso/verified', [OrganizationsController::class, 'getOrgDomainSsoVerified'])->name('core::organizations::get_org_domain_sso_verified');
+    Route::get('/organizations/{identifier}/auto-enroll-status', [OrganizationsController::class, 'getAutoEnrollStatus'])->name('core::organizations::get_auto_enroll_status');
     Route::get('/organizations/{orgId}/policies', [OrganizationsController::class, 'listPolicies'])->name('core::organizations::list_policies');
     Route::get('/organizations/{orgId}/policies/token', [OrganizationsController::class, 'listPoliciesToken'])->name('core::organizations::list_policies_token');
     Route::get('/organizations/00000000-01DC-01DC-01DC-000000000000/policies/master-password', [OrganizationsController::class, 'getDummyMasterPasswordPolicy'])->name('core::organizations::get_dummy_master_password_policy');
@@ -324,6 +326,10 @@ Route::prefix('/identity')->group(function (): void {
     Route::post('/accounts/register/send-verification-email', [IdentityController::class, 'registerVerificationEmail'])
         ->name('identity::register_verification_email');
     Route::post('/accounts/register/finish', [IdentityController::class, 'registerFinish'])->name('identity::register_finish');
+    Route::get('/sso/prevalidate', [IdentityController::class, 'prevalidate'])->name('identity::prevalidate');
+    // Both oidcsignin and oidcsignin_error.
+    Route::get('/connect/oidc-signin', [IdentityController::class, 'oidcSignin'])->name('identity::oidcsignin');
+    Route::get('/connect/authorize', [IdentityController::class, 'authorize'])->name('identity::authorize');
 });
 
 // api::core_events_routes()

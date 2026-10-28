@@ -11,9 +11,12 @@ use Symfony\Component\HttpFoundation\Request;
  */
 final class Redirect extends Response
 {
-    public function __construct(string $location)
+    /**
+     * @param  int  $status  303, or 307 for Redirect::temporary
+     */
+    public function __construct(string $location, int $status = 303)
     {
-        parent::__construct('', 303, ['Location' => $location]);
+        parent::__construct('', $status, ['Location' => $location]);
     }
 
     public function prepare(Request $request): static

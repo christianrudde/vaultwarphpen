@@ -1332,6 +1332,39 @@ final readonly class OrganizationsController
     }
 
     /**
+     * POST /api/organizations/domain/sso/verified: the clients prefill the
+     * organization identifier of an SSO login with it; there is a single SSO
+     * integration, so a dummy, whether SSO is enabled or not.
+     */
+    public function getOrgDomainSsoVerified(): Response
+    {
+        return Json::response(Json::sorted(['object' => 'list', 'data' => [[
+            'organizationIdentifier' => self::FAKE_SSO_IDENTIFIER,
+            'organizationName' => self::FAKE_SSO_IDENTIFIER,
+            'domainName' => $this->config->string('domain'),
+        ]], 'continuationToken' => null]));
+    }
+
+    /**
+     * GET /api/organizations/{identifier}/auto-enroll-status: during the SSO
+     * enrollment, whether account recovery enrolls the user. The fake SSO
+     * organization stands for the user's main organization.
+     */
+    public function getAutoEnrollStatus(Headers $headers, string $identifier): Response
+    {
+        if ($identifier === self::FAKE_SSO_IDENTIFIER) {
+            $member = Membership::findMainUserOrg($headers->user->uuid);
+            $org = $member === null ? null : Organization::findByUuid($member->org_uuid);
+        } else {
+            $org = Organization::findByUuid($identifier);
+        }
+
+        return Json::response(Json::sorted($org === null
+            ? ['id' => $identifier, 'identifier' => $identifier, 'resetPasswordEnabled' => false]
+            : ['id' => $org->uuid, 'identifier' => $org->uuid, 'resetPasswordEnabled' => $this->orgIsResetPasswordAutoEnroll($org->uuid)]));
+    }
+
+    /**
      * GET /api/organizations/00000000-01DC-01DC-01DC-000000000000/policies/master-password:
      * the SSO enrollment asks with this fake organization id.
      */

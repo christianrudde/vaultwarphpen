@@ -26,7 +26,9 @@ environment variables, so the official Bitwarden clients and existing Vaultwarde
   `.github/scripts/smtp-sink.php`; use `assertSameMailFlows()`, and `Server::mail()` to compare a
   mail or take its token). The mail pair also sets up email 2FA for verified sign-ups and as
   fallback (`EMAIL_2FA_*`); accounts registered by the tests are unverified unless their token
-  says otherwise. `signedToken()` signs tokens with the key all
+  says otherwise. A fifth pair logs in with SSO (`VW_SSO_*`) at the fake OpenID provider of
+  `fake-services.php` (`/oidc`), where tests pick the user with extra parameters on the
+  authorization URL. `signedToken()` signs tokens with the key all
   servers share (`VW_RSA_KEY`). Responses are compared as JSON with objects kept apart from
   lists, after placeholders replace random values (`DifferentialTestCase::PLACEHOLDERS`).
 - Mail: `App\Mail\Mail` ports `src/mail.rs`; the transport (`App\Mail\Transport`) is SMTP or
@@ -34,7 +36,9 @@ environment variables, so the official Bitwarden clients and existing Vaultwarde
   service catches SMTP on 127.0.0.1:2525 (`SMTP_SECURITY=off`).
 - Two-factor login: `App\Auth\Webauthn` ports webauthn-rs and keeps its stored formats;
   `Tests\Support\SoftwareAuthenticator` answers WebAuthn ceremonies in tests. Outgoing requests
-  (Yubico, Duo) go through `App\Support\HttpClient`.
+  (Yubico, Duo, SSO) go through `App\Support\HttpClient`.
+- SSO: `App\Auth\Sso\Sso` ports src/sso.rs, `OidcClient` src/sso_client.rs with what it takes from
+  the openidconnect and oauth2 crates (discovery, token requests, ID token checks in `Jws`).
 - Scheduled jobs: `App\Scheduler\Jobs` ports the jobs of `schedule_jobs` (src/main.rs), `JobScheduler`
   and `Job` port job_scheduler_ng, `App\Support\CronSchedule` the cron crate. `php86 artisan
   vaultwarden:schedule` runs them (`--once` for cron), `vaultwarden:job <name>` runs one now.

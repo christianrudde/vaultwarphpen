@@ -112,7 +112,8 @@ byte for byte. No code is copied from them. Versions are those locked in Vaultwa
 | [chrono](https://github.com/chronotope/chrono) | 0.4.45 | MIT or Apache-2.0 | parsing and formatting of dates | `app/Support/Dates.php`, `app/Models/Casts/NaiveDateTime.php` |
 | [jsonwebtoken](https://github.com/Keats/jsonwebtoken) | 11.1.0 | MIT | token validation and its error messages | `app/Auth/Jwt.php` |
 | [governor](https://github.com/boinkor-net/governor) | 0.10.4 | MIT | the GCRA rate limiter | `app/Support/RateLimiter.php` |
-| [data-encoding](https://github.com/ia0/data-encoding) | 2.11.1 | MIT | strict base64 decoding | `app/Models/Send.php` |
+| [data-encoding](https://github.com/ia0/data-encoding) | 2.11.1 | MIT | strict base64 decoding | `app/Models/Send.php`, `app/Auth/Sso/Sso.php` |
+| [openidconnect](https://github.com/ramosbugs/openidconnect-rs), [oauth2](https://github.com/ramosbugs/oauth2-rs) | 4.0.1, 5.0.0 | MIT; MIT or Apache-2.0 | the SSO client: discovery of the provider and its keys, the authorization URL, the token requests and their error messages, the checks of ID tokens and their signatures, the user info | `app/Auth/Sso` |
 | [url](https://github.com/servo/rust-url) | 2.5.8 | MIT or Apache-2.0 | WHATWG URL parsing of the settings, form encoding of links and requests | `app/Config/Url.php`, `app/Support/FormUrlencoded.php` |
 | [lettre](https://github.com/lettre/lettre) | 0.11.23 | MIT | how mails are built (alternative text and HTML, related inline images) and sent by SMTP or sendmail | `app/Mail` |
 | [handlebars-rust](https://github.com/sunng87/handlebars-rust) | 6.4.4 | MIT | strict rendering, HTML escaping and the helpers of the templates | `app/Templates` |

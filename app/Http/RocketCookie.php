@@ -16,11 +16,13 @@ final class RocketCookie extends Cookie
     /**
      * A session cookie as Vaultwarden adds it to the CookieJar: HttpOnly,
      * SameSite=Strict, Secure over HTTPS, valid for the given seconds.
+     *
+     * @param  self::SAMESITE_*  $sameSite
      */
-    public static function session(string $name, string $value, string $path, int $maxAge, bool $secure): self
+    public static function session(string $name, string $value, string $path, int $maxAge, bool $secure, string $sameSite = self::SAMESITE_STRICT): self
     {
-        $cookie = new self($name, $value, time() + $maxAge, $path, null, $secure, true, true, self::SAMESITE_STRICT);
-        $cookie->header = "{$name}={$value}; HttpOnly; SameSite=Strict".($secure ? '; Secure' : '')."; Path={$path}; Max-Age={$maxAge}";
+        $cookie = new self($name, $value, time() + $maxAge, $path, null, $secure, true, true, $sameSite);
+        $cookie->header = "{$name}={$value}; HttpOnly; SameSite=".ucfirst($sameSite).($secure ? '; Secure' : '')."; Path={$path}; Max-Age={$maxAge}";
 
         return $cookie;
     }

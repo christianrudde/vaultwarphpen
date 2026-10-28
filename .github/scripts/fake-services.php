@@ -18,6 +18,8 @@
  * The secret of a client id is duoSecret(), which the tests share. The
  * authorization endpoint lets everyone in at once: it redirects to the
  * client with a code, which the token endpoint exchanges once.
+ *
+ * OpenID Connect for SSO at /oidc: see oidcDiscovery().
  */
 [, $port, $certificate, $key, $state] = $argv + [null, null, null, null, null];
 if (! is_string($port) || ! is_string($certificate) || ! is_string($key) || ! is_string($state)) {
@@ -87,8 +89,189 @@ function respond(string $method, string $target, array $headers, string $body, s
         'POST /oauth/v1/health_check' => duoHealthCheck($form, $host),
         'GET /oauth/v1/authorize' => duoAuthorize($query, $host, $state),
         'POST /oauth/v1/token' => duoToken($form, $host, $state),
+        'GET /oidc/.well-known/openid-configuration' => oidcDiscovery($host),
+        'GET /oidc/jwks' => [200, 'application/json', (string) json_encode(['keys' => [oidcKey()['jwk']]])],
+        'GET /oidc/authorize' => oidcAuthorize($query, $state),
+        'POST /oidc/token' => oidcToken($headers, $form, $host, $state),
+        'GET /oidc/userinfo' => oidcUserInfo($headers, $state),
         default => [404, 'text/plain', 'Not found'],
     };
+}
+
+/**
+ * An OpenID provider for SSO at /oidc. Its client is "vaultwarden" with the
+ * secret in SSO_CLIENT_SECRET. The authorization endpoint logs in at once
+ * whoever the test names with extra parameters: email, sub (default from
+ * the email), name and verified (true, false or absent); deny=1 answers
+ * with an error instead. Tokens are RS256 JWTs of a key made at start.
+ *
+ * @return array{int, string, string}
+ */
+function oidcDiscovery(string $host): array
+{
+    $issuer = "https://{$host}/oidc";
+
+    return [200, 'application/json', (string) json_encode([
+        'issuer' => $issuer,
+        'authorization_endpoint' => "{$issuer}/authorize",
+        'token_endpoint' => "{$issuer}/token",
+        'userinfo_endpoint' => "{$issuer}/userinfo",
+        'jwks_uri' => "{$issuer}/jwks",
+        'response_types_supported' => ['code'],
+        'subject_types_supported' => ['public'],
+        'id_token_signing_alg_values_supported' => ['RS256'],
+        'token_endpoint_auth_methods_supported' => ['client_secret_basic', 'client_secret_post'],
+    ], JSON_UNESCAPED_SLASHES)];
+}
+
+/**
+ * @return array{key: OpenSSLAsymmetricKey, jwk: array<string, string>}
+ */
+function oidcKey(): array
+{
+    static $key = null;
+    if ($key === null) {
+        $private = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+        if ($private === false) {
+            throw new RuntimeException('Cannot make an RSA key.');
+        }
+        $rsa = openssl_pkey_get_details($private)['rsa'] ?? [];
+        $base64 = static fn (string $data): string => rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
+        $key = ['key' => $private, 'jwk' => ['kty' => 'RSA', 'use' => 'sig', 'kid' => 'differential', 'alg' => 'RS256',
+            'n' => $base64((string) ($rsa['n'] ?? '')), 'e' => $base64((string) ($rsa['e'] ?? ''))]];
+    }
+
+    return $key;
+}
+
+/**
+ * @param  array<string, mixed>  $claims
+ */
+function oidcSign(array $claims): string
+{
+    $base64 = static fn (string $data): string => rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
+    $input = $base64('{"alg":"RS256","typ":"JWT","kid":"differential"}').'.'.$base64((string) json_encode($claims, JSON_UNESCAPED_SLASHES));
+    openssl_sign($input, $signature, oidcKey()['key'], OPENSSL_ALGO_SHA256);
+
+    return $input.'.'.$base64((string) $signature);
+}
+
+/**
+ * @param  array<mixed>  $query
+ * @return array{int, string, string, array<string, string>}
+ */
+function oidcAuthorize(array $query, string $state): array
+{
+    $redirect = is_string($query['redirect_uri'] ?? null) ? $query['redirect_uri'] : '';
+    $separator = str_contains($redirect, '?') ? '&' : '?';
+    $clientState = is_string($query['state'] ?? null) ? $query['state'] : '';
+    if (($query['client_id'] ?? null) !== 'vaultwarden' || ($query['response_type'] ?? null) !== 'code' || $redirect === '') {
+        return [400, 'text/plain', 'Invalid request', []];
+    }
+    if (($query['deny'] ?? null) === '1') {
+        return [302, 'text/plain', '', ['Location' => $redirect.$separator.http_build_query(['state' => $clientState, 'error' => 'access_denied',
+            'error_description' => 'The user said no'])]];
+    }
+
+    $email = is_string($query['email'] ?? null) ? $query['email'] : 'sso-user@example.com';
+    $code = bin2hex(random_bytes(16));
+    file_put_contents("{$state}/oidc-code-{$code}.json", json_encode([
+        'redirect_uri' => $redirect,
+        'nonce' => $query['nonce'] ?? null,
+        'code_challenge' => $query['code_challenge'] ?? null,
+        'user' => oidcUser($query, $email),
+    ]));
+
+    return [302, 'text/plain', '', ['Location' => $redirect.$separator.http_build_query(['code' => $code, 'state' => $clientState])]];
+}
+
+/**
+ * @param  array<mixed>  $query
+ * @return array<string, mixed>
+ */
+function oidcUser(array $query, string $email): array
+{
+    $user = ['sub' => is_string($query['sub'] ?? null) ? $query['sub'] : 'sub-'.substr(sha1($email), 0, 12), 'email' => $email];
+    if (in_array($query['verified'] ?? 'true', ['true', 'false'], true)) {
+        $user['email_verified'] = ($query['verified'] ?? 'true') === 'true';
+    }
+    if (is_string($query['name'] ?? null)) {
+        $user['preferred_username'] = $query['name'];
+    }
+
+    return $user;
+}
+
+/**
+ * The code (once) or a refresh token for tokens; the client authenticates
+ * with Basic or in the form.
+ *
+ * @param  array<string, string>  $headers
+ * @param  array<mixed>  $form
+ * @return array{int, string, string}
+ */
+function oidcToken(array $headers, array $form, string $host, string $state): array
+{
+    [$id, $secret] = str_starts_with($headers['authorization'] ?? '', 'Basic ')
+        ? array_map('urldecode', explode(':', (string) base64_decode(substr($headers['authorization'], 6), true), 2) + ['', ''])
+        : [$form['client_id'] ?? '', $form['client_secret'] ?? ''];
+    if ($id !== 'vaultwarden' || $secret !== getenv('SSO_CLIENT_SECRET')) {
+        return [401, 'application/json', '{"error":"invalid_client"}'];
+    }
+    $invalid = static fn (string $why): array => [400, 'application/json', (string) json_encode(['error' => 'invalid_grant', 'error_description' => $why])];
+
+    $grantType = $form['grant_type'] ?? null;
+    if ($grantType === 'authorization_code') {
+        $file = "{$state}/oidc-code-".basename(is_string($form['code'] ?? null) ? $form['code'] : '').'.json';
+        $grant = is_file($file) ? json_decode((string) file_get_contents($file), true) : null;
+        if (is_file($file)) {
+            unlink($file);
+        }
+        if (! is_array($grant) || ($form['redirect_uri'] ?? null) !== $grant['redirect_uri']) {
+            return $invalid('The code is invalid');
+        }
+        $verifier = is_string($form['code_verifier'] ?? null) ? $form['code_verifier'] : '';
+        if ($grant['code_challenge'] !== null && rtrim(strtr(base64_encode(hash('sha256', $verifier, true)), '+/', '-_'), '=') !== $grant['code_challenge']) {
+            return $invalid('PKCE verification failed');
+        }
+        $user = $grant['user'];
+        $nonce = $grant['nonce'];
+    } elseif ($grantType === 'refresh_token') {
+        $file = "{$state}/oidc-refresh-".hash('sha256', is_string($form['refresh_token'] ?? null) ? $form['refresh_token'] : '').'.json';
+        $user = is_file($file) ? json_decode((string) file_get_contents($file), true) : null;
+        if (! is_array($user)) {
+            return $invalid('The refresh token is invalid');
+        }
+        unlink($file);
+        $nonce = null;
+    } else {
+        return [400, 'application/json', '{"error":"unsupported_grant_type"}'];
+    }
+
+    $issuer = "https://{$host}/oidc";
+    $now = time();
+    $accessToken = oidcSign(['iss' => $issuer, 'sub' => $user['sub'], 'aud' => 'vaultwarden', 'iat' => $now, 'exp' => $now + 3600,
+        'jti' => bin2hex(random_bytes(8))]);
+    $refreshToken = bin2hex(random_bytes(16));
+    file_put_contents("{$state}/oidc-access-".hash('sha256', $accessToken).'.json', json_encode($user));
+    file_put_contents("{$state}/oidc-refresh-".hash('sha256', $refreshToken).'.json', json_encode($user));
+    $idToken = oidcSign(['iss' => $issuer, 'sub' => $user['sub'], 'aud' => 'vaultwarden', 'iat' => $now, 'exp' => $now + 3600,
+        ...array_filter(['nonce' => $nonce]), ...array_diff_key($user, ['sub' => true])]);
+
+    return [200, 'application/json', (string) json_encode(['access_token' => $accessToken, 'token_type' => 'Bearer', 'expires_in' => 3600,
+        'refresh_token' => $refreshToken, 'id_token' => $idToken], JSON_UNESCAPED_SLASHES)];
+}
+
+/**
+ * @param  array<string, string>  $headers
+ * @return array{int, string, string}
+ */
+function oidcUserInfo(array $headers, string $state): array
+{
+    $token = str_starts_with($headers['authorization'] ?? '', 'Bearer ') ? substr($headers['authorization'], 7) : '';
+    $file = "{$state}/oidc-access-".hash('sha256', $token).'.json';
+
+    return is_file($file) ? [200, 'application/json', (string) file_get_contents($file)] : [401, 'application/json', '{"error":"invalid_token"}'];
 }
 
 /**
