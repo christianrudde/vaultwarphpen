@@ -10,9 +10,9 @@ class ParitySync extends Command
 {
     /**
      * Files taken over unchanged from the reference: source directory,
-     * target directory and the files to include.
+     * target directory and the files to include. NOTICE.md names each target.
      */
-    private const array MAPPINGS = [
+    public const array MAPPINGS = [
         ['migrations/sqlite', 'database/vaultwarden/sqlite', '#/up\.sql$#'],
         ['migrations/mysql', 'database/vaultwarden/mysql', '#/up\.sql$#'],
         ['migrations/postgresql', 'database/vaultwarden/postgresql', '#/up\.sql$#'],

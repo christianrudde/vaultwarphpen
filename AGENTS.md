@@ -72,7 +72,15 @@ Everything is measured against one pinned Vaultwarden commit.
 - `DATABASE_URL` configures the default `vaultwarden` connection (`App\Database\DatabaseUrl`), with
   Vaultwarden's session settings (UTC, SQLite foreign keys enforced like Diesel, `DATABASE_CONN_INIT`). The
   `sqlite`, `mysql` and `pgsql` connections are only for tests and tools that name them.
-- The project is licensed AGPL-3.0-only, like Vaultwarden, from which it is derived.
+- The project is licensed AGPL-3.0-only, like Vaultwarden, from which it is derived. `NOTICE.md`
+  credits every work it builds on. Whoever copies a file, starts from one or reproduces another
+  library's behaviour adds it there, with the license text when the license asks for it. After a
+  Composer change, update its package tables; `tests/Unit/NoticeTest` compares them with `composer.lock`
+  and checks that every directory `parity:sync` fills is named.
+- Where Vaultwarden names itself to clients (the `server` object of `/api/config`), we name Vaultwarphpen
+  and link to this repository: users must be able to find the source of the server they talk to (AGPL
+  section 13), and bug reports must not land at Vaultwarden. Copied templates and setting defaults stay
+  as they are.
 
 ## HTTP conventions
 

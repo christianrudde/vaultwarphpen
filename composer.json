@@ -2,7 +2,8 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "vaultwarphpen/vaultwarphpen",
     "type": "project",
-    "description": "Feature-equivalent PHP implementation of Vaultwarden, the Bitwarden-compatible server.",
+    "description": "PHP port of Vaultwarden, the Bitwarden-compatible server.",
+    "homepage": "https://github.com/christianrudde/vaultwarphpen",
     "keywords": [
         "bitwarden",
         "vaultwarden",
@@ -10,6 +11,20 @@
         "laravel"
     ],
     "license": "AGPL-3.0-only",
+    "authors": [
+        {
+            "name": "Lumundi Versand GmbH"
+        },
+        {
+            "name": "Vaultwarphpen contributors",
+            "homepage": "https://github.com/christianrudde/vaultwarphpen/graphs/contributors"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/christianrudde/vaultwarphpen/issues",
+        "source": "https://github.com/christianrudde/vaultwarphpen",
+        "security": "https://github.com/christianrudde/vaultwarphpen/security/policy"
+    },
     "require": {
         "php": "^8.5",
         "devtheorem/php-handlebars": "^2.2",
