@@ -36,15 +36,17 @@ class AccountManagementTest extends TestCase
 
     protected function vaultwardenEnvironment(): array
     {
-        return ['PASSWORD_ITERATIONS' => '100000', 'EXPERIMENTAL_CLIENT_FEATURE_FLAGS' => 'ssh-agent-v2, nope'];
+        return ['PASSWORD_ITERATIONS' => '100000', 'EXPERIMENTAL_CLIENT_FEATURE_FLAGS' => 'ssh-agent-v2, nope', 'CLIENT_SUPPRESS_ONBOARDING' => 'true'];
     }
 
     #[Parity('config:EXPERIMENTAL_CLIENT_FEATURE_FLAGS')]
+    #[Parity('config:CLIENT_SUPPRESS_ONBOARDING')]
     public function test_config_names_us(): void
     {
         $this->signUp('sqlite');
         $config = $this->get('/api/config')->assertStatus(200);
         $config->assertJsonPath('server', ['name' => 'Vaultwarphpen', 'url' => 'https://github.com/christianrudde/vaultwarphpen'])
+            ->assertJsonPath('settings.suppressOnboardingInterstitials', true)
             ->assertJsonPath('environment.api', 'http://localhost/api')
             ->assertJsonPath('featureStates', ['pm-19148-innovation-archive' => true, 'ssh-agent-v2' => true])
             ->assertJsonPath('version', '2026.6.0');
@@ -115,6 +117,34 @@ class AccountManagementTest extends TestCase
             'newMasterPasswordHash' => 'new-hash', 'token' => 'anything'], $this->session)->assertStatus(200);
         $user = User::findByUuid($this->user->uuid);
         $this->assertSame(['new@example.com', null, null], [$user?->email, $user?->email_new, $user?->verified_at]);
+    }
+
+    #[Parity('config:EMAIL_CHANGE_ALLOWED')]
+    #[Parity('config:PASSWORD_HINTS_ALLOWED')]
+    #[Parity('config:SHOW_PASSWORD_HINT')]
+    public function test_email_change_and_hint_settings(): void
+    {
+        $this->signUp('sqlite');
+        $this->user->password_hint = 'the usual one';
+        $this->user->save();
+        $hint = fn (string $email): TestResponse => $this->postJson('/api/accounts/password-hint', ['email' => $email])->assertStatus(400);
+
+        // Without mail, hints are only given when they may be shown.
+        $hint('judy@example.com')->assertJsonPath('message', 'This server is not configured to provide password hints.');
+        $this->changeVaultwardenEnvironment(['SHOW_PASSWORD_HINT' => 'true']);
+        $hint('judy@example.com')->assertJsonPath('message', 'Your password hint is: the usual one');
+        $hint('nobody@example.com')->assertJsonPath('message', 'Sorry, you have no password hint...');
+        $this->changeVaultwardenEnvironment(['PASSWORD_HINTS_ALLOWED' => 'false']);
+        $hint('judy@example.com')->assertJsonPath('message', 'This server is not configured to provide password hints.');
+        $this->postJson('/api/accounts/password', ['masterPasswordHash' => 'client-hash', 'newMasterPasswordHash' => 'new-hash', 'key' => 'new-key',
+            'masterPasswordHint' => 'a new one'], $this->session)->assertStatus(400)
+            ->assertJsonPath('message', 'Password hints have been disabled by the administrator. Remove the hint and try again.');
+
+        $this->changeVaultwardenEnvironment(['EMAIL_CHANGE_ALLOWED' => 'false']);
+        $this->postJson('/api/accounts/email-token', ['masterPasswordHash' => 'client-hash', 'newEmail' => 'new@example.com'], $this->session)
+            ->assertStatus(400)->assertJsonPath('message', 'Email change is not allowed.');
+        $this->postJson('/api/accounts/email', ['masterPasswordHash' => 'client-hash', 'newEmail' => 'new@example.com', 'key' => '2.new',
+            'newMasterPasswordHash' => 'new-hash', 'token' => '123456'], $this->session)->assertStatus(400)->assertJsonPath('message', 'Email change is not allowed.');
     }
 
     public function test_known_device(): void

@@ -9,6 +9,8 @@ use Tests\TestCase;
  * Routes are mounted below the path of DOMAIN, like in src/main.rs.
  */
 #[Parity('config:DOMAIN')]
+#[Parity('config:DOMAIN_ORIGIN')]
+#[Parity('config:DOMAIN_PATH')]
 class BasePathTest extends TestCase
 {
     protected function vaultwardenEnvironment(): array

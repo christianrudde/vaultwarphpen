@@ -161,6 +161,29 @@ class AttachmentTest extends TestCase
             ->assertStatus(400)->assertJsonPath('message', 'Attachment storage limit reached! Delete some attachments to free up space');
     }
 
+    #[Parity('config:ORG_ATTACHMENT_LIMIT')]
+    public function test_organization_storage_limit(): void
+    {
+        // The user's limit does not apply to the ciphers of organizations.
+        $this->changeVaultwardenEnvironment(['ORG_ATTACHMENT_LIMIT' => '1', 'USER_ATTACHMENT_LIMIT' => '0']);
+        $org = $this->postJson('/api/organizations', ['billingEmail' => 'billing@example.com', 'collectionName' => '2.first',
+            'key' => '4.owner-key', 'name' => '2.org', 'planType' => 0], $this->auth)->json('id');
+        $this->assertIsString($org);
+        $collection = $this->get("/api/organizations/{$org}/collections", $this->auth)->json('data.0.id');
+        $cipher = $this->postJson('/api/ciphers/create', ['cipher' => ['type' => 2, 'name' => '2.shared', 'encryptedFor' => $this->user->uuid,
+            'secureNote' => ['type' => 0], 'organizationId' => $org], 'collectionIds' => [$collection]], $this->auth)->json('id');
+        $this->assertIsString($cipher);
+
+        $this->upload("/api/ciphers/{$cipher}/attachment", UploadedFile::fake()->createWithContent('2.n', str_repeat('x', 1025)), ['key' => '2.k'])
+            ->assertStatus(400)->assertJsonPath('message', 'Attachment storage limit exceeded with this file');
+        $this->upload("/api/ciphers/{$cipher}/attachment", UploadedFile::fake()->createWithContent('2.n', str_repeat('x', 1024)), ['key' => '2.k'])
+            ->assertStatus(200);
+        $this->upload("/api/ciphers/{$cipher}/attachment", UploadedFile::fake()->createWithContent('2.n', 'x'), ['key' => '2.k'])
+            ->assertStatus(400)->assertJsonPath('message', 'Attachment storage limit reached! Delete some attachments to free up space');
+        $this->upload("/api/ciphers/{$this->cipherId}/attachment", UploadedFile::fake()->createWithContent('2.n', 'x'), ['key' => '2.k'])
+            ->assertStatus(400)->assertJsonPath('message', 'Attachments are disabled');
+    }
+
     public function test_uploads_as_php_parses_them(): void
     {
         // Real requests carry Symfony's UploadedFile, with the whole name as its path.

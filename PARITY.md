@@ -8,12 +8,12 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 
 | Area | Total | ✅ | 🟨 | ⬜ | ➖ | With tests |
 |---|--:|--:|--:|--:|--:|--:|
-| Routes | 294 | 202 | 71 | 20 | 1 | 273 |
-| Settings | 153 | 73 | 80 | 0 | 0 | 153 |
+| Routes | 294 | 206 | 67 | 20 | 1 | 273 |
+| Settings | 153 | 92 | 61 | 0 | 0 | 153 |
 | Scheduled jobs | 9 | 9 | 0 | 0 | 0 | 9 |
 | Database tables | 28 | 28 | 0 | 0 | 0 | 28 |
-| Templates | 74 | 51 | 23 | 0 | 0 | 74 |
-| Static assets | 21 | 20 | 0 | 1 | 0 | 20 |
+| Templates | 74 | 59 | 15 | 0 | 0 | 74 |
+| Static assets | 21 | 21 | 0 | 0 | 0 | 21 |
 
 ## Routes
 
@@ -40,10 +40,10 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | GET `/api/version` | src/api/core/mod.rs:193 | 2 | Same status, content type and JSON body; security headers and CORS like util::AppHeaders and util::Cors. |
 | ✅ | GET `/api/config` | src/api/core/mod.rs:210 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. The server object names Vaultwarphpen and links to this repository (AGPL section 13), and gitHash is null; both are left out of the comparison. |
 | ✅ | GET `/api/webauthn` | src/api/core/mod.rs:198 | 1 | Compared with Vaultwarden in tests/Differential/AccountManagementTest; also tests/Feature/Api/AccountManagementTest. |
-| 🟨 | GET `/api/accounts/profile` | src/api/core/accounts.rs:505 | 1 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Not yet: users in organizations (answered with an error until organizations are ported). |
-| 🟨 | PUT `/api/accounts/profile` | src/api/core/accounts.rs:517 | 1 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Not yet: users in organizations (answered with an error until organizations are ported). |
-| 🟨 | POST `/api/accounts/profile` | src/api/core/accounts.rs:522 | 1 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Not yet: users in organizations (answered with an error until organizations are ported). |
-| 🟨 | PUT `/api/accounts/avatar` | src/api/core/accounts.rs:545 | 1 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Not yet: users in organizations (answered with an error until organizations are ported). |
+| ✅ | GET `/api/accounts/profile` | src/api/core/accounts.rs:505 | 1 | Compared with Vaultwarden in tests/Differential: AccountTest, and with organizations in OrganizationTest. |
+| ✅ | PUT `/api/accounts/profile` | src/api/core/accounts.rs:517 | 1 | Compared with Vaultwarden in tests/Differential: AccountTest, and with organizations in OrganizationTest. |
+| ✅ | POST `/api/accounts/profile` | src/api/core/accounts.rs:522 | 1 | Compared with Vaultwarden in tests/Differential: AccountTest, and with organizations in OrganizationTest. |
+| ✅ | PUT `/api/accounts/avatar` | src/api/core/accounts.rs:545 | 1 | Compared with Vaultwarden in tests/Differential: AccountTest, and with organizations in OrganizationTest. |
 | ✅ | GET `/api/users/{user_id}/public-key` | src/api/core/accounts.rs:565 | 1 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
 | ✅ | GET `/api/accounts/keys` | src/api/core/accounts.rs:580 | 1 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
 | ✅ | POST `/api/accounts/keys` | src/api/core/accounts.rs:598 | 1 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
@@ -90,54 +90,54 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | POST `/api/ciphers/admin` | src/api/core/ciphers.rs:338 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
 | 🟨 | POST `/api/ciphers/create` | src/api/core/ciphers.rs:346 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
 | ✅ | POST `/api/ciphers/import` | src/api/core/ciphers.rs:630 | 1 | Compared with Vaultwarden in tests/Differential/CipherTest, including the validation and partial imports. |
-| 🟨 | GET `/api/ciphers/{cipher_id}/attachment/{attachment_id}` | src/api/core/ciphers.rs:1181 | 1 | Personal ciphers compared with Vaultwarden in tests/Differential/AttachmentTest; organization ciphers answer "Organizations are not implemented yet". Local storage only, no other OpenDAL backends. |
-| 🟨 | POST `/api/ciphers/{cipher_id}/attachment/v2` | src/api/core/ciphers.rs:1221 | 1 | Personal ciphers compared with Vaultwarden in tests/Differential/AttachmentTest; organization ciphers answer "Organizations are not implemented yet". Local storage only, no other OpenDAL backends. |
-| 🟨 | POST `/api/ciphers/{cipher_id}/attachment/{attachment_id}` | src/api/core/ciphers.rs:1447 | 1 | Personal ciphers compared with Vaultwarden in tests/Differential/AttachmentTest; organization ciphers answer "Organizations are not implemented yet". Local storage only, no other OpenDAL backends. |
-| 🟨 | POST `/api/ciphers/{cipher_id}/attachment` | src/api/core/ciphers.rs:1468 | 1 | Personal ciphers compared with Vaultwarden in tests/Differential/AttachmentTest; organization ciphers answer "Organizations are not implemented yet". Local storage only, no other OpenDAL backends. |
-| 🟨 | POST `/api/ciphers/{cipher_id}/attachment-admin` | src/api/core/ciphers.rs:1485 | 1 | Personal ciphers compared with Vaultwarden in tests/Differential/AttachmentTest; organization ciphers answer "Organizations are not implemented yet". Local storage only, no other OpenDAL backends. |
-| 🟨 | POST `/api/ciphers/{cipher_id}/attachment/{attachment_id}/share` | src/api/core/ciphers.rs:1496 | 1 | Personal ciphers compared with Vaultwarden in tests/Differential/AttachmentTest; organization ciphers answer "Organizations are not implemented yet". Local storage only, no other OpenDAL backends. |
-| 🟨 | POST `/api/ciphers/{cipher_id}/attachment/{attachment_id}/delete` | src/api/core/ciphers.rs:1520 | 1 | Personal ciphers compared with Vaultwarden in tests/Differential/AttachmentTest; organization ciphers answer "Organizations are not implemented yet". Local storage only, no other OpenDAL backends. |
-| 🟨 | POST `/api/ciphers/{cipher_id}/attachment/{attachment_id}/delete-admin` | src/api/core/ciphers.rs:1509 | 1 | Personal ciphers compared with Vaultwarden in tests/Differential/AttachmentTest; organization ciphers answer "Organizations are not implemented yet". Local storage only, no other OpenDAL backends. |
-| 🟨 | DELETE `/api/ciphers/{cipher_id}/attachment/{attachment_id}` | src/api/core/ciphers.rs:1531 | 1 | Personal ciphers compared with Vaultwarden in tests/Differential/AttachmentTest; organization ciphers answer "Organizations are not implemented yet". Local storage only, no other OpenDAL backends. |
-| 🟨 | DELETE `/api/ciphers/{cipher_id}/attachment/{attachment_id}/admin` | src/api/core/ciphers.rs:1542 | 1 | Personal ciphers compared with Vaultwarden in tests/Differential/AttachmentTest; organization ciphers answer "Organizations are not implemented yet". Local storage only, no other OpenDAL backends. |
+| 🟨 | GET `/api/ciphers/{cipher_id}/attachment/{attachment_id}` | src/api/core/ciphers.rs:1181 | 2 | Compared with Vaultwarden in tests/Differential: personal ciphers in AttachmentTest, organization ciphers in OrganizationTest. Local storage only, no other OpenDAL backends. No live notifications. |
+| 🟨 | POST `/api/ciphers/{cipher_id}/attachment/v2` | src/api/core/ciphers.rs:1221 | 2 | Compared with Vaultwarden in tests/Differential: personal ciphers in AttachmentTest, organization ciphers in OrganizationTest. Local storage only, no other OpenDAL backends. No live notifications. |
+| 🟨 | POST `/api/ciphers/{cipher_id}/attachment/{attachment_id}` | src/api/core/ciphers.rs:1447 | 2 | Compared with Vaultwarden in tests/Differential: personal ciphers in AttachmentTest, organization ciphers in OrganizationTest. Local storage only, no other OpenDAL backends. No live notifications. |
+| 🟨 | POST `/api/ciphers/{cipher_id}/attachment` | src/api/core/ciphers.rs:1468 | 2 | Compared with Vaultwarden in tests/Differential: personal ciphers in AttachmentTest, organization ciphers in OrganizationTest. Local storage only, no other OpenDAL backends. No live notifications. |
+| 🟨 | POST `/api/ciphers/{cipher_id}/attachment-admin` | src/api/core/ciphers.rs:1485 | 2 | Compared with Vaultwarden in tests/Differential: personal ciphers in AttachmentTest, organization ciphers in OrganizationTest. Local storage only, no other OpenDAL backends. No live notifications. |
+| 🟨 | POST `/api/ciphers/{cipher_id}/attachment/{attachment_id}/share` | src/api/core/ciphers.rs:1496 | 2 | Compared with Vaultwarden in tests/Differential: personal ciphers in AttachmentTest, organization ciphers in OrganizationTest. Local storage only, no other OpenDAL backends. No live notifications. |
+| 🟨 | POST `/api/ciphers/{cipher_id}/attachment/{attachment_id}/delete` | src/api/core/ciphers.rs:1520 | 1 | Compared with Vaultwarden in tests/Differential: personal ciphers in AttachmentTest, organization ciphers in OrganizationTest. Local storage only, no other OpenDAL backends. No live notifications. |
+| 🟨 | POST `/api/ciphers/{cipher_id}/attachment/{attachment_id}/delete-admin` | src/api/core/ciphers.rs:1509 | 2 | Compared with Vaultwarden in tests/Differential: personal ciphers in AttachmentTest, organization ciphers in OrganizationTest. Local storage only, no other OpenDAL backends. No live notifications. |
+| 🟨 | DELETE `/api/ciphers/{cipher_id}/attachment/{attachment_id}` | src/api/core/ciphers.rs:1531 | 1 | Compared with Vaultwarden in tests/Differential: personal ciphers in AttachmentTest, organization ciphers in OrganizationTest. Local storage only, no other OpenDAL backends. No live notifications. |
+| 🟨 | DELETE `/api/ciphers/{cipher_id}/attachment/{attachment_id}/admin` | src/api/core/ciphers.rs:1542 | 2 | Compared with Vaultwarden in tests/Differential: personal ciphers in AttachmentTest, organization ciphers in OrganizationTest. Local storage only, no other OpenDAL backends. No live notifications. |
 | 🟨 | POST `/api/ciphers/{cipher_id}/admin` | src/api/core/ciphers.rs:693 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
 | 🟨 | POST `/api/ciphers/{cipher_id}/share` | src/api/core/ciphers.rs:988 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
 | 🟨 | PUT `/api/ciphers/{cipher_id}/share` | src/api/core/ciphers.rs:1001 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
 | 🟨 | PUT `/api/ciphers/share` | src/api/core/ciphers.rs:1060 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
 | 🟨 | POST `/api/ciphers/{cipher_id}` | src/api/core/ciphers.rs:704 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
-| 🟨 | POST `/api/ciphers/{cipher_id}/partial` | src/api/core/ciphers.rs:743 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | POST `/api/ciphers/{cipher_id}/partial` | src/api/core/ciphers.rs:743 | 1 | Compared with Vaultwarden in tests/Differential: personal ciphers in CipherTest, organization ciphers in OrganizationTest. No live notifications. |
 | 🟨 | PUT `/api/ciphers/{cipher_id}` | src/api/core/ciphers.rs:715 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
-| 🟨 | PUT `/api/ciphers/{cipher_id}/partial` | src/api/core/ciphers.rs:754 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
-| 🟨 | POST `/api/ciphers/{cipher_id}/delete` | src/api/core/ciphers.rs:1553 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
-| 🟨 | POST `/api/ciphers/{cipher_id}/delete-admin` | src/api/core/ciphers.rs:1559 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
-| 🟨 | PUT `/api/ciphers/{cipher_id}/delete` | src/api/core/ciphers.rs:1565 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
-| 🟨 | PUT `/api/ciphers/{cipher_id}/delete-admin` | src/api/core/ciphers.rs:1571 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
-| 🟨 | DELETE `/api/ciphers/{cipher_id}` | src/api/core/ciphers.rs:1577 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
-| 🟨 | DELETE `/api/ciphers/{cipher_id}/admin` | src/api/core/ciphers.rs:1583 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
-| 🟨 | DELETE `/api/ciphers` | src/api/core/ciphers.rs:1589 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
-| 🟨 | POST `/api/ciphers/delete` | src/api/core/ciphers.rs:1600 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
-| 🟨 | PUT `/api/ciphers/delete` | src/api/core/ciphers.rs:1611 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
-| 🟨 | DELETE `/api/ciphers/admin` | src/api/core/ciphers.rs:1622 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
-| 🟨 | POST `/api/ciphers/delete-admin` | src/api/core/ciphers.rs:1633 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
-| 🟨 | PUT `/api/ciphers/delete-admin` | src/api/core/ciphers.rs:1644 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
-| 🟨 | PUT `/api/ciphers/{cipher_id}/restore` | src/api/core/ciphers.rs:1655 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
-| 🟨 | PUT `/api/ciphers/{cipher_id}/restore-admin` | src/api/core/ciphers.rs:1660 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
-| 🟨 | PUT `/api/ciphers/restore` | src/api/core/ciphers.rs:1675 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
-| 🟨 | PUT `/api/ciphers/restore-admin` | src/api/core/ciphers.rs:1665 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | PUT `/api/ciphers/{cipher_id}/partial` | src/api/core/ciphers.rs:754 | 1 | Compared with Vaultwarden in tests/Differential: personal ciphers in CipherTest, organization ciphers in OrganizationTest. No live notifications. |
+| 🟨 | POST `/api/ciphers/{cipher_id}/delete` | src/api/core/ciphers.rs:1553 | 1 | Compared with Vaultwarden in tests/Differential: personal ciphers in CipherTest, organization ciphers in OrganizationTest. No live notifications. |
+| 🟨 | POST `/api/ciphers/{cipher_id}/delete-admin` | src/api/core/ciphers.rs:1559 | 1 | Compared with Vaultwarden in tests/Differential: personal ciphers in CipherTest, organization ciphers in OrganizationTest. No live notifications. |
+| 🟨 | PUT `/api/ciphers/{cipher_id}/delete` | src/api/core/ciphers.rs:1565 | 1 | Compared with Vaultwarden in tests/Differential: personal ciphers in CipherTest, organization ciphers in OrganizationTest. No live notifications. |
+| 🟨 | PUT `/api/ciphers/{cipher_id}/delete-admin` | src/api/core/ciphers.rs:1571 | 2 | Compared with Vaultwarden in tests/Differential: personal ciphers in CipherTest, organization ciphers in OrganizationTest. No live notifications. |
+| 🟨 | DELETE `/api/ciphers/{cipher_id}` | src/api/core/ciphers.rs:1577 | 1 | Compared with Vaultwarden in tests/Differential: personal ciphers in CipherTest, organization ciphers in OrganizationTest. No live notifications. |
+| 🟨 | DELETE `/api/ciphers/{cipher_id}/admin` | src/api/core/ciphers.rs:1583 | 2 | Compared with Vaultwarden in tests/Differential: personal ciphers in CipherTest, organization ciphers in OrganizationTest. No live notifications. |
+| 🟨 | DELETE `/api/ciphers` | src/api/core/ciphers.rs:1589 | 1 | Compared with Vaultwarden in tests/Differential: personal ciphers in CipherTest, organization ciphers in OrganizationTest. No live notifications. |
+| 🟨 | POST `/api/ciphers/delete` | src/api/core/ciphers.rs:1600 | 1 | Compared with Vaultwarden in tests/Differential: personal ciphers in CipherTest, organization ciphers in OrganizationTest. No live notifications. |
+| 🟨 | PUT `/api/ciphers/delete` | src/api/core/ciphers.rs:1611 | 1 | Compared with Vaultwarden in tests/Differential: personal ciphers in CipherTest, organization ciphers in OrganizationTest. No live notifications. |
+| 🟨 | DELETE `/api/ciphers/admin` | src/api/core/ciphers.rs:1622 | 2 | Compared with Vaultwarden in tests/Differential: personal ciphers in CipherTest, organization ciphers in OrganizationTest. No live notifications. |
+| 🟨 | POST `/api/ciphers/delete-admin` | src/api/core/ciphers.rs:1633 | 1 | Compared with Vaultwarden in tests/Differential: personal ciphers in CipherTest, organization ciphers in OrganizationTest. No live notifications. |
+| 🟨 | PUT `/api/ciphers/delete-admin` | src/api/core/ciphers.rs:1644 | 2 | Compared with Vaultwarden in tests/Differential: personal ciphers in CipherTest, organization ciphers in OrganizationTest. No live notifications. |
+| 🟨 | PUT `/api/ciphers/{cipher_id}/restore` | src/api/core/ciphers.rs:1655 | 1 | Compared with Vaultwarden in tests/Differential: personal ciphers in CipherTest, organization ciphers in OrganizationTest. No live notifications. |
+| 🟨 | PUT `/api/ciphers/{cipher_id}/restore-admin` | src/api/core/ciphers.rs:1660 | 2 | Compared with Vaultwarden in tests/Differential: personal ciphers in CipherTest, organization ciphers in OrganizationTest. No live notifications. |
+| 🟨 | PUT `/api/ciphers/restore` | src/api/core/ciphers.rs:1675 | 1 | Compared with Vaultwarden in tests/Differential: personal ciphers in CipherTest, organization ciphers in OrganizationTest. No live notifications. |
+| 🟨 | PUT `/api/ciphers/restore-admin` | src/api/core/ciphers.rs:1665 | 2 | Compared with Vaultwarden in tests/Differential: personal ciphers in CipherTest, organization ciphers in OrganizationTest. No live notifications. |
 | ✅ | POST `/api/ciphers/purge` | src/api/core/ciphers.rs:1766 | 1 | Compared with Vaultwarden in tests/Differential/OrganizationTest. |
 | ✅ | POST `/api/ciphers/purge` | src/api/core/ciphers.rs:1806 | 1 | Compared with Vaultwarden in tests/Differential/CipherTest; the protected action code path is covered by tests/Feature/Api/CipherTest. |
-| 🟨 | POST `/api/ciphers/move` | src/api/core/ciphers.rs:1693 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
-| 🟨 | PUT `/api/ciphers/move` | src/api/core/ciphers.rs:1747 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | POST `/api/ciphers/move` | src/api/core/ciphers.rs:1693 | 1 | Compared with Vaultwarden in tests/Differential: personal ciphers in CipherTest, organization ciphers in OrganizationTest. No live notifications. |
+| 🟨 | PUT `/api/ciphers/move` | src/api/core/ciphers.rs:1747 | 1 | Compared with Vaultwarden in tests/Differential: personal ciphers in CipherTest, organization ciphers in OrganizationTest. No live notifications. |
 | 🟨 | PUT `/api/ciphers/{cipher_id}/collections_v2` | src/api/core/ciphers.rs:792 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
 | 🟨 | POST `/api/ciphers/{cipher_id}/collections_v2` | src/api/core/ciphers.rs:803 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
 | 🟨 | PUT `/api/ciphers/{cipher_id}/collections` | src/api/core/ciphers.rs:819 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
 | 🟨 | POST `/api/ciphers/{cipher_id}/collections` | src/api/core/ciphers.rs:830 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
 | 🟨 | POST `/api/ciphers/{cipher_id}/collections-admin` | src/api/core/ciphers.rs:910 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
 | 🟨 | PUT `/api/ciphers/{cipher_id}/collections-admin` | src/api/core/ciphers.rs:899 | 1 | Personal and organization ciphers, also through groups, compared with Vaultwarden in tests/Differential (CipherTest, OrganizationTest, GroupTest, EventTest). No live notifications. |
-| 🟨 | PUT `/api/ciphers/{cipher_id}/archive` | src/api/core/ciphers.rs:1832 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
-| 🟨 | PUT `/api/ciphers/archive` | src/api/core/ciphers.rs:1837 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
-| 🟨 | PUT `/api/ciphers/{cipher_id}/unarchive` | src/api/core/ciphers.rs:1847 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
-| 🟨 | PUT `/api/ciphers/unarchive` | src/api/core/ciphers.rs:1852 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
+| 🟨 | PUT `/api/ciphers/{cipher_id}/archive` | src/api/core/ciphers.rs:1832 | 1 | Compared with Vaultwarden in tests/Differential: personal ciphers in CipherTest, organization ciphers in OrganizationTest. No live notifications. |
+| 🟨 | PUT `/api/ciphers/archive` | src/api/core/ciphers.rs:1837 | 1 | Compared with Vaultwarden in tests/Differential: personal ciphers in CipherTest, organization ciphers in OrganizationTest. No live notifications. |
+| 🟨 | PUT `/api/ciphers/{cipher_id}/unarchive` | src/api/core/ciphers.rs:1847 | 1 | Compared with Vaultwarden in tests/Differential: personal ciphers in CipherTest, organization ciphers in OrganizationTest. No live notifications. |
+| 🟨 | PUT `/api/ciphers/unarchive` | src/api/core/ciphers.rs:1852 | 1 | Compared with Vaultwarden in tests/Differential: personal ciphers in CipherTest, organization ciphers in OrganizationTest. No live notifications. |
 | ✅ | GET `/api/emergency-access/trusted` | src/api/core/emergency_access.rs:51 | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest, without mail and with it (mails included). |
 | ✅ | GET `/api/emergency-access/granted` | src/api/core/emergency_access.rs:72 | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest, without mail and with it (mails included). |
 | ✅ | GET `/api/emergency-access/{emer_id}` | src/api/core/emergency_access.rs:91 | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest, without mail and with it (mails included). |
@@ -303,8 +303,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | POST `/identity/connect/token` | src/api/identity.rs:57 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Password (with KDF upgrade and the 2FA organization policy), refresh token, user and organization API key, Send access (send_access) and login with a device (auth requests); two-factor login with authenticator, email, YubiKey, Duo, WebAuthn, remembered device and recovery code; accounts, tokens and two-factor methods work across Vaultwarden and us on one database. Not yet: SSO. |
 | ✅ | POST `/identity/accounts/prelogin` | src/api/identity.rs:1019 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
 | ✅ | POST `/identity/accounts/prelogin/password` | src/api/identity.rs:1024 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
-| 🟨 | POST `/identity/accounts/register/send-verification-email` | src/api/identity.rs:1050 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Not yet: sending the verification mail (SMTP is not ported). |
-| 🟨 | POST `/identity/accounts/register/finish` | src/api/identity.rs:1099 | 3 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Normal, organization and emergency access registrations. Not yet: welcome mails and email 2FA activation (SMTP is not ported). |
+| 🟨 | POST `/identity/accounts/register/send-verification-email` | src/api/identity.rs:1050 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. With mail and SIGNUPS_VERIFY the token is mailed instead (register_verify_email); not compared, since the mail servers of the differential tests run without SIGNUPS_VERIFY. |
+| 🟨 | POST `/identity/accounts/register/finish` | src/api/identity.rs:1099 | 3 | Compared with Vaultwarden in tests/Differential: normal, organization and emergency access registrations (RegistrationTest, EmergencyAccessTest) and the welcome mail (MailTest). The welcome_must_verify mail of SIGNUPS_VERIFY is not compared. |
 | ⬜ | GET `/identity/sso/prevalidate` | src/api/identity.rs:1176 | 0 |  |
 | ⬜ | GET `/identity/connect/authorize` | src/api/identity.rs:1292 | 0 |  |
 | ⬜ | GET `/identity/connect/oidc-signin` | src/api/identity.rs:1190 | 0 |  |
@@ -325,7 +325,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | `SENDS_FOLDER` | src/config.rs:529 | 2 | Send files are stored and served from <SENDS_FOLDER>/<send>/<file id>, like the filesystem backend. |
 | 🟨 | `TMP_FOLDER` | src/config.rs:531 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | ✅ | `TEMPLATES_FOLDER` | src/config.rs:533 | 3 | Read like Vaultwarden (environment, *_FILE, config.json, default) and used: DATABASE_URL drives the default connection, the templates folder and reload drive the renderer. |
-| 🟨 | `RSA_KEY_FILENAME` | src/config.rs:535 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `RSA_KEY_FILENAME` | src/config.rs:535 | 2 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it; tested in tests/Unit/Auth/JwtTest. |
 | 🟨 | `WEB_VAULT_FOLDER` | src/config.rs:537 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `ENABLE_WEBSOCKET` | src/config.rs:541 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `PUSH_ENABLED` | src/config.rs:545 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
@@ -344,36 +344,36 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | `DUO_CONTEXT_PURGE_SCHEDULE` | src/config.rs:582 | 2 | Chooses and times its job like schedule_jobs (App\Scheduler\JobScheduler, App\Support\CronSchedule ports the cron crate); tested in tests/Feature/Scheduler/JobSchedulerTest. |
 | ✅ | `PURGE_INCOMPLETE_SSO_AUTH` | src/config.rs:585 | 2 | Chooses and times its job like schedule_jobs (App\Scheduler\JobScheduler, App\Support\CronSchedule ports the cron crate); tested in tests/Feature/Scheduler/JobSchedulerTest. |
 | ✅ | `DOMAIN` | src/config.rs:592 | 3 | Read like Vaultwarden and used: DOMAIN for mount path, origin, CORS, Host and token issuers; the IP settings for the client IP; the CSP sources in the security headers. |
-| 🟨 | `DOMAIN_SET` | src/config.rs:594 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `DOMAIN_ORIGIN` | src/config.rs:596 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `DOMAIN_PATH` | src/config.rs:598 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `DOMAIN_SET` | src/config.rs:594 | 1 | Derived like Vaultwarden (App\Config, tests/Unit/Config/ConfigTest). Without DOMAIN, Send links take the host from the request (App\Auth\Headers::host); not tested. |
+| ✅ | `DOMAIN_ORIGIN` | src/config.rs:596 | 2 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it; tested in tests/Feature/Http/BasePathTest and tests/Unit/Config/ConfigTest. |
+| ✅ | `DOMAIN_PATH` | src/config.rs:598 | 2 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it; tested in tests/Feature/Http/BasePathTest and tests/Unit/Config/ConfigTest. |
 | 🟨 | `WEB_VAULT_ENABLED` | src/config.rs:600 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | ✅ | `SENDS_ALLOWED` | src/config.rs:604 | 2 | Creating and changing Sends is refused without it; deleting stays possible (tests/Feature/Api/SendTest). |
-| 🟨 | `HIBP_API_KEY` | src/config.rs:607 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| 🟨 | `HIBP_API_KEY` | src/config.rs:607 | 1 | Read, defaulted and validated like Vaultwarden (App\Config). GET /api/hibp/breach asks haveibeenpwned.com with it through App\Support\HttpClient; not compared with Vaultwarden, which needs a real key. |
 | ✅ | `USER_ATTACHMENT_LIMIT` | src/config.rs:610 | 3 | Enforced on uploads like save_attachment (tests/Feature/Api/AttachmentTest). |
-| 🟨 | `ORG_ATTACHMENT_LIMIT` | src/config.rs:612 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `ORG_ATTACHMENT_LIMIT` | src/config.rs:612 | 2 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it; tested in tests/Feature/Api/AttachmentTest. |
 | ✅ | `USER_SEND_LIMIT` | src/config.rs:614 | 2 | Enforced on file Sends like post_send_file_v2 (tests/Feature/Api/SendTest). |
 | ✅ | `TRASH_AUTO_DELETE_DAYS` | src/config.rs:619 | 2 | Cipher::purgeTrash, run by the trash_purge job; unset or 0 keeps the trash. Tested in tests/Feature/Scheduler/ScheduledJobsTest. |
 | ✅ | `INCOMPLETE_2FA_TIME_LIMIT` | src/config.rs:626 | 2 | Incomplete logins are recorded (TwoFactorIncomplete) and mailed about by the incomplete_2fa job; 0 turns both off. Tested in tests/Feature/Scheduler/ScheduledJobsTest. |
 | 🟨 | `DISABLE_ICON_DOWNLOAD` | src/config.rs:632 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | ✅ | `SIGNUPS_ALLOWED` | src/config.rs:634 | 2 | Read like Vaultwarden and used by registration and login. |
-| 🟨 | `SIGNUPS_VERIFY` | src/config.rs:637 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SIGNUPS_VERIFY_RESEND_TIME` | src/config.rs:639 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SIGNUPS_VERIFY_RESEND_LIMIT` | src/config.rs:641 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SIGNUPS_DOMAINS_WHITELIST` | src/config.rs:643 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `SIGNUPS_VERIFY` | src/config.rs:637 | 2 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it; tested in tests/Feature/Api/LoginTest. |
+| ✅ | `SIGNUPS_VERIFY_RESEND_TIME` | src/config.rs:639 | 2 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it; tested in tests/Feature/Api/LoginTest. |
+| ✅ | `SIGNUPS_VERIFY_RESEND_LIMIT` | src/config.rs:641 | 2 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it; tested in tests/Feature/Api/LoginTest. |
+| ✅ | `SIGNUPS_DOMAINS_WHITELIST` | src/config.rs:643 | 2 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it; tested in tests/Feature/Api/EmergencyAccessTest. |
 | ✅ | `ORG_EVENTS_ENABLED` | src/config.rs:645 | 2 | Compared with Vaultwarden in tests/Differential/EventTest, with ORG_EVENTS_ENABLED on and off. |
-| 🟨 | `ORG_CREATION_USERS` | src/config.rs:648 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `INVITATIONS_ALLOWED` | src/config.rs:650 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `ORG_CREATION_USERS` | src/config.rs:648 | 2 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it; tested in tests/Feature/Api/OrganizationTest. |
+| ✅ | `INVITATIONS_ALLOWED` | src/config.rs:650 | 3 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it; tested in tests/Feature/Api/OrganizationTest and EmergencyAccessTest. |
 | 🟨 | `INVITATION_EXPIRATION_HOURS` | src/config.rs:653 | 1 | Sets the lifetime of mailed tokens in App\Mail\Mail; not compared with Vaultwarden. |
 | ✅ | `EMERGENCY_ACCESS_ALLOWED` | src/config.rs:655 | 2 | The emergency access routes, registration with an emergency invitation and the scheduled jobs honour it (tests/Feature/Api/EmergencyAccessTest, tests/Feature/Scheduler). |
-| 🟨 | `EMAIL_CHANGE_ALLOWED` | src/config.rs:657 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `EMAIL_CHANGE_ALLOWED` | src/config.rs:657 | 2 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it; tested in tests/Feature/Api/AccountManagementTest. |
 | ✅ | `PASSWORD_ITERATIONS` | src/config.rs:660 | 2 | Read like Vaultwarden and used by registration and login. |
-| 🟨 | `PASSWORD_HINTS_ALLOWED` | src/config.rs:662 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SHOW_PASSWORD_HINT` | src/config.rs:666 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `PASSWORD_HINTS_ALLOWED` | src/config.rs:662 | 2 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it; tested in tests/Feature/Api/AccountManagementTest. |
+| ✅ | `SHOW_PASSWORD_HINT` | src/config.rs:666 | 2 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it; tested in tests/Feature/Api/AccountManagementTest. |
 | ✅ | `ADMIN_TOKEN` | src/config.rs:669 | 4 | A plain token or an Argon2 PHC string (password_verify, else libsodium; argon2d is not supported by PHP). Compared with Vaultwarden in tests/Differential/AdminTest. |
 | ✅ | `INVITATION_ORG_NAME` | src/config.rs:672 | 3 | Names the organization in the invitations of the admin panel; compared with Vaultwarden in tests/Differential/AdminTest. |
 | ✅ | `EVENTS_DAYS_RETAIN` | src/config.rs:675 | 2 | Event::cleanEvents, run by the event_cleanup job, which needs a retention other than 0. Tested in tests/Feature/Scheduler. |
-| 🟨 | `CLIENT_SUPPRESS_ONBOARDING` | src/config.rs:680 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `CLIENT_SUPPRESS_ONBOARDING` | src/config.rs:680 | 2 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it; tested in tests/Feature/Api/AccountManagementTest. |
 | ✅ | `IP_HEADER` | src/config.rs:687 | 2 | Read like Vaultwarden and used: DOMAIN for mount path, origin, CORS, Host and token issuers; the IP settings for the client IP; the CSP sources in the security headers. |
 | ✅ | `_IP_HEADER_ENABLED` | src/config.rs:689 | 2 | Read like Vaultwarden and used: DOMAIN for mount path, origin, CORS, Host and token issuers; the IP settings for the client IP; the CSP sources in the security headers. |
 | ✅ | `IP_HEADER_TRUSTED_PROXIES` | src/config.rs:696 | 2 | Read like Vaultwarden and used: DOMAIN for mount path, origin, CORS, Host and token issuers; the IP settings for the client IP; the CSP sources in the security headers. |
@@ -391,7 +391,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | `DISABLE_2FA_REMEMBER` | src/config.rs:735 | 2 | Ported (TwoFactorController and friends); tested with non-default values in tests/Feature/Api/TwoFactorTest. |
 | ✅ | `AUTHENTICATOR_DISABLE_TIME_DRIFT` | src/config.rs:739 | 2 | Ported (TwoFactorController and friends); tested with non-default values in tests/Feature/Api/TwoFactorTest. |
 | ✅ | `EXPERIMENTAL_CLIENT_FEATURE_FLAGS` | src/config.rs:742 | 3 | Read, defaulted and validated like Vaultwarden (App\Config); GET /api/config lists the supported flags (tests/Feature/Api/AccountManagementTest, compared in tests/Differential/AccountManagementTest). |
-| 🟨 | `REQUIRE_DEVICE_EMAIL` | src/config.rs:746 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `REQUIRE_DEVICE_EMAIL` | src/config.rs:746 | 2 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it; tested in tests/Feature/Api/LoginTest. |
 | ✅ | `RELOAD_TEMPLATES` | src/config.rs:750 | 2 | Read like Vaultwarden (environment, *_FILE, config.json, default) and used: DATABASE_URL drives the default connection, the templates folder and reload drive the renderer. |
 | 🟨 | `EXTENDED_LOGGING` | src/config.rs:752 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `LOG_TIMESTAMP_FORMAT` | src/config.rs:754 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
@@ -416,8 +416,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | `ADMIN_RATELIMIT_MAX_BURST` | src/config.rs:807 | 2 | Limits the admin logins per IP with App\Support\RateLimiter; tested in tests/Feature/Api/AdminTest. |
 | ✅ | `ADMIN_SESSION_LIFETIME` | src/config.rs:810 | 3 | Lifetime of the session token and its cookie; tested in tests/Feature/Api/AdminTest and compared in tests/Differential/AdminTest. |
 | ✅ | `ORG_GROUPS_ENABLED` | src/config.rs:813 | 2 | Compared with Vaultwarden in tests/Differential/GroupTest, with ORG_GROUPS_ENABLED on and off. |
-| 🟨 | `INCREASE_NOTE_SIZE_LIMIT` | src/config.rs:817 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `_MAX_NOTE_SIZE` | src/config.rs:819 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `INCREASE_NOTE_SIZE_LIMIT` | src/config.rs:817 | 2 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it; tested in tests/Feature/Api/CipherTest. |
+| ✅ | `_MAX_NOTE_SIZE` | src/config.rs:819 | 2 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it; tested in tests/Feature/Api/CipherTest. |
 | ✅ | `ENFORCE_SINGLE_ORG_WITH_RESET_PW_POLICY` | src/config.rs:824 | 2 | tests/Feature/Api/SingleOrgResetPolicyTest. |
 | 🟨 | `DNS_PREFER_IPV6` | src/config.rs:828 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `SSO_ENABLED` | src/config.rs:834 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
@@ -449,8 +449,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `USE_SENDMAIL` | src/config.rs:898 | 1 | Ported in App\Mail (SmtpTransport, SendmailTransport) like lettre; not compared with Vaultwarden, whose error texts come from lettre. |
 | 🟨 | `SENDMAIL_COMMAND` | src/config.rs:900 | 1 | Ported in App\Mail (SmtpTransport, SendmailTransport) like lettre; not compared with Vaultwarden, whose error texts come from lettre. |
 | ✅ | `SMTP_HOST` | src/config.rs:902 | 2 | Used by App\Mail\SmtpTransport; compared with Vaultwarden in tests/Differential/MailTest, which sends through SMTP sinks. |
-| 🟨 | `SMTP_SSL` | src/config.rs:904 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
-| 🟨 | `SMTP_EXPLICIT_TLS` | src/config.rs:906 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
+| ✅ | `SMTP_SSL` | src/config.rs:904 | 2 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it; tested in tests/Unit/Config/ConfigTest. |
+| ✅ | `SMTP_EXPLICIT_TLS` | src/config.rs:906 | 2 | Read, defaulted and validated like Vaultwarden (App\Config) and applied like it; tested in tests/Unit/Config/ConfigTest. |
 | ✅ | `SMTP_SECURITY` | src/config.rs:908 | 2 | Used by App\Mail\SmtpTransport; compared with Vaultwarden in tests/Differential/MailTest, which sends through SMTP sinks. |
 | ✅ | `SMTP_PORT` | src/config.rs:910 | 2 | Used by App\Mail\SmtpTransport; compared with Vaultwarden in tests/Differential/MailTest, which sends through SMTP sinks. |
 | ✅ | `SMTP_FROM` | src/config.rs:912 | 2 | Used by App\Mail\SmtpTransport; compared with Vaultwarden in tests/Differential/MailTest, which sends through SMTP sinks. |
@@ -536,8 +536,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | `email/change_email.html` | src/static/templates/email/change_email.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/AccountManagementTest: subject, text and HTML of the mail. |
 | ✅ | `email/change_email_existing` | src/static/templates/email/change_email_existing.hbs | 2 | Compared with Vaultwarden in tests/Differential/AccountManagementTest: subject, text and HTML of the mail. |
 | ✅ | `email/change_email_existing.html` | src/static/templates/email/change_email_existing.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/AccountManagementTest: subject, text and HTML of the mail. |
-| 🟨 | `email/change_email_invited` | src/static/templates/email/change_email_invited.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/change_email_invited.html` | src/static/templates/email/change_email_invited.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| ✅ | `email/change_email_invited` | src/static/templates/email/change_email_invited.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
+| ✅ | `email/change_email_invited.html` | src/static/templates/email/change_email_invited.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
 | ✅ | `email/delete_account` | src/static/templates/email/delete_account.hbs | 2 | Compared with Vaultwarden in tests/Differential/AccountManagementTest: subject, text and HTML of the mail. |
 | ✅ | `email/delete_account.html` | src/static/templates/email/delete_account.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/AccountManagementTest: subject, text and HTML of the mail. |
 | ✅ | `email/email_footer` | src/static/templates/email/email_footer.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
@@ -557,8 +557,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `email/emergency_access_recovery_reminder.html` | src/static/templates/email/emergency_access_recovery_reminder.html.hbs | 1 | App\Mail\Mail renders it and the scheduled job sends it (tests/Feature/Scheduler/ScheduledJobsTest); not compared with Vaultwarden, whose job only acts after a day of wait time. |
 | 🟨 | `email/emergency_access_recovery_timed_out` | src/static/templates/email/emergency_access_recovery_timed_out.hbs | 1 | App\Mail\Mail renders it and the scheduled job sends it (tests/Feature/Scheduler/ScheduledJobsTest); not compared with Vaultwarden, whose job only acts after a day of wait time. |
 | 🟨 | `email/emergency_access_recovery_timed_out.html` | src/static/templates/email/emergency_access_recovery_timed_out.html.hbs | 1 | App\Mail\Mail renders it and the scheduled job sends it (tests/Feature/Scheduler/ScheduledJobsTest); not compared with Vaultwarden, whose job only acts after a day of wait time. |
-| 🟨 | `email/incomplete_2fa_login` | src/static/templates/email/incomplete_2fa_login.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/incomplete_2fa_login.html` | src/static/templates/email/incomplete_2fa_login.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/incomplete_2fa_login` | src/static/templates/email/incomplete_2fa_login.hbs | 1 | App\Mail\Mail renders it and the incomplete_2fa job sends it (tests/Feature/Scheduler/ScheduledJobsTest); not compared with Vaultwarden, whose job only acts after INCOMPLETE_2FA_TIME_LIMIT minutes. |
+| 🟨 | `email/incomplete_2fa_login.html` | src/static/templates/email/incomplete_2fa_login.html.hbs | 1 | App\Mail\Mail renders it and the incomplete_2fa job sends it (tests/Feature/Scheduler/ScheduledJobsTest); not compared with Vaultwarden, whose job only acts after INCOMPLETE_2FA_TIME_LIMIT minutes. |
 | ✅ | `email/invite_accepted` | src/static/templates/email/invite_accepted.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
 | ✅ | `email/invite_accepted.html` | src/static/templates/email/invite_accepted.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
 | ✅ | `email/invite_confirmed` | src/static/templates/email/invite_confirmed.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
@@ -569,20 +569,20 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | `email/protected_action.html` | src/static/templates/email/protected_action.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest: subject, text and HTML of the mail. |
 | ✅ | `email/pw_hint_none` | src/static/templates/email/pw_hint_none.hbs | 2 | Compared with Vaultwarden in tests/Differential/AccountManagementTest: subject, text and HTML of the mail. |
 | ✅ | `email/pw_hint_none.html` | src/static/templates/email/pw_hint_none.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/AccountManagementTest: subject, text and HTML of the mail. |
-| 🟨 | `email/pw_hint_some` | src/static/templates/email/pw_hint_some.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/pw_hint_some.html` | src/static/templates/email/pw_hint_some.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| ✅ | `email/pw_hint_some` | src/static/templates/email/pw_hint_some.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
+| ✅ | `email/pw_hint_some.html` | src/static/templates/email/pw_hint_some.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
 | ✅ | `email/recover_twofactor` | src/static/templates/email/recover_twofactor.hbs | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest: subject, text and HTML of the mail. |
 | ✅ | `email/recover_twofactor.html` | src/static/templates/email/recover_twofactor.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest: subject, text and HTML of the mail. |
-| 🟨 | `email/register_verify_email` | src/static/templates/email/register_verify_email.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/register_verify_email.html` | src/static/templates/email/register_verify_email.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| 🟨 | `email/register_verify_email` | src/static/templates/email/register_verify_email.hbs | 1 | App\Mail\Mail renders it (tests/Feature/Mail/MailTest) and registration sends it with SIGNUPS_VERIFY; not compared with Vaultwarden, since the mail servers of the differential tests run without SIGNUPS_VERIFY. |
+| 🟨 | `email/register_verify_email.html` | src/static/templates/email/register_verify_email.html.hbs | 1 | App\Mail\Mail renders it (tests/Feature/Mail/MailTest) and registration sends it with SIGNUPS_VERIFY; not compared with Vaultwarden, since the mail servers of the differential tests run without SIGNUPS_VERIFY. |
 | ✅ | `email/send_2fa_removed_from_org` | src/static/templates/email/send_2fa_removed_from_org.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
 | ✅ | `email/send_2fa_removed_from_org.html` | src/static/templates/email/send_2fa_removed_from_org.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
 | ✅ | `email/send_emergency_access_invite` | src/static/templates/email/send_emergency_access_invite.hbs | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest: subject, text and HTML of the mail. |
 | ✅ | `email/send_emergency_access_invite.html` | src/static/templates/email/send_emergency_access_invite.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest: subject, text and HTML of the mail. |
 | ✅ | `email/send_org_invite` | src/static/templates/email/send_org_invite.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
 | ✅ | `email/send_org_invite.html` | src/static/templates/email/send_org_invite.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
-| 🟨 | `email/send_single_org_removed_from_org` | src/static/templates/email/send_single_org_removed_from_org.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/send_single_org_removed_from_org.html` | src/static/templates/email/send_single_org_removed_from_org.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| ✅ | `email/send_single_org_removed_from_org` | src/static/templates/email/send_single_org_removed_from_org.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
+| ✅ | `email/send_single_org_removed_from_org.html` | src/static/templates/email/send_single_org_removed_from_org.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
 | ✅ | `email/smtp_test` | src/static/templates/email/smtp_test.hbs | 2 | Sent by POST /admin/test/smtp; compared with Vaultwarden in tests/Differential/AdminTest. |
 | ✅ | `email/smtp_test.html` | src/static/templates/email/smtp_test.html.hbs | 2 | Sent by POST /admin/test/smtp; compared with Vaultwarden in tests/Differential/AdminTest. |
 | 🟨 | `email/sso_change_email` | src/static/templates/email/sso_change_email.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
@@ -591,10 +591,10 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | `email/twofactor_email.html` | src/static/templates/email/twofactor_email.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/TwoFactorTest: subject, text and HTML of the mail. |
 | ✅ | `email/verify_email` | src/static/templates/email/verify_email.hbs | 2 | Compared with Vaultwarden in tests/Differential/AccountManagementTest: subject, text and HTML of the mail. |
 | ✅ | `email/verify_email.html` | src/static/templates/email/verify_email.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/AccountManagementTest: subject, text and HTML of the mail. |
-| 🟨 | `email/welcome` | src/static/templates/email/welcome.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/welcome.html` | src/static/templates/email/welcome.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/welcome_must_verify` | src/static/templates/email/welcome_must_verify.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/welcome_must_verify.html` | src/static/templates/email/welcome_must_verify.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| ✅ | `email/welcome` | src/static/templates/email/welcome.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
+| ✅ | `email/welcome.html` | src/static/templates/email/welcome.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
+| 🟨 | `email/welcome_must_verify` | src/static/templates/email/welcome_must_verify.hbs | 1 | App\Mail\Mail renders it (tests/Feature/Mail/MailTest) and registration sends it with SIGNUPS_VERIFY; not compared with Vaultwarden, since the mail servers of the differential tests run without SIGNUPS_VERIFY. |
+| 🟨 | `email/welcome_must_verify.html` | src/static/templates/email/welcome_must_verify.html.hbs | 1 | App\Mail\Mail renders it (tests/Feature/Mail/MailTest) and registration sends it with SIGNUPS_VERIFY; not compared with Vaultwarden, since the mail servers of the differential tests run without SIGNUPS_VERIFY. |
 | 🟨 | `scss/user.vaultwarden.scss` | src/static/templates/scss/user.vaultwarden.scss.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
 | 🟨 | `scss/vaultwarden.scss` | src/static/templates/scss/vaultwarden.scss.hbs | 1 | Copied unchanged; all compile, helpers ported. Open: rendering with the data Vaultwarden passes, compared to its output. |
 
@@ -602,7 +602,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 
 | | Item | Source | Tests | Notes |
 |---|---|---|--:|---|
-| ⬜ | `global_domains.json` | src/static/global_domains.json | 0 |  |
+| ✅ | `global_domains.json` | src/static/global_domains.json | 1 | Copied by parity:sync; GET /api/settings/domains and the sync serve it (tests/Feature/Api/SyncTest, compared in tests/Differential/SyncTest). |
 | ✅ | `images/404.png` | src/static/images/404.png | 1 | Copied by parity:sync and served at /vw_static; compared byte for byte in tests/Differential/AdminTest. |
 | ✅ | `images/error-x.svg` | src/static/images/error-x.svg | 1 | Copied by parity:sync and served at /vw_static; compared byte for byte in tests/Differential/AdminTest. |
 | ✅ | `images/fallback-icon.png` | src/static/images/fallback-icon.png | 1 | Copied by parity:sync and served at /vw_static; compared byte for byte in tests/Differential/AdminTest. |

@@ -4,6 +4,7 @@ namespace Tests\Feature\Api;
 
 use App\Auth\Jwt;
 use App\Auth\JwtIssuer;
+use App\Mail\Transport;
 use App\Models\Device;
 use App\Models\User;
 use Illuminate\Http\Response;
@@ -11,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Testing\TestResponse;
 use Tests\Attributes\Parity;
 use Tests\Concerns\UsesVaultwardenDatabase;
+use Tests\Fakes\MailTransportFake;
 use Tests\TestCase;
 
 /**
@@ -161,6 +163,58 @@ class LoginTest extends TestCase
         }
 
         $this->login()->assertStatus(429)->assertJsonPath('message', 'Too many login requests');
+    }
+
+    #[Parity('config:SIGNUPS_VERIFY')]
+    #[Parity('config:SIGNUPS_VERIFY_RESEND_TIME')]
+    #[Parity('config:SIGNUPS_VERIFY_RESEND_LIMIT')]
+    public function test_unverified_accounts_are_reminded_to_verify(): void
+    {
+        $mails = $this->withMail(['SIGNUPS_VERIFY' => 'true', 'SIGNUPS_VERIFY_RESEND_LIMIT' => '2']);
+        $verifyMails = fn (): int => count(array_filter($mails->sent, static fn (array $mail): bool => $mail['subject'] === 'Verify Your Email'));
+        $longAgo = fn () => User::query()->where('uuid', $this->user->uuid)->update(['last_verifying_at' => '2020-01-01 00:00:00.000000']);
+
+        $this->login()->assertStatus(400)->assertJsonPath('message', 'Please verify your email before trying again.');
+        $counts = [$verifyMails()];
+        $this->login()->assertStatus(400);
+        $counts[] = $verifyMails();
+        $longAgo();
+        $this->login()->assertStatus(400);
+        $counts[] = $verifyMails();
+        $longAgo();
+        $this->login()->assertStatus(400);
+        $counts[] = $verifyMails();
+        // Not again within SIGNUPS_VERIFY_RESEND_TIME, and no more than SIGNUPS_VERIFY_RESEND_LIMIT times.
+        $this->assertSame([1, 1, 2, 2], $counts);
+
+        User::query()->where('uuid', $this->user->uuid)->update(['verified_at' => '2026-01-01 00:00:00.000000']);
+        $this->login()->assertStatus(200);
+    }
+
+    #[Parity('config:REQUIRE_DEVICE_EMAIL')]
+    public function test_a_login_can_require_the_new_device_mail(): void
+    {
+        $this->withMail([])->failure = 'Mail server down';
+
+        // Without the setting, a failed mail does not stop the login.
+        $this->login()->assertStatus(200);
+        $this->changeVaultwardenEnvironment(['REQUIRE_DEVICE_EMAIL' => 'true']);
+        $this->login(['device_identifier' => 'f1e2d3c4-b5a6-4978-8695-a4b3c2d1e0f9'])->assertStatus(400)
+            ->assertJsonPath('message', 'Could not send login notification email. Please contact your administrator.');
+    }
+
+    /**
+     * Turns mail on, with the given settings, and keeps the mails.
+     *
+     * @param  array<string, string>  $environment
+     */
+    private function withMail(array $environment): MailTransportFake
+    {
+        $mails = new MailTransportFake;
+        $this->app->instance(Transport::class, $mails);
+        $this->changeVaultwardenEnvironment(['SMTP_HOST' => 'localhost', 'SMTP_FROM' => 'vault@example.com', ...$environment]);
+
+        return $mails;
     }
 
     private function string(mixed $value): string

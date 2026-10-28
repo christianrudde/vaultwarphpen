@@ -11,6 +11,7 @@ use App\Models\Send;
 use App\Models\User;
 use App\Support\Dates;
 use App\Support\Random;
+use Tests\Attributes\Parity;
 use Tests\Concerns\UsesVaultwardenDatabase;
 use Tests\TestCase;
 
@@ -47,6 +48,7 @@ class SyncTest extends TestCase
         $this->auth = ['Authorization' => 'Bearer '.LoginClaims::default($device, $this->user, AuthMethod::Password, 'cli', $jwt)->token($jwt)];
     }
 
+    #[Parity('asset:global_domains.json')]
     public function test_sync_of_an_empty_vault(): void
     {
         $globals = json_decode((string) file_get_contents(resource_path('vaultwarden/static/global_domains.json')), true);

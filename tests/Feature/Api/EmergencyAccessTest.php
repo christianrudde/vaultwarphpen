@@ -124,6 +124,7 @@ class EmergencyAccessTest extends TestCase
     /**
      * Settings change before the first request, which resolves the controller.
      */
+    #[Parity('config:INVITATIONS_ALLOWED')]
     public function test_invitations_without_invitations_allowed(): void
     {
         $this->changeVaultwardenEnvironment(['INVITATIONS_ALLOWED' => 'false']);
@@ -131,6 +132,7 @@ class EmergencyAccessTest extends TestCase
             ->assertStatus(400)->assertJsonPath('message', "Grantee user does not exist: o\\'neil@example.com");
     }
 
+    #[Parity('config:SIGNUPS_DOMAINS_WHITELIST')]
     public function test_invitations_outside_the_allowed_domains(): void
     {
         $this->changeVaultwardenEnvironment(['SIGNUPS_DOMAINS_WHITELIST' => 'example.org']);

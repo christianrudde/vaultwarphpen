@@ -135,6 +135,47 @@ class MailTest extends DifferentialTestCase
         });
     }
 
+    #[Parity('template:email/welcome')]
+    #[Parity('template:email/welcome.html')]
+    #[Parity('template:email/pw_hint_some*')]
+    #[Parity('template:email/change_email_invited*')]
+    #[Parity('template:email/send_single_org_removed_from_org*')]
+    public function test_account_mails(): void
+    {
+        $this->assertSameMailFlows(function (Server $server): array {
+            $email = 'mail-hinted@example.com';
+            $token = $server->json('POST', '/identity/accounts/register/send-verification-email', ['email' => $email], ['Accept' => 'application/json'])->json();
+            $steps = [];
+
+            $steps['register with a hint'] = $server->json('POST', '/identity/accounts/register/finish', ['email' => $email, 'emailVerificationToken' => $token,
+                'kdf' => 0, 'kdfIterations' => 600000, 'masterPasswordHash' => 'client-hash', 'masterPasswordHint' => 'the usual one', 'key' => 'user-key',
+                'keys' => ['encryptedPrivateKey' => 'private-key', 'publicKey' => 'public-key']]);
+            $steps['welcome mail'] = $server->mail($email)->exchange();
+            $steps['hint'] = $server->json('POST', '/api/accounts/password-hint', ['email' => $email]);
+            $steps['hint mail'] = $server->mail($email)->exchange();
+
+            // An invited address without an account yet.
+            [$owner] = CipherTest::session($server, 'mail-single-owner@example.com');
+            $org = $server->json('POST', '/api/organizations', OrganizationTest::org(), $owner)->jsonString('id');
+            $server->json('POST', "/api/organizations/{$org}/users/invite", ['emails' => ['mail-placeholder@example.com'], 'groups' => [], 'type' => 2], $owner);
+            $login = $server->form('/identity/connect/token', LoginTest::loginFields($email));
+            $auth = ['Authorization' => 'Bearer '.$login->jsonString('access_token'), 'Accept' => 'application/json'];
+            $steps['change to the invited address'] = $server->json('POST', '/api/accounts/email-token', ['masterPasswordHash' => 'client-hash',
+                'newEmail' => 'mail-placeholder@example.com'], $auth);
+            $steps['invited address mail'] = $server->mail('mail-placeholder@example.com')->exchange();
+
+            // The single organization policy removes members of other organizations.
+            [$member] = CipherTest::session($server, 'mail-single-member@example.com');
+            $server->json('POST', '/api/organizations', [...OrganizationTest::org(), 'name' => '2.other'], $member);
+            self::addMember($server, $owner, $member, $org, 'mail-single-member@example.com');
+            $steps['enable single organization'] = $server->json('PUT', "/api/organizations/{$org}/policies/3", ['policy' => ['enabled' => true, 'data' => null]], $owner);
+            $steps['removed mail'] = $server->mail('mail-single-member@example.com')->exchange();
+            $steps['members'] = $server->send('GET', "/api/organizations/{$org}/users", $owner);
+
+            return $steps;
+        });
+    }
+
     /**
      * Invites by mail, accepts with the mailed token and confirms; returns the membership id.
      *

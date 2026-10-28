@@ -116,6 +116,9 @@ class OrganizationTest extends DifferentialTestCase
                 'permissions' => ['editAnyCollection' => true, 'deleteAnyCollection' => true, 'createNewCollections' => true]], $owner);
             $steps['custom member'] = $server->send('GET', "/api/organizations/{$org}/users/{$memberId}", $owner);
             $steps['custom profile'] = $server->send('GET', '/api/accounts/profile', $member);
+            $steps['rename member'] = $server->json('PUT', '/api/accounts/profile', ['name' => 'Org Member', 'culture' => 'de-DE'], $member);
+            $steps['rename member by post'] = $server->json('POST', '/api/accounts/profile', ['name' => 'Org Poster'], $member);
+            $steps['member avatar'] = $server->json('PUT', '/api/accounts/avatar', ['avatarColor' => '#a1b2c3'], $member);
             $steps['edit to user with collection'] = $server->json('PUT', "/api/organizations/{$org}/users/{$memberId}", ['type' => '2',
                 'collections' => [['id' => $collection, 'readOnly' => false, 'hidePasswords' => true, 'manage' => false]]], $owner);
             $steps['user member'] = $server->send('GET', "/api/organizations/{$org}/users/{$memberId}?includeCollections=true", $owner);
@@ -274,6 +277,70 @@ class OrganizationTest extends DifferentialTestCase
             $steps['purge with a wrong password'] = $server->json('POST', "/api/ciphers/purge?organizationId={$org}", ['masterPasswordHash' => 'wrong'], $owner);
             $steps['purge'] = $server->json('POST', "/api/ciphers/purge?organizationId={$org}", ['masterPasswordHash' => 'client-hash'], $owner);
             $steps['member sync at last'] = self::sortedSync($server->send('GET', '/api/sync?excludeDomains=true', $member));
+
+            return $steps;
+        });
+    }
+
+    #[Parity('route:POST /api/ciphers/{cipher_id}/attachment/v2')]
+    #[Parity('route:POST /api/ciphers/{cipher_id}/attachment/{attachment_id}')]
+    #[Parity('route:GET /api/ciphers/{cipher_id}/attachment/{attachment_id}')]
+    #[Parity('route:POST /api/ciphers/{cipher_id}/attachment')]
+    #[Parity('route:POST /api/ciphers/{cipher_id}/attachment-admin')]
+    #[Parity('route:POST /api/ciphers/{cipher_id}/attachment/{attachment_id}/share')]
+    #[Parity('route:POST /api/ciphers/{cipher_id}/attachment/{attachment_id}/delete-admin')]
+    #[Parity('route:DELETE /api/ciphers/{cipher_id}/attachment/{attachment_id}/admin')]
+    #[Parity('route:PUT /api/ciphers/{cipher_id}/delete-admin')]
+    #[Parity('route:PUT /api/ciphers/{cipher_id}/restore-admin')]
+    #[Parity('route:PUT /api/ciphers/delete-admin')]
+    #[Parity('route:PUT /api/ciphers/restore-admin')]
+    #[Parity('route:DELETE /api/ciphers/admin')]
+    #[Parity('route:DELETE /api/ciphers/{cipher_id}/admin')]
+    public function test_organization_cipher_attachments_and_trash(): void
+    {
+        $this->assertSameFlows(function (Server $server): array {
+            [$owner, $ownerId] = CipherTest::session($server, 'trash-owner@example.com');
+            [$member] = CipherTest::session($server, 'trash-member@example.com');
+            $org = $server->json('POST', '/api/organizations', self::org(), $owner)->jsonString('id');
+            $memberId = self::addMember($server, $owner, $org, 'trash-member@example.com');
+            $collection = $server->json('POST', "/api/organizations/{$org}/collections", ['name' => '2.shared', 'groups' => [],
+                'users' => [['id' => $memberId, 'readOnly' => true, 'hidePasswords' => false, 'manage' => false]]], $owner)->jsonString('id');
+            $create = fn (string $name): string => $server->json('POST', '/api/ciphers/create', ['cipher' => self::note($ownerId, $name, ['organizationId' => $org]),
+                'collectionIds' => [$collection]], $owner)->jsonString('id');
+            $cipher = $create('2.files');
+            $other = $create('2.other');
+            $steps = [];
+
+            $steps['attachment'] = $created = $server->json('POST', "/api/ciphers/{$cipher}/attachment/v2", ['key' => '2.key', 'fileName' => '2.name', 'fileSize' => 5], $owner);
+            $attachment = $created->jsonString('attachmentId');
+            $steps['upload'] = $server->multipart("/api/ciphers/{$cipher}/attachment/{$attachment}", [['data', 'hello', 'n']], $owner);
+            $steps['member reads the attachment'] = $server->send('GET', "/api/ciphers/{$cipher}/attachment/{$attachment}", $member);
+            $steps['read-only member adds one'] = $server->json('POST', "/api/ciphers/{$cipher}/attachment/v2", ['key' => '2.k', 'fileName' => '2.n', 'fileSize' => 1], $member);
+            $steps['read-only member uploads'] = $server->multipart("/api/ciphers/{$cipher}/attachment", [['key', '2.k'], ['data', 'x', '2.n']], $member);
+            $steps['read-only member deletes it'] = $server->send('DELETE', "/api/ciphers/{$cipher}/attachment/{$attachment}", $member);
+            $steps['share'] = $shared = $server->multipart("/api/ciphers/{$cipher}/attachment/{$attachment}/share", [['key', '2.key2'], ['data', 'shared', '2.other']], $owner);
+            $steps['delete admin'] = $server->send('POST', "/api/ciphers/{$cipher}/attachment/{$shared->jsonString('attachments.0.id')}/delete-admin", $owner);
+            $steps['admin upload'] = $admin = $server->multipart("/api/ciphers/{$cipher}/attachment-admin", [['key', '2.key3'], ['data', 'third', '2.third']], $owner);
+            $steps['delete admin by DELETE'] = $server->send('DELETE', "/api/ciphers/{$cipher}/attachment/{$admin->jsonString('attachments.0.id')}/admin", $owner);
+
+            $steps['read-only member trashes'] = $server->send('PUT', "/api/ciphers/{$cipher}/delete", $member);
+            $steps['trash admin'] = $server->send('PUT', "/api/ciphers/{$cipher}/delete-admin", $owner);
+            $steps['member sees it in the trash'] = $server->send('GET', "/api/ciphers/{$cipher}", $member);
+            $steps['read-only member restores'] = $server->send('PUT', "/api/ciphers/{$cipher}/restore", $member);
+            $steps['restore admin'] = $server->send('PUT', "/api/ciphers/{$cipher}/restore-admin", $owner);
+            $steps['bulk trash admin'] = $server->json('PUT', '/api/ciphers/delete-admin', ['ids' => [$cipher, $other], 'organizationId' => $org], $owner);
+            $steps['bulk restore admin'] = self::byName($server->json('PUT', '/api/ciphers/restore-admin', ['ids' => [$cipher, $other], 'organizationId' => $org], $owner));
+
+            $folder = $server->json('POST', '/api/folders', ['name' => '2.folder'], $member)->jsonString('id');
+            $steps['member files it'] = $server->json('PUT', "/api/ciphers/{$cipher}/partial", ['folderId' => $folder, 'favorite' => true], $member);
+            $steps['member moves it'] = $server->json('PUT', '/api/ciphers/move', ['folderId' => '', 'ids' => [$cipher]], $member);
+            $steps['member archives it'] = $server->send('PUT', "/api/ciphers/{$cipher}/archive", $member);
+            $steps['member unarchives it'] = $server->json('PUT', '/api/ciphers/unarchive', ['ids' => [$cipher]], $member);
+
+            $steps['read-only member deletes'] = $server->send('DELETE', "/api/ciphers/{$cipher}", $member);
+            $steps['bulk delete admin'] = $server->json('DELETE', '/api/ciphers/admin', ['ids' => [$other], 'organizationId' => $org], $owner);
+            $steps['delete admin cipher'] = $server->send('DELETE', "/api/ciphers/{$cipher}/admin", $owner);
+            $steps['member sync'] = self::sortedSync($server->send('GET', '/api/sync?excludeDomains=true', $member));
 
             return $steps;
         });

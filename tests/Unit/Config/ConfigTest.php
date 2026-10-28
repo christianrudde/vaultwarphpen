@@ -213,6 +213,8 @@ class ConfigTest extends TestCase
         $this->assertFalse($this->load(['IP_HEADER' => ' NONE '])->bool('_ip_header_enabled'));
     }
 
+    #[Parity('config:SMTP_SSL')]
+    #[Parity('config:SMTP_EXPLICIT_TLS')]
     public function test_deprecated_smtp_options_choose_the_security(): void
     {
         $tls = $this->load(['SMTP_EXPLICIT_TLS' => 'true']);

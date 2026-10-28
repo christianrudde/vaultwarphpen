@@ -13,6 +13,7 @@ use App\Models\Organization;
 use App\Models\OrgCollection;
 use App\Models\User;
 use App\Support\Random;
+use Tests\Attributes\Parity;
 use Tests\Concerns\UsesVaultwardenDatabase;
 use Tests\TestCase;
 
@@ -161,6 +162,7 @@ class OrganizationTest extends TestCase
     /**
      * Settings change before the first request, which resolves the controller.
      */
+    #[Parity('config:INVITATIONS_ALLOWED')]
     public function test_invitations_without_invitations_allowed(): void
     {
         $this->changeVaultwardenEnvironment(['INVITATIONS_ALLOWED' => 'false']);
@@ -169,6 +171,16 @@ class OrganizationTest extends TestCase
         $this->postJson("/api/organizations/{$org}/users/invite", ['emails' => ["o'neil@example.com"], 'groups' => [], 'type' => 2], $this->owner)
             ->assertStatus(400)->assertJsonPath('message', "User does not exist: o\\'neil@example.com");
         $this->assertNull(User::findByMail("o'neil@example.com"));
+    }
+
+    #[Parity('config:ORG_CREATION_USERS')]
+    public function test_organization_creation_can_be_limited_to_some_users(): void
+    {
+        $this->changeVaultwardenEnvironment(['ORG_CREATION_USERS' => 'someone@example.com']);
+        $this->postJson('/api/organizations', ['billingEmail' => 'billing@example.com', 'collectionName' => '2.first', 'key' => '4.owner-key',
+            'name' => '2.org', 'planType' => 0], $this->owner)->assertStatus(400)->assertJsonPath('message', 'User not allowed to create organizations');
+        $this->changeVaultwardenEnvironment(['ORG_CREATION_USERS' => 'someone@example.com,owner@example.com']);
+        $this->createOrganization();
     }
 
     public function test_collections_and_organization_ciphers(): void

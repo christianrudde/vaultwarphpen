@@ -13,6 +13,7 @@ use App\Models\Folder;
 use App\Models\TwoFactor;
 use App\Models\User;
 use App\Support\Random;
+use Tests\Attributes\Parity;
 use Tests\Concerns\UsesVaultwardenDatabase;
 use Tests\TestCase;
 
@@ -112,6 +113,18 @@ class CipherTest extends TestCase
         $this->postJson('/api/ciphers', [...$this->cipher(1, '2.x'), 'login' => (object) [], 'folderId' => Random::uuid()], $this->auth)
             ->assertStatus(400)->assertJsonPath('message', 'Invalid folder');
         $this->assertSame(0, Cipher::query()->count());
+    }
+
+    #[Parity('config:INCREASE_NOTE_SIZE_LIMIT')]
+    #[Parity('config:_MAX_NOTE_SIZE')]
+    public function test_the_note_size_limit_can_be_increased(): void
+    {
+        $long = [...$this->cipher(1, '2.x'), 'login' => (object) [], 'notes' => str_repeat('n', 10_001)];
+        $this->postJson('/api/ciphers', $long, $this->auth)->assertStatus(400);
+        $this->changeVaultwardenEnvironment(['INCREASE_NOTE_SIZE_LIMIT' => 'true']);
+        $this->postJson('/api/ciphers', $long, $this->auth)->assertStatus(200);
+        $this->postJson('/api/ciphers', [...$long, 'notes' => str_repeat('n', 100_001)], $this->auth)
+            ->assertStatus(400)->assertJsonPath('message', 'The field Notes exceeds the maximum encrypted value length of 100000 characters.');
     }
 
     public function test_stored_data_that_is_no_object_reads_as_empty(): void

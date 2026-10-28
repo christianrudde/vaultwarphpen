@@ -9,6 +9,7 @@ use App\Config\Config;
 use App\Http\ApiError;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Tests\Attributes\Parity;
 
 /**
  * auth::encode_jwt / decode_jwt and the key handling of auth::initialize_keys.
@@ -56,6 +57,18 @@ class JwtTest extends TestCase
         $token = $this->jwt->encode($this->claims());
         $this->assertSame($this->claims(), (new Jwt(new RsaKeys($config), $config))->decode($token, JwtIssuer::Admin, self::NOW));
         $this->assertSame($pem, file_get_contents("{$this->base}/data/rsa_key.pem"));
+    }
+
+    #[Parity('config:RSA_KEY_FILENAME')]
+    public function test_the_key_lives_at_rsa_key_filename(): void
+    {
+        $file = "{$this->base}/keys/token";
+        mkdir("{$this->base}/keys");
+        $config = Config::load(static fn (string $key): ?string => ['RSA_KEY_FILENAME' => $file][$key] ?? null, $this->base);
+        (new RsaKeys($config))->privateKey();
+
+        $this->assertFileExists("{$file}.pem");
+        $this->assertFileDoesNotExist("{$this->base}/data/rsa_key.pem");
     }
 
     public function test_tokens_have_rockets_header_and_keep_the_claim_order(): void
