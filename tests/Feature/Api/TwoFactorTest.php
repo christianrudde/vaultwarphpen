@@ -100,8 +100,8 @@ class TwoFactorTest extends TestCase
         $this->login(['two_factor_provider' => '1', 'two_factor_token' => '123456'])->assertStatus(400)->assertJsonPath('TwoFactorProviders', ['0']);
         $this->login(['two_factor_token' => ' '])->assertStatus(400)->assertJsonPath('error_description', 'Two factor required.');
         $this->login(['two_factor_provider' => '0', 'two_factor_token' => 'abc'])->assertStatus(400)->assertJsonPath('message', 'TOTP code is not a number');
-        // The code of the activation is used up.
-        $this->login(['two_factor_provider' => '0', 'two_factor_token' => AuthenticatorController::totp($secret, time())])
+        // The code of the activation is used up, even after its 30 seconds turned.
+        $this->login(['two_factor_provider' => '0', 'two_factor_token' => $code])
             ->assertStatus(400)->assertJsonPath('message', fn (string $message): bool => str_starts_with($message, 'Invalid TOTP code!'));
 
         $remembered = $this->login(['twofactorprovider' => '0', 'twofactortoken' => AuthenticatorController::totp($secret, time() + 30), 'twofactorremember' => '1'])
@@ -299,7 +299,8 @@ class TwoFactorTest extends TestCase
      */
     private function otherCode(string $secret): string
     {
-        $near = array_map(static fn (int $step): string => AuthenticatorController::totp($secret, time() + $step * 30), [-1, 0, 1]);
+        // The server's window may move on by a step before it checks.
+        $near = array_map(static fn (int $step): string => AuthenticatorController::totp($secret, time() + $step * 30), [-1, 0, 1, 2]);
         for ($code = 0; in_array(sprintf('%06d', $code), $near, true); $code++);
 
         return sprintf('%06d', $code);
