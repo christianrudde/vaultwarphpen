@@ -91,6 +91,18 @@ final readonly class Fields
     }
 
     /**
+     * `#[serde(default)] bool`: false when missing, but null is a mismatch.
+     *
+     * @throws HttpStatus
+     */
+    public function defaultBool(string $name, string ...$aliases): bool
+    {
+        $present = array_filter([$name, ...$aliases], fn (string $key): bool => array_key_exists($key, $this->values));
+
+        return $present === [] ? false : $this->bool($name, ...$aliases);
+    }
+
+    /**
      * @throws HttpStatus
      */
     public function optionalBool(string $name, string ...$aliases): ?bool

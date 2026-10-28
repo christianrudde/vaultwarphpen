@@ -245,13 +245,20 @@ final class Membership extends Model
      *
      * @return array<string, mixed>
      */
-    public function toApiDetailsForAdmin(bool $includeCollections): array
+    public function toApiDetailsForAdmin(bool $includeCollections, bool $includeGroups): array
     {
         $user = User::findByUuid($this->user_uuid) ?? throw new \LogicException("User {$this->user_uuid} of membership {$this->uuid} is missing");
 
-        // Collections assigned to the member itself; groups are not ported yet.
+        $groups = $includeGroups && Group::enabled()
+            ? array_map(static fn (GroupUser $groupUser): string => $groupUser->groupUuid, GroupUser::findByMember($this->uuid))
+            : [];
+        // Whatever the member's status: admins look at other members here.
+        $fullAccessGroup = Group::enabled() && GroupUser::hasFullAccessByMember($this->org_uuid, $this->uuid);
+
+        // Only the collections assigned to the member itself, and none with
+        // full access; those of groups come with the groups.
         $collections = [];
-        if ($includeCollections && ! $this->access_all) {
+        if ($includeCollections && ! $fullAccessGroup && ! $this->access_all) {
             foreach (CollectionUser::findByOrganizationAndUserUuid($this->org_uuid, $this->user_uuid) as $access) {
                 $collections[] = [
                     'hidePasswords' => $access->hidePasswords,
@@ -270,7 +277,7 @@ final class Membership extends Model
             'email' => $user->email,
             'externalId' => $this->external_id,
             'avatarColor' => $user->avatar_color,
-            'groups' => [],
+            'groups' => $groups,
             'collections' => $collections,
             'status' => $this->displayStatus(),
             'type' => $type,
@@ -375,9 +382,9 @@ final class Membership extends Model
     {
         User::updateUuidRevision($this->user_uuid);
         CollectionUser::deleteAllByUserAndOrg($this->user_uuid, $this->org_uuid);
+        GroupUser::deleteAllByMember($this->uuid);
 
         try {
-            DB::table('groups_users')->where('users_organizations_uuid', $this->uuid)->delete();
             self::query()->where('uuid', $this->uuid)->delete();
         } catch (QueryException) {
             throw ApiError::message('Error removing user from organization');
@@ -503,6 +510,33 @@ final class Membership extends Model
             ->where('users_organizations.org_uuid', $orgUuid)
             ->where('users_organizations.status', self::STATUS_CONFIRMED)
             ->where(static fn ($query) => $query->where('users_organizations.access_all', true)->orWhere('ciphers_collections.cipher_uuid', $cipherUuid))
+            ->distinct()
+            ->get();
+    }
+
+    /**
+     * The confirmed members who reach the cipher through a group: one with
+     * access to all, or with a collection of the cipher.
+     *
+     * @return Collection<int, self>
+     */
+    public static function findByCipherAndOrgWithGroup(string $cipherUuid, string $orgUuid): Collection
+    {
+        return self::query()
+            ->select('users_organizations.*')
+            ->join('groups_users', 'groups_users.users_organizations_uuid', '=', 'users_organizations.uuid')
+            ->leftJoin('collections_groups', 'collections_groups.groups_uuid', '=', 'groups_users.groups_uuid')
+            ->leftJoin('groups', function (JoinClause $join): void {
+                $join->on('groups.uuid', '=', 'groups_users.groups_uuid')
+                    ->on('groups.organizations_uuid', '=', 'users_organizations.org_uuid');
+            })
+            ->leftJoin('ciphers_collections', function (JoinClause $join) use ($cipherUuid): void {
+                $join->on('ciphers_collections.collection_uuid', '=', 'collections_groups.collections_uuid')
+                    ->where('ciphers_collections.cipher_uuid', '=', $cipherUuid);
+            })
+            ->where('users_organizations.org_uuid', $orgUuid)
+            ->where('users_organizations.status', self::STATUS_CONFIRMED)
+            ->where(static fn ($query) => $query->where('groups.access_all', true)->orWhere('ciphers_collections.cipher_uuid', $cipherUuid))
             ->distinct()
             ->get();
     }

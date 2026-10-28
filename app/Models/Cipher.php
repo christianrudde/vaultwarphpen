@@ -17,8 +17,7 @@ use Illuminate\Support\Facades\DB;
 use stdClass;
 
 /**
- * A vault item (src/db/models/cipher.rs). Organization ciphers are not ported
- * yet: members of an organization get an error instead of a partial vault.
+ * A vault item (src/db/models/cipher.rs), of a user or of an organization.
  *
  * @property string $uuid
  * @property DateTimeImmutable $created_at
@@ -93,8 +92,8 @@ final class Cipher extends Model
      * favorite, archive and access flags; an organization's view (as admins
      * list the organization's ciphers) leaves them out.
      *
-     * @param  array{folders?: array<string, string>, favorites?: list<string>, archives?: array<string, DateTimeImmutable>, members?: array<string, Membership>, collections?: array<string, list<string>>, userCollections?: array<string, CollectionUser>}|null  $sync
-     *                                                                                                                                                                                                                                                                     Data gathered once for many ciphers, as in CipherSyncData
+     * @param  array{folders?: array<string, string>, favorites?: list<string>, archives?: array<string, DateTimeImmutable>, members?: array<string, Membership>, collections?: array<string, list<string>>, userCollections?: array<string, CollectionUser>, groupCollections?: array<string, CollectionGroup>, groupFullAccessOrgs?: list<string>}|null  $sync
+     *                                                                                                                                                                                                                                                                                                                                                            Data gathered once for many ciphers, as in CipherSyncData
      * @return array<string, mixed>
      *
      * @throws ApiError
@@ -155,10 +154,11 @@ final class Cipher extends Model
     /**
      * Cipher::get_access_restrictions: (read only, hide passwords, manage), or
      * null without access. Own ciphers and those of organizations where the
-     * user has full access have none. Across several collections a flag holds
-     * only if all of them set it; manage if any does. Groups are not ported yet.
+     * user has full access, also through a group, have none. Per collection the
+     * user's own access wins over that of groups. Across several collections a
+     * flag holds only if all of them set it; manage if any does.
      *
-     * @param  array{members?: array<string, Membership>, collections?: array<string, list<string>>, userCollections?: array<string, CollectionUser>}|null  $sync
+     * @param  array{members?: array<string, Membership>, collections?: array<string, list<string>>, userCollections?: array<string, CollectionUser>, groupCollections?: array<string, CollectionGroup>, groupFullAccessOrgs?: list<string>}|null  $sync
      * @return array{bool, bool, bool}|null
      */
     public function accessRestrictions(string $userUuid, ?array $sync = null): ?array
@@ -174,14 +174,23 @@ final class Cipher extends Model
             if ($member?->hasFullAccess() === true) {
                 return [false, false, true];
             }
+            if (Group::enabled() && ($sync === null
+                ? Group::isInFullAccessGroup($userUuid, $this->organization_uuid)
+                : in_array($this->organization_uuid, $sync['groupFullAccessOrgs'] ?? [], true))) {
+                return [false, false, true];
+            }
         }
 
         if ($sync === null) {
+            // Groups only count without any access of the user's own.
             $rows = $this->userCollectionsAccessFlags($userUuid);
+            if ($rows === []) {
+                $rows = $this->groupCollectionsAccessFlags($userUuid);
+            }
         } else {
             $rows = [];
             foreach ($sync['collections'][$this->uuid] ?? [] as $collectionUuid) {
-                $access = $sync['userCollections'][$collectionUuid] ?? null;
+                $access = $sync['userCollections'][$collectionUuid] ?? $sync['groupCollections'][$collectionUuid] ?? null;
                 if ($access !== null) {
                     $rows[] = [$access->readOnly, $access->hidePasswords, $access->manage];
                 }
@@ -224,9 +233,50 @@ final class Cipher extends Model
             ->select('users_collections.read_only', 'users_collections.hide_passwords', 'users_collections.manage')
             ->get();
 
+        return self::accessFlags($rows);
+    }
+
+    /**
+     * The flags of the collections of the cipher the user's groups reach,
+     * through a confirmed membership only, as revoked members stay in groups.
+     *
+     * @return list<array{bool, bool, bool}>
+     */
+    private function groupCollectionsAccessFlags(string $userUuid): array
+    {
+        if (! Group::enabled()) {
+            return [];
+        }
+
+        $rows = DB::table('ciphers')
+            ->join('ciphers_collections', 'ciphers.uuid', '=', 'ciphers_collections.cipher_uuid')
+            ->join('collections_groups', 'collections_groups.collections_uuid', '=', 'ciphers_collections.collection_uuid')
+            ->join('groups_users', 'groups_users.groups_uuid', '=', 'collections_groups.groups_uuid')
+            ->join('users_organizations', 'users_organizations.uuid', '=', 'groups_users.users_organizations_uuid')
+            ->join('groups', function (JoinClause $join): void {
+                $join->on('groups.uuid', '=', 'collections_groups.groups_uuid')
+                    ->on('groups.organizations_uuid', '=', 'users_organizations.org_uuid');
+            })
+            ->where('ciphers.uuid', $this->uuid)
+            ->where('users_organizations.user_uuid', $userUuid)
+            ->where('users_organizations.status', Membership::STATUS_CONFIRMED)
+            ->whereColumn('ciphers.organization_uuid', 'users_organizations.org_uuid')
+            ->select('collections_groups.read_only', 'collections_groups.hide_passwords', 'collections_groups.manage')
+            ->get();
+
+        return self::accessFlags($rows);
+    }
+
+    /**
+     * @param  iterable<object>  $rows
+     * @return list<array{bool, bool, bool}>
+     */
+    private static function accessFlags(iterable $rows): array
+    {
         $flags = [];
         foreach ($rows as $row) {
-            $flags[] = [(bool) $row->read_only, (bool) $row->hide_passwords, (bool) $row->manage];
+            // SQLite and MySQL return booleans as numbers.
+            $flags[] = [(bool) ($row->read_only ?? false), (bool) ($row->hide_passwords ?? false), (bool) ($row->manage ?? false)];
         }
 
         return $flags;
@@ -240,7 +290,7 @@ final class Cipher extends Model
      */
     public function adminCollections(string $userUuid): array
     {
-        $ids = DB::table('ciphers_collections')
+        $query = DB::table('ciphers_collections')
             ->join('collections', 'collections.uuid', '=', 'ciphers_collections.collection_uuid')
             ->join('users_organizations', function (JoinClause $join) use ($userUuid): void {
                 $join->on('users_organizations.org_uuid', '=', 'collections.org_uuid')
@@ -251,9 +301,13 @@ final class Cipher extends Model
                     ->where('users_collections.user_uuid', '=', $userUuid);
             })
             ->where('ciphers_collections.cipher_uuid', $this->uuid)
-            ->where('users_organizations.status', Membership::STATUS_CONFIRMED)
-            ->where(static fn (QueryBuilder $query) => $query->where('users_organizations.access_all', true)
-                ->orWhere(static fn (QueryBuilder $query) => $query->where('users_collections.user_uuid', $userUuid)->where('users_collections.read_only', false))
+            ->where('users_organizations.status', Membership::STATUS_CONFIRMED);
+        $groups = Group::enabled();
+        if ($groups) {
+            self::joinGroupAccess($query);
+        }
+        $ids = $query
+            ->where(static fn (QueryBuilder $query) => self::writableCollection($query->where('users_organizations.access_all', true), $userUuid, $groups)
                 ->orWhere('users_organizations.atype', '<=', Membership::TYPE_ADMIN))
             ->pluck('ciphers_collections.collection_uuid');
 
@@ -268,7 +322,7 @@ final class Cipher extends Model
      */
     public function collectionsOfUser(string $userUuid): array
     {
-        $ids = DB::table('ciphers_collections')
+        $query = DB::table('ciphers_collections')
             ->join('collections', 'collections.uuid', '=', 'ciphers_collections.collection_uuid')
             ->join('users_organizations', function (JoinClause $join) use ($userUuid): void {
                 $join->on('users_organizations.org_uuid', '=', 'collections.org_uuid')
@@ -279,9 +333,13 @@ final class Cipher extends Model
                     ->where('users_collections.user_uuid', '=', $userUuid);
             })
             ->where('ciphers_collections.cipher_uuid', $this->uuid)
-            ->where('users_organizations.status', Membership::STATUS_CONFIRMED)
-            ->where(static fn (QueryBuilder $query) => $query->where('users_organizations.access_all', true)
-                ->orWhere(static fn (QueryBuilder $query) => $query->where('users_collections.user_uuid', $userUuid)->where('users_collections.read_only', false)))
+            ->where('users_organizations.status', Membership::STATUS_CONFIRMED);
+        $groups = Group::enabled();
+        if ($groups) {
+            self::joinGroupAccess($query);
+        }
+        $ids = $query
+            ->where(static fn (QueryBuilder $query) => self::writableCollection($query->where('users_organizations.access_all', true), $userUuid, $groups))
             ->pluck('ciphers_collections.collection_uuid');
 
         return array_values(array_filter($ids->all(), is_string(...)));
@@ -295,7 +353,7 @@ final class Cipher extends Model
      */
     public static function collectionsWithCipherByUser(string $userUuid): array
     {
-        $rows = DB::table('ciphers_collections')
+        $query = DB::table('ciphers_collections')
             ->join('collections', 'collections.uuid', '=', 'ciphers_collections.collection_uuid')
             ->join('users_organizations', function (JoinClause $join) use ($userUuid): void {
                 $join->on('users_organizations.org_uuid', '=', 'collections.org_uuid')
@@ -304,10 +362,14 @@ final class Cipher extends Model
             ->leftJoin('users_collections', function (JoinClause $join) use ($userUuid): void {
                 $join->on('users_collections.collection_uuid', '=', 'ciphers_collections.collection_uuid')
                     ->where('users_collections.user_uuid', '=', $userUuid);
-            })
+            });
+        // Upstream joins the groups here even when they are disabled.
+        $rows = self::joinGroupAccess($query)
             ->where(static fn (QueryBuilder $query) => $query->where('users_collections.user_uuid', $userUuid)
                 ->orWhere('users_organizations.access_all', true)
-                ->orWhere('users_organizations.atype', '<=', Membership::TYPE_ADMIN))
+                ->orWhere('users_organizations.atype', '<=', Membership::TYPE_ADMIN)
+                ->orWhere('groups.access_all', true)
+                ->orWhereNotNull('collections_groups.collections_uuid'))
             ->where('users_organizations.status', Membership::STATUS_CONFIRMED)
             ->select('ciphers_collections.cipher_uuid', 'ciphers_collections.collection_uuid')
             ->distinct()
@@ -321,6 +383,39 @@ final class Cipher extends Model
         }
 
         return $collections;
+    }
+
+    /**
+     * The groups of the user's membership (joined as users_organizations) and
+     * their access to the collection of each row, as upstream joins them.
+     */
+    private static function joinGroupAccess(QueryBuilder $query, string $collectionColumn = 'ciphers_collections.collection_uuid'): QueryBuilder
+    {
+        return $query
+            ->leftJoin('groups_users', 'groups_users.users_organizations_uuid', '=', 'users_organizations.uuid')
+            ->leftJoin('groups', function (JoinClause $join): void {
+                $join->on('groups.uuid', '=', 'groups_users.groups_uuid')
+                    ->on('groups.organizations_uuid', '=', 'users_organizations.org_uuid');
+            })
+            ->leftJoin('collections_groups', function (JoinClause $join) use ($collectionColumn): void {
+                $join->on('collections_groups.collections_uuid', '=', $collectionColumn)
+                    ->on('collections_groups.groups_uuid', '=', 'groups.uuid');
+            });
+    }
+
+    /**
+     * Write access to the collection: the user's own, or with groups that of
+     * a group, or a group's access to all.
+     */
+    private static function writableCollection(QueryBuilder $query, string $userUuid, bool $groups): QueryBuilder
+    {
+        $query->orWhere(static fn (QueryBuilder $query) => $query->where('users_collections.user_uuid', $userUuid)->where('users_collections.read_only', false));
+        if ($groups) {
+            $query->orWhere('groups.access_all', true)
+                ->orWhere(static fn (QueryBuilder $query) => $query->whereNotNull('collections_groups.collections_uuid')->where('collections_groups.read_only', false));
+        }
+
+        return $query;
     }
 
     public function isAccessibleToUser(string $userUuid): bool
@@ -396,9 +491,13 @@ final class Cipher extends Model
             return [];
         }
 
-        // Everyone in the organization who reaches the cipher.
+        // Everyone in the organization who reaches the cipher, with groups also through them.
+        $members = Membership::findByCipherAndOrg($this->uuid, $this->organization_uuid);
+        if (Group::enabled()) {
+            $members = $members->concat(Membership::findByCipherAndOrgWithGroup($this->uuid, $this->organization_uuid));
+        }
         $users = [];
-        foreach (Membership::findByCipherAndOrg($this->uuid, $this->organization_uuid) as $member) {
+        foreach ($members as $member) {
             User::updateUuidRevision($member->user_uuid);
             $users[] = $member->user_uuid;
         }
@@ -462,7 +561,8 @@ final class Cipher extends Model
     /**
      * Cipher::find_by_user: own ciphers, those of organizations where the user
      * has access to all, and those of collections the user reaches through a
-     * confirmed membership. Admins and owners also get the rest of their
+     * confirmed membership, with groups also through those of the membership's
+     * groups. Admins and owners also get the rest of their
      * organizations' ciphers unless only visible ones are asked for.
      *
      * @param  list<string>  $uuids  Only these, when given
@@ -482,15 +582,22 @@ final class Cipher extends Model
                 $join->on('ciphers_collections.collection_uuid', '=', 'users_collections.collection_uuid')
                     // Unconfirmed members have no row above, so no access here either.
                     ->on('users_organizations.user_uuid', '=', 'users_collections.user_uuid');
-            })
-            ->where(static function ($query) use ($userUuid, $visibleOnly): void {
-                $query->where('ciphers.user_uuid', $userUuid)
-                    ->orWhere('users_organizations.access_all', true)
-                    ->orWhere('users_collections.user_uuid', $userUuid);
-                if (! $visibleOnly) {
-                    $query->orWhere('users_organizations.atype', '<=', Membership::TYPE_ADMIN);
-                }
             });
+        $groups = Group::enabled();
+        if ($groups) {
+            self::joinGroupAccess($query->getQuery());
+        }
+        $query->where(static function ($query) use ($userUuid, $visibleOnly, $groups): void {
+            $query->where('ciphers.user_uuid', $userUuid)
+                ->orWhere('users_organizations.access_all', true)
+                ->orWhere('users_collections.user_uuid', $userUuid);
+            if ($groups) {
+                $query->orWhere('groups.access_all', true)->orWhereNotNull('collections_groups.collections_uuid');
+            }
+            if (! $visibleOnly) {
+                $query->orWhere('users_organizations.atype', '<=', Membership::TYPE_ADMIN);
+            }
+        });
         if ($uuids !== []) {
             $query->whereIn('ciphers.uuid', $uuids);
         }

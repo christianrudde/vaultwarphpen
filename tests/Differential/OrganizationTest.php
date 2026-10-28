@@ -281,7 +281,7 @@ class OrganizationTest extends DifferentialTestCase
      * @param  array<string, mixed>  $more
      * @return array<string, mixed>
      */
-    private static function note(string $userId, string $name, array $more = []): array
+    public static function note(string $userId, string $name, array $more = []): array
     {
         return [...CipherTest::cipher($userId, 2, $name), 'secureNote' => ['type' => 0], ...$more];
     }
@@ -289,7 +289,7 @@ class OrganizationTest extends DifferentialTestCase
     /**
      * @return array<string, mixed>
      */
-    private static function org(): array
+    public static function org(): array
     {
         return ['billingEmail' => 'billing@example.com', 'collectionName' => '2.first', 'key' => '4.owner-key', 'name' => '2.org', 'planType' => 0];
     }
@@ -299,7 +299,7 @@ class OrganizationTest extends DifferentialTestCase
      *
      * @param  array<string, string>  $owner
      */
-    private static function addMember(Server $server, array $owner, string $org, string $email): string
+    public static function addMember(Server $server, array $owner, string $org, string $email): string
     {
         $server->json('POST', "/api/organizations/{$org}/users/invite", ['emails' => [$email], 'groups' => [], 'type' => 2], $owner);
         $memberId = self::memberIds($server->send('GET', "/api/organizations/{$org}/users", $owner))[$email];
@@ -311,7 +311,7 @@ class OrganizationTest extends DifferentialTestCase
     /**
      * @return array<string, string> Membership id by email
      */
-    private static function memberIds(Exchange $members): array
+    public static function memberIds(Exchange $members): array
     {
         $ids = [];
         foreach ((array) $members->json('data') as $member) {
@@ -323,7 +323,7 @@ class OrganizationTest extends DifferentialTestCase
         return $ids;
     }
 
-    private static function byName(Exchange $exchange): Exchange
+    public static function byName(Exchange $exchange): Exchange
     {
         return $exchange->withBody(CipherTest::sortedByName($exchange->body));
     }
@@ -331,7 +331,7 @@ class OrganizationTest extends DifferentialTestCase
     /**
      * The ciphers, folders and collections of a sync in name order.
      */
-    private static function sortedSync(Exchange $exchange): Exchange
+    public static function sortedSync(Exchange $exchange): Exchange
     {
         $sync = json_decode($exchange->body, true);
         if (! is_array($sync)) {
@@ -349,7 +349,7 @@ class OrganizationTest extends DifferentialTestCase
     /**
      * A profile with its organizations in name order; the servers read them by index.
      */
-    private static function sortedProfile(Exchange $exchange): Exchange
+    public static function sortedProfile(Exchange $exchange): Exchange
     {
         $profile = json_decode($exchange->body, true);
         if (! is_array($profile)) {
@@ -367,7 +367,7 @@ class OrganizationTest extends DifferentialTestCase
     /**
      * A list of ids in sorted order; the servers read them in their own.
      */
-    private static function sortedIds(Exchange $exchange, string $path): Exchange
+    public static function sortedIds(Exchange $exchange, string $path): Exchange
     {
         $body = json_decode($exchange->body, true);
         if (! is_array($body)) {

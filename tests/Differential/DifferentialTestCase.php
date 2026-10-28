@@ -88,8 +88,23 @@ abstract class DifferentialTestCase extends TestCase
      */
     protected function assertSameFlows(callable $flow): array
     {
-        $reference = $flow(new Server((string) getenv('VW_REFERENCE_URL')));
-        $subject = $flow(new Server((string) getenv('VW_SUBJECT_URL')));
+        return $this->assertSameFlowsOn((string) getenv('VW_REFERENCE_URL'), (string) getenv('VW_SUBJECT_URL'), $flow);
+    }
+
+    /**
+     * assertSameFlows on another pair of servers, such as one with groups
+     * enabled (VW_GROUPS_REFERENCE_URL and VW_GROUPS_SUBJECT_URL).
+     *
+     * @param  callable(Server): array<string, Exchange>  $flow  The exchanges by step name
+     * @return array{array<string, Exchange>, array<string, Exchange>} Reference and subject
+     */
+    protected function assertSameFlowsOn(string $referenceUrl, string $subjectUrl, callable $flow): array
+    {
+        if ($referenceUrl === '' || $subjectUrl === '') {
+            $this->markTestSkipped('This pair of servers is not configured.');
+        }
+        $reference = $flow(new Server($referenceUrl));
+        $subject = $flow(new Server($subjectUrl));
 
         $this->assertSame(array_keys($reference), array_keys($subject), 'Steps of the flow');
         foreach ($reference as $step => $exchange) {

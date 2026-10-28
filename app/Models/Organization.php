@@ -138,15 +138,7 @@ final class Organization extends Model
             throw ApiError::message('Error deleting organization policy');
         }
 
-        // Group::delete_all_by_organization, with their collections and members.
-        try {
-            $groups = DB::table('groups')->where('organizations_uuid', $this->uuid)->pluck('uuid')->all();
-            DB::table('collections_groups')->whereIn('groups_uuid', $groups)->delete();
-            DB::table('groups_users')->whereIn('groups_uuid', $groups)->delete();
-            DB::table('groups')->where('organizations_uuid', $this->uuid)->delete();
-        } catch (QueryException) {
-            throw ApiError::message('Error deleting group');
-        }
+        Group::deleteAllByOrganization($this->uuid);
 
         try {
             DB::table('organization_api_key')->where('org_uuid', $this->uuid)->delete();

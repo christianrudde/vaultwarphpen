@@ -13,8 +13,9 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * A collection of an organization (Collection in src/db/models/collection.rs;
- * renamed so that it does not shadow Eloquent's collections). Access through
- * groups is not ported yet; the queries follow upstream without groups.
+ * renamed so that it does not shadow Eloquent's collections). Members reach
+ * it directly or, with ORG_GROUPS_ENABLED, through their groups; some of
+ * upstream's queries join the groups either way.
  *
  * @property string $uuid
  * @property string $org_uuid
@@ -60,7 +61,7 @@ final class OrgCollection extends Model
     /**
      * Collection::to_json_details: the user's own restrictions on the collection.
      *
-     * @param  array{members: array<string, Membership>, userCollections: array<string, CollectionUser>}|null  $sync
+     * @param  array{members: array<string, Membership>, userCollections: array<string, CollectionUser>, groupCollections: array<string, CollectionGroup>}|null  $sync
      * @return array<string, mixed>
      */
     public function toApiDetails(string $userUuid, ?array $sync = null): array
@@ -73,7 +74,7 @@ final class OrgCollection extends Model
                 // Owners and admins always manage; of full access members, managers too.
                 [$readOnly, $hidePasswords, $manage] = [false, false, $member->atLeast(Membership::TYPE_MANAGER)];
             } else {
-                $access = $sync['userCollections'][$this->uuid] ?? null;
+                $access = $sync['userCollections'][$this->uuid] ?? $sync['groupCollections'][$this->uuid] ?? null;
                 $isManager = $member->atype === Membership::TYPE_MANAGER;
                 [$readOnly, $hidePasswords, $manage] = $access === null
                     ? [false, false, false]
@@ -109,7 +110,10 @@ final class OrgCollection extends Model
     public static function canAccessCollection(Membership $member, string $collectionUuid): bool
     {
         return $member->status === Membership::STATUS_CONFIRMED
-            && ($member->hasFullAccess() || CollectionUser::hasAccessToCollectionByUser($collectionUuid, $member->user_uuid));
+            && ($member->hasFullAccess()
+                || CollectionUser::hasAccessToCollectionByUser($collectionUuid, $member->user_uuid)
+                || (Group::enabled() && (GroupUser::hasFullAccessByMember($member->org_uuid, $member->uuid)
+                    || GroupUser::hasAccessToCollectionByMember($collectionUuid, $member->uuid))));
     }
 
     /**
@@ -137,7 +141,7 @@ final class OrgCollection extends Model
         $this->updateUsersRevision();
         CollectionCipher::deleteAllByCollection($this->uuid);
         CollectionUser::deleteAllByCollection($this->uuid);
-        self::deleteGroupAccesses($this->uuid);
+        CollectionGroup::deleteAllByCollection($this->uuid, $this->org_uuid);
 
         try {
             self::query()->where('uuid', $this->uuid)->delete();
@@ -174,15 +178,17 @@ final class OrgCollection extends Model
     }
 
     /**
-     * The collections the user reaches: directly, or with access to all of a
-     * confirmed membership.
+     * The collections the user reaches: directly, with access to all of a
+     * confirmed membership, or through its groups.
      *
      * @return Collection<int, self>
      */
     public static function findByUserUuid(string $userUuid): Collection
     {
-        return self::withAccessOf($userUuid)
-            ->where(static fn (Builder $query) => $query->where('users_collections.user_uuid', $userUuid)->orWhere('users_organizations.access_all', true))
+        $groups = Group::enabled();
+
+        return self::withAccessOf($userUuid, $groups)
+            ->where(static fn (Builder $query) => self::groupAccess($query->where('users_collections.user_uuid', $userUuid)->orWhere('users_organizations.access_all', true), $groups))
             ->select('collections.*')
             ->distinct()
             ->get();
@@ -209,18 +215,21 @@ final class OrgCollection extends Model
      */
     public static function findByUuidAndUser(string $uuid, string $userUuid): ?self
     {
-        return self::withAccessOf($userUuid)
+        $groups = Group::enabled();
+
+        return self::withAccessOf($userUuid, $groups)
             ->where('collections.uuid', $uuid)
-            ->where(static fn (Builder $query) => $query->where('users_collections.collection_uuid', $uuid)
+            ->where(static fn (Builder $query) => self::groupAccess($query->where('users_collections.collection_uuid', $uuid)
                 ->orWhere('users_organizations.access_all', true)
-                ->orWhere('users_organizations.atype', '<=', Membership::TYPE_ADMIN))
+                ->orWhere('users_organizations.atype', '<=', Membership::TYPE_ADMIN), $groups))
             ->select('collections.*')
             ->first();
     }
 
     public function isWritableByUser(string $userUuid): bool
     {
-        return self::query()
+        $groups = Group::enabled();
+        $query = self::query()
             ->join('users_organizations', function (JoinClause $join) use ($userUuid): void {
                 $join->on('collections.org_uuid', '=', 'users_organizations.org_uuid')
                     ->where('users_organizations.user_uuid', '=', $userUuid)
@@ -229,11 +238,22 @@ final class OrgCollection extends Model
             ->leftJoin('users_collections', function (JoinClause $join) use ($userUuid): void {
                 $join->on('users_collections.collection_uuid', '=', 'collections.uuid')
                     ->where('users_collections.user_uuid', '=', $userUuid);
-            })
+            });
+        if ($groups) {
+            self::joinGroups($query);
+        }
+
+        return $query
             ->where('collections.uuid', $this->uuid)
-            ->where(fn (Builder $query) => $query->where('users_organizations.atype', '<=', Membership::TYPE_ADMIN)
-                ->orWhere('users_organizations.access_all', true)
-                ->orWhere(fn (Builder $query) => $query->where('users_collections.collection_uuid', $this->uuid)->where('users_collections.read_only', false)))
+            ->where(function (Builder $query) use ($groups): void {
+                $query->where('users_organizations.atype', '<=', Membership::TYPE_ADMIN)
+                    ->orWhere('users_organizations.access_all', true)
+                    ->orWhere(fn (Builder $query) => $query->where('users_collections.collection_uuid', $this->uuid)->where('users_collections.read_only', false));
+                if ($groups) {
+                    $query->orWhere('groups.access_all', true)
+                        ->orWhere(static fn (Builder $query) => $query->whereNotNull('collections_groups.collections_uuid')->where('collections_groups.read_only', false));
+                }
+            })
             ->exists();
     }
 
@@ -243,37 +263,39 @@ final class OrgCollection extends Model
      */
     public function hidePasswordsForUser(string $userUuid): bool
     {
-        return self::withAccessOf($userUuid)
+        // Upstream joins the groups here even when they are disabled.
+        return self::withAccessOf($userUuid, true)
             ->where('collections.uuid', $this->uuid)
             ->where(fn (Builder $query) => $query
                 ->where(fn (Builder $query) => $query->where('users_collections.collection_uuid', $this->uuid)->where('users_collections.hide_passwords', true))
                 ->orWhere('users_organizations.access_all', true)
-                ->orWhere('users_organizations.atype', '<=', Membership::TYPE_ADMIN))
+                ->orWhere('users_organizations.atype', '<=', Membership::TYPE_ADMIN)
+                ->orWhere('groups.access_all', true)
+                ->orWhere(static fn (Builder $query) => $query->whereColumn('groups_users.users_organizations_uuid', 'users_organizations.uuid')
+                    ->whereNotNull('collections_groups.collections_uuid')->where('collections_groups.hide_passwords', true)))
             ->exists();
     }
 
     public static function isCollManageableByUser(string $uuid, string $userUuid): bool
     {
-        return self::withAccessOf($userUuid)
+        // Upstream joins the groups here even when they are disabled.
+        return self::withAccessOf($userUuid, true)
             ->where('collections.uuid', $uuid)
             ->where(static fn (Builder $query) => $query
                 ->where(static fn (Builder $query) => $query->where('users_collections.collection_uuid', $uuid)->where('users_collections.manage', true))
                 ->orWhere('users_organizations.access_all', true)
-                ->orWhere('users_organizations.atype', '<=', Membership::TYPE_ADMIN))
+                ->orWhere('users_organizations.atype', '<=', Membership::TYPE_ADMIN)
+                ->orWhere('groups.access_all', true)
+                ->orWhere(static fn (Builder $query) => $query->whereColumn('groups_users.users_organizations_uuid', 'users_organizations.uuid')
+                    ->whereNotNull('collections_groups.collections_uuid')->where('collections_groups.manage', true)))
             ->exists();
     }
 
-    public function isManageableByUser(string $userUuid): bool
-    {
-        return self::isCollManageableByUser($this->uuid, $userUuid);
-    }
-
     /**
-     * Collections joined with the user's direct access and confirmed membership.
-     *
-     * @return Builder<self>
+     * Collection::has_manageable_collection_by_user: whether the user manages
+     * any collection of the organization, directly or through a group.
      */
-    private static function withAccessOf(string $userUuid): Builder
+    public static function hasManageableCollectionByUser(string $orgUuid, string $userUuid): bool
     {
         return self::query()
             ->leftJoin('users_collections', function (JoinClause $join) use ($userUuid): void {
@@ -284,20 +306,79 @@ final class OrgCollection extends Model
                 $join->on('collections.org_uuid', '=', 'users_organizations.org_uuid')
                     ->where('users_organizations.user_uuid', '=', $userUuid);
             })
-            ->where('users_organizations.status', Membership::STATUS_CONFIRMED);
+            ->leftJoin('groups_users', 'groups_users.users_organizations_uuid', '=', 'users_organizations.uuid')
+            ->leftJoin('collections_groups', function (JoinClause $join): void {
+                $join->on('collections_groups.groups_uuid', '=', 'groups_users.groups_uuid')
+                    ->on('collections_groups.collections_uuid', '=', 'collections.uuid');
+            })
+            ->where('collections.org_uuid', $orgUuid)
+            ->where('users_organizations.status', Membership::STATUS_CONFIRMED)
+            ->where(static fn (Builder $query) => $query->where('users_collections.manage', true)->orWhere('collections_groups.manage', true))
+            ->exists();
+    }
+
+    public function isManageableByUser(string $userUuid): bool
+    {
+        return self::isCollManageableByUser($this->uuid, $userUuid);
     }
 
     /**
-     * CollectionGroup::delete_all_by_collection
+     * Collections joined with the user's direct access and confirmed
+     * membership, and optionally with the membership's groups.
      *
-     * @throws ApiError
+     * @return Builder<self>
      */
-    private static function deleteGroupAccesses(string $collectionUuid): void
+    private static function withAccessOf(string $userUuid, bool $groups = false): Builder
     {
-        try {
-            DB::table('collections_groups')->where('collections_uuid', $collectionUuid)->delete();
-        } catch (QueryException) {
-            throw ApiError::message('Error deleting collection group');
+        $query = self::query()
+            ->leftJoin('users_collections', function (JoinClause $join) use ($userUuid): void {
+                $join->on('users_collections.collection_uuid', '=', 'collections.uuid')
+                    ->where('users_collections.user_uuid', '=', $userUuid);
+            })
+            ->leftJoin('users_organizations', function (JoinClause $join) use ($userUuid): void {
+                $join->on('collections.org_uuid', '=', 'users_organizations.org_uuid')
+                    ->where('users_organizations.user_uuid', '=', $userUuid);
+            });
+        if ($groups) {
+            self::joinGroups($query);
         }
+
+        return $query->where('users_organizations.status', Membership::STATUS_CONFIRMED);
+    }
+
+    /**
+     * The groups of the membership joined as users_organizations, and their
+     * access to the collection.
+     *
+     * @param  Builder<self>  $query
+     */
+    private static function joinGroups(Builder $query): void
+    {
+        $query->leftJoin('groups_users', 'groups_users.users_organizations_uuid', '=', 'users_organizations.uuid')
+            ->leftJoin('groups', function (JoinClause $join): void {
+                $join->on('groups.uuid', '=', 'groups_users.groups_uuid')
+                    ->on('groups.organizations_uuid', '=', 'users_organizations.org_uuid');
+            })
+            ->leftJoin('collections_groups', function (JoinClause $join): void {
+                $join->on('collections_groups.groups_uuid', '=', 'groups_users.groups_uuid')
+                    ->on('collections_groups.collections_uuid', '=', 'collections.uuid');
+            });
+    }
+
+    /**
+     * Access through a group with access to all, or with the collection.
+     *
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    private static function groupAccess(Builder $query, bool $groups): Builder
+    {
+        if ($groups) {
+            $query->orWhere('groups.access_all', true)
+                ->orWhere(static fn (Builder $query) => $query->whereColumn('groups_users.users_organizations_uuid', 'users_organizations.uuid')
+                    ->whereNotNull('collections_groups.collections_uuid'));
+        }
+
+        return $query;
     }
 }

@@ -144,6 +144,16 @@ Route::prefix('/api')->group(function (): void {
     Route::get('/organizations/{orgId}/collections/{colId}/details', [OrganizationsController::class, 'getOrgCollectionDetail'])->name('core::organizations::get_org_collection_detail');
     Route::get('/organizations/{orgId}/collections/{colId}/users', [OrganizationsController::class, 'getCollectionUsers'])->name('core::organizations::get_collection_users');
 
+    Route::get('/organizations/{orgId}/groups', [OrganizationsController::class, 'getGroups'])->name('core::organizations::get_groups');
+    Route::get('/organizations/{orgId}/groups/details', [OrganizationsController::class, 'getGroupsDetails'])->name('core::organizations::get_groups_details');
+    Route::post('/organizations/{orgId}/groups', [OrganizationsController::class, 'postGroups'])->name('core::organizations::post_groups');
+    Route::delete('/organizations/{orgId}/groups', [OrganizationsController::class, 'bulkDeleteGroups'])->name('core::organizations::bulk_delete_groups');
+    Route::get('/organizations/{orgId}/groups/{groupId}', [OrganizationsController::class, 'getGroup'])->name('core::organizations::get_group');
+    Route::put('/organizations/{orgId}/groups/{groupId}', [OrganizationsController::class, 'putGroup'])->name('core::organizations::put_group');
+    Route::delete('/organizations/{orgId}/groups/{groupId}', [OrganizationsController::class, 'deleteGroup'])->name('core::organizations::delete_group');
+    Route::get('/organizations/{orgId}/groups/{groupId}/details', [OrganizationsController::class, 'getGroupDetails'])->name('core::organizations::get_group_details');
+    Route::get('/organizations/{orgId}/groups/{groupId}/users', [OrganizationsController::class, 'getGroupMembers'])->name('core::organizations::get_group_members');
+
     // The static member routes before those with a member id, which would take their names too.
     Route::get('/organizations/{orgId}/users', [OrganizationsController::class, 'getMembers'])->name('core::organizations::get_members');
     Route::get('/organizations/{orgId}/users/mini-details', [OrganizationsController::class, 'getOrgUserMiniDetails'])->name('core::organizations::get_org_user_mini_details');

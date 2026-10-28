@@ -21,10 +21,12 @@ use App\Models\Archive;
 use App\Models\Attachment;
 use App\Models\Cipher;
 use App\Models\CollectionCipher;
+use App\Models\CollectionGroup;
 use App\Models\CollectionUser;
 use App\Models\Favorite;
 use App\Models\Folder;
 use App\Models\FolderCipher;
+use App\Models\Group;
 use App\Models\Membership;
 use App\Models\OrgCollection;
 use App\Models\OrgPolicy;
@@ -662,7 +664,7 @@ final readonly class CiphersController
     /**
      * The visible ciphers of the user, with the per-user data gathered once.
      *
-     * @param  array{folders: array<string, string>, favorites: list<string>, archives: array<string, DateTimeImmutable>, members: array<string, Membership>, collections: array<string, list<string>>, userCollections: array<string, CollectionUser>}|null  $sync
+     * @param  array{folders: array<string, string>, favorites: list<string>, archives: array<string, DateTimeImmutable>, members: array<string, Membership>, collections: array<string, list<string>>, userCollections: array<string, CollectionUser>, groupCollections: array<string, CollectionGroup>, groupFullAccessOrgs: list<string>}|null  $sync
      * @return list<array<string, mixed>>
      */
     public function ciphersJson(Headers $headers, ?array $sync = null): array
@@ -677,7 +679,7 @@ final readonly class CiphersController
      * CipherSyncData: what many ciphers and collections need, gathered once.
      * An organization's view has no folders, favorites or archives.
      *
-     * @return array{folders: array<string, string>, favorites: list<string>, archives: array<string, DateTimeImmutable>, members: array<string, Membership>, collections: array<string, list<string>>, userCollections: array<string, CollectionUser>}
+     * @return array{folders: array<string, string>, favorites: list<string>, archives: array<string, DateTimeImmutable>, members: array<string, Membership>, collections: array<string, list<string>>, userCollections: array<string, CollectionUser>, groupCollections: array<string, CollectionGroup>, groupFullAccessOrgs: list<string>}
      */
     public static function syncData(string $userUuid, bool $organizationView = false): array
     {
@@ -689,6 +691,20 @@ final readonly class CiphersController
         foreach (CollectionUser::findByUser($userUuid) as $access) {
             $userCollections[$access->collectionUuid] = $access;
         }
+        // Per collection the most permissive access of the user's groups.
+        $groupCollections = [];
+        if (Group::enabled()) {
+            foreach (CollectionGroup::findByUser($userUuid) as $access) {
+                $existing = $groupCollections[$access->collectionUuid] ?? null;
+                $groupCollections[$access->collectionUuid] = $existing === null ? $access : new CollectionGroup(
+                    $existing->collectionUuid,
+                    $existing->groupUuid,
+                    $existing->readOnly && $access->readOnly,
+                    $existing->hidePasswords && $access->hidePasswords,
+                    $existing->manage || $access->manage,
+                );
+            }
+        }
 
         return [
             'folders' => $organizationView ? [] : FolderCipher::folderByCipherForUser($userUuid),
@@ -697,6 +713,8 @@ final readonly class CiphersController
             'members' => $members,
             'collections' => Cipher::collectionsWithCipherByUser($userUuid),
             'userCollections' => $userCollections,
+            'groupCollections' => $groupCollections,
+            'groupFullAccessOrgs' => Group::enabled() ? Group::orgsByUserWithFullAccess($userUuid) : [],
         ];
     }
 

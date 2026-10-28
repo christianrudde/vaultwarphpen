@@ -21,7 +21,10 @@ use App\Http\HttpStatus;
 use App\Http\Json;
 use App\Models\Cipher;
 use App\Models\CollectionCipher;
+use App\Models\CollectionGroup;
 use App\Models\CollectionUser;
+use App\Models\Group;
+use App\Models\GroupUser;
 use App\Models\Invitation;
 use App\Models\Membership;
 use App\Models\Organization;
@@ -29,17 +32,15 @@ use App\Models\OrgCollection;
 use App\Models\OrgPolicy;
 use App\Models\User;
 use App\Support\Uuid;
-use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\DB;
 use stdClass;
 
 /**
- * src/api/core/organizations.rs: organizations, their members and
- * collections. Groups, policies, account recovery, API keys, import and
- * export are not ported yet; nor are the invitation mails, so the accept
- * route that their links lead to is missing too.
+ * src/api/core/organizations.rs: organizations, their members, collections
+ * and groups. Policies, account recovery, API keys, import and export are
+ * not ported yet; nor are the invitation mails, so the accept route that
+ * their links lead to is missing too.
  */
 final readonly class OrganizationsController
 {
@@ -216,7 +217,8 @@ final readonly class OrganizationsController
 
         $accesses = CollectionUser::findByOrganizationSwapUserUuidWithMemberUuid($orgId);
         $types = self::membershipTypes($orgId);
-        $fullAccess = $member->hasFullAccess();
+        $groups = Group::enabled();
+        $fullAccess = $member->hasFullAccess() || ($groups && GroupUser::hasFullAccessByMember($orgId, $member->uuid));
 
         // Owners, admins and managers with access to all are listed as well.
         $manageAll = array_values(Membership::findConfirmedAndManageAllByOrg($orgId)->map(static fn (Membership $manager): array => [
@@ -225,7 +227,9 @@ final readonly class OrganizationsController
 
         $data = [];
         foreach (OrgCollection::findByOrganization($orgId) as $collection) {
-            $assigned = $fullAccess || CollectionUser::hasAccessToCollectionByUser($collection->uuid, $member->user_uuid);
+            $assigned = $fullAccess
+                || CollectionUser::hasAccessToCollectionByUser($collection->uuid, $member->user_uuid)
+                || ($groups && GroupUser::hasAccessToCollectionByMember($collection->uuid, $member->uuid));
             if (! $assigned) {
                 continue;
             }
@@ -241,7 +245,7 @@ final readonly class OrganizationsController
                 ...$collection->toApiDetails($headers->user->uuid),
                 'assigned' => $assigned,
                 'users' => [...$users, ...$manageAll],
-                'groups' => [],
+                'groups' => self::collectionGroups($collection->uuid),
                 'object' => 'collectionAccessDetails',
                 'unmanaged' => false,
             ]);
@@ -382,7 +386,7 @@ final readonly class OrganizationsController
             ...$collection->toApiDetails($headers->user->uuid),
             'assigned' => OrgCollection::canAccessCollection($member, $collection->uuid),
             'users' => $users,
-            'groups' => [],
+            'groups' => self::collectionGroups($collection->uuid),
             'object' => 'collectionAccessDetails',
         ]));
     }
@@ -411,13 +415,13 @@ final readonly class OrganizationsController
     public function getMembers(ManagerHeadersLoose $headers, Request $request, string $orgId): Response
     {
         $includeCollections = self::optionalQueryBool($request, 'includeCollections');
-        self::optionalQueryBool($request, 'includeGroups');
+        $includeGroups = self::optionalQueryBool($request, 'includeGroups');
         $orgId = $this->orgId($request, $orgId, $headers);
         if (! $headers->membership->hasFullAccess()) {
             throw ApiError::message('Resource not found.', 404, 'User does not have full access');
         }
 
-        $members = Membership::findByOrg($orgId)->map(static fn (Membership $member): array => $member->toApiDetailsForAdmin($includeCollections ?? false))->all();
+        $members = Membership::findByOrg($orgId)->map(static fn (Membership $member): array => $member->toApiDetailsForAdmin($includeCollections ?? false, $includeGroups ?? false))->all();
 
         return Json::response(Json::sorted(['data' => array_values($members), 'object' => 'list', 'continuationToken' => null]));
     }
@@ -446,7 +450,7 @@ final readonly class OrganizationsController
 
         $member = Membership::findByUuidAndOrg($memberId, $orgId) ?? throw ApiError::message("The specified user isn't a member of the organization");
 
-        return Json::response($member->toApiDetailsForAdmin($includeCollections ?? $includeGroups));
+        return Json::response($member->toApiDetailsForAdmin($includeCollections ?? $includeGroups, $includeGroups));
     }
 
     /**
@@ -644,11 +648,7 @@ final readonly class OrganizationsController
             }
         }
 
-        try {
-            DB::table('groups_users')->where('users_organizations_uuid', $member->uuid)->delete();
-        } catch (QueryException) {
-            throw ApiError::message('Error deleting user groups');
-        }
+        GroupUser::deleteAllByMember($member->uuid);
         foreach ($groups as $group) {
             self::addToGroup($orgId, $group, $member->uuid);
         }
@@ -811,6 +811,248 @@ final readonly class OrganizationsController
         $ciphers = Cipher::findByOrg($orgId)->map(static fn (Cipher $cipher): array => $cipher->toApi($headers->host, $headers->user->uuid, $sync, organizationView: true))->all();
 
         return Json::response(Json::sorted(['data' => array_values($ciphers), 'object' => 'list', 'continuationToken' => null]));
+    }
+
+    /**
+     * GET /api/organizations/{org_id}/groups: for members with full access,
+     * also through a group, or who manage a collection, to assign groups.
+     */
+    public function getGroups(ManagerHeadersLoose $headers, Request $request, string $orgId): Response
+    {
+        return $this->groupsData(false, $headers, $request, $orgId);
+    }
+
+    /**
+     * GET /api/organizations/{org_id}/groups/details: with the groups'
+     * collections, for members with full access only.
+     */
+    public function getGroupsDetails(ManagerHeadersLoose $headers, Request $request, string $orgId): Response
+    {
+        return $this->groupsData(true, $headers, $request, $orgId);
+    }
+
+    /**
+     * POST /api/organizations/{org_id}/groups
+     */
+    public function postGroups(AdminHeaders $headers, Request $request, string $orgId): Response
+    {
+        $orgId = Uuid::parameter($request, $orgId);
+        $data = self::groupRequest(Body::json($request));
+        $this->checkGroups($orgId, $headers);
+        self::validateGroupRequest($orgId, $data);
+
+        $group = Group::new($orgId, $data['name'], $data['accessAll'], $data['externalId']);
+
+        return Json::response(self::addUpdateGroup($group, $data, $orgId));
+    }
+
+    /**
+     * PUT /api/organizations/{org_id}/groups/{group_id}: the external id stays,
+     * only the directory import sets it.
+     */
+    public function putGroup(AdminHeaders $headers, Request $request, string $orgId, string $groupId): Response
+    {
+        $orgId = Uuid::parameter($request, $orgId);
+        $groupId = Uuid::parameter($request, $groupId);
+        $data = self::groupRequest(Body::json($request));
+        $this->checkGroups($orgId, $headers);
+
+        $group = self::findGroup($groupId, $orgId);
+        self::validateGroupRequest($orgId, $data);
+        $group->name = $data['name'];
+        $group->access_all = $data['accessAll'];
+
+        CollectionGroup::deleteAllByGroup($groupId, $orgId);
+        GroupUser::deleteAllByGroup($groupId, $orgId);
+
+        return Json::response(self::addUpdateGroup($group, $data, $orgId));
+    }
+
+    /**
+     * GET /api/organizations/{org_id}/groups/{group_id}/details
+     */
+    public function getGroupDetails(AdminHeaders $headers, Request $request, string $orgId, string $groupId): Response
+    {
+        $orgId = Uuid::parameter($request, $orgId);
+        $groupId = Uuid::parameter($request, $groupId);
+        $this->checkGroups($orgId, $headers);
+
+        return Json::response(self::findGroup($groupId, $orgId)->toApiDetails());
+    }
+
+    /**
+     * DELETE /api/organizations/{org_id}/groups/{group_id}
+     */
+    public function deleteGroup(AdminHeaders $headers, Request $request, string $orgId, string $groupId): EmptyResponse
+    {
+        $orgId = Uuid::parameter($request, $orgId);
+        $this->deleteGroupImpl($orgId, Uuid::parameter($request, $groupId), $headers);
+
+        return new EmptyResponse;
+    }
+
+    /**
+     * DELETE /api/organizations/{org_id}/groups: one after the other, until one fails.
+     */
+    public function bulkDeleteGroups(AdminHeaders $headers, Request $request, string $orgId): EmptyResponse
+    {
+        $orgId = Uuid::parameter($request, $orgId);
+        $ids = Body::json($request)->stringList('ids');
+        $this->checkGroups($orgId, $headers);
+
+        foreach ($ids as $groupId) {
+            $this->deleteGroupImpl($orgId, $groupId, $headers);
+        }
+
+        return new EmptyResponse;
+    }
+
+    /**
+     * GET /api/organizations/{org_id}/groups/{group_id}
+     */
+    public function getGroup(AdminHeaders $headers, Request $request, string $orgId, string $groupId): Response
+    {
+        $orgId = Uuid::parameter($request, $orgId);
+        $groupId = Uuid::parameter($request, $groupId);
+        $this->checkGroups($orgId, $headers);
+
+        return Json::response(self::findGroup($groupId, $orgId)->toApi());
+    }
+
+    /**
+     * GET /api/organizations/{org_id}/groups/{group_id}/users: the ids of its memberships.
+     */
+    public function getGroupMembers(AdminHeaders $headers, Request $request, string $orgId, string $groupId): Response
+    {
+        $orgId = Uuid::parameter($request, $orgId);
+        $groupId = Uuid::parameter($request, $groupId);
+        $this->checkGroups($orgId, $headers);
+
+        Group::findByUuidAndOrg($groupId, $orgId)
+            ?? throw ApiError::message('Group could not be found!', logMessage: 'Group uuid is invalid or does not belong to the organization');
+
+        return Json::response(array_map(static fn (GroupUser $groupUser): string => $groupUser->membershipUuid, GroupUser::findByGroup($groupId, $orgId)));
+    }
+
+    /**
+     * get_groups_data
+     *
+     * @throws ApiError|HttpStatus
+     */
+    private function groupsData(bool $details, ManagerHeadersLoose $headers, Request $request, string $orgId): Response
+    {
+        $orgId = $this->orgId($request, $orgId, $headers);
+        $member = $headers->membership;
+
+        $fullAccess = $member->hasFullAccess() || (Group::enabled() && GroupUser::hasFullAccessByMember($orgId, $member->uuid));
+        $allowed = $details ? $fullAccess : $fullAccess || OrgCollection::hasManageableCollectionByUser($orgId, $member->user_uuid);
+        if (! $allowed) {
+            throw ApiError::message('Resource not found.', 404, 'User does not have access');
+        }
+
+        // Clients ask regardless of whether groups are enabled.
+        $groups = Group::enabled()
+            ? array_values(Group::findByOrganization($orgId)->map(static fn (Group $group): array => $details ? $group->toApiDetails() : $group->toApi())->all())
+            : [];
+
+        return Json::response(Json::sorted(['data' => $groups, 'object' => 'list', 'continuationToken' => null]));
+    }
+
+    /**
+     * The checks every group route of admins starts with.
+     *
+     * @throws ApiError
+     */
+    private function checkGroups(string $orgId, AdminHeaders $headers): void
+    {
+        if ($orgId !== $headers->membership->org_uuid) {
+            throw ApiError::message('Organization not found', logMessage: "Organization id's do not match");
+        }
+        if (! Group::enabled()) {
+            throw ApiError::message('Group support is disabled');
+        }
+    }
+
+    /**
+     * @throws ApiError
+     */
+    private function deleteGroupImpl(string $orgId, string $groupId, AdminHeaders $headers): void
+    {
+        $this->checkGroups($orgId, $headers);
+        self::findGroup($groupId, $orgId)->deleteGroup($orgId);
+    }
+
+    /**
+     * @throws ApiError
+     */
+    private static function findGroup(string $groupId, string $orgId): Group
+    {
+        return Group::findByUuidAndOrg($groupId, $orgId)
+            ?? throw ApiError::message('Group not found', logMessage: 'Group uuid is invalid or does not belong to the organization');
+    }
+
+    /**
+     * GroupRequest
+     *
+     * @return array{name: string, accessAll: bool, externalId: ?string, collections: list<array{id: string, readOnly: bool, hidePasswords: bool, manage: bool}>, users: list<string>}
+     *
+     * @throws HttpStatus
+     */
+    private static function groupRequest(Fields $body): array
+    {
+        return [
+            'name' => $body->string('name'),
+            'accessAll' => $body->defaultBool('accessAll'),
+            'externalId' => $body->optionalString('externalId'),
+            'collections' => array_map(self::collectionAccessData(...), $body->objectList('collections')),
+            'users' => $body->stringList('users'),
+        ];
+    }
+
+    /**
+     * GroupRequest::validate: the collections and members must be the organization's.
+     *
+     * @param  array{collections: list<array{id: string, readOnly: bool, hidePasswords: bool, manage: bool}>, users: list<string>}  $data
+     *
+     * @throws ApiError
+     */
+    private static function validateGroupRequest(string $orgId, array $data): void
+    {
+        $collections = OrgCollection::findByOrganization($orgId)->pluck('uuid')->all();
+        foreach ($data['collections'] as $collection) {
+            if (! in_array($collection['id'], $collections, true)) {
+                throw ApiError::message('Invalid collection', logMessage: "Collection {$collection['id']} does not belong to organization {$orgId}!");
+            }
+        }
+
+        $members = Membership::findByOrg($orgId)->pluck('uuid')->all();
+        foreach ($data['users'] as $memberId) {
+            if (! in_array($memberId, $members, true)) {
+                throw ApiError::message('Invalid member', logMessage: "Member {$memberId} does not belong to organization {$orgId}!");
+            }
+        }
+    }
+
+    /**
+     * add_update_group: saves the group with its collections and members.
+     *
+     * @param  array{collections: list<array{id: string, readOnly: bool, hidePasswords: bool, manage: bool}>, users: list<string>}  $data
+     * @return array<string, mixed>
+     *
+     * @throws ApiError
+     */
+    private static function addUpdateGroup(Group $group, array $data, string $orgId): array
+    {
+        $group->save();
+
+        foreach ($data['collections'] as $collection) {
+            (new CollectionGroup($collection['id'], $group->uuid, $collection['readOnly'], $collection['hidePasswords'], $collection['manage']))->save($orgId);
+        }
+        foreach ($data['users'] as $memberId) {
+            (new GroupUser($group->uuid, $memberId))->save();
+        }
+
+        return $group->toApi();
     }
 
     /**
@@ -1063,11 +1305,7 @@ final readonly class OrganizationsController
      */
     private static function replaceCollectionAccess(string $orgId, string $collectionId, array $groups, array $users): void
     {
-        try {
-            DB::table('collections_groups')->where('collections_uuid', $collectionId)->delete();
-        } catch (QueryException) {
-            throw ApiError::message('Error deleting collection group');
-        }
+        CollectionGroup::deleteAllByCollection($collectionId, $orgId);
         CollectionUser::deleteAllByCollection($collectionId);
         self::saveCollectionAccess($orgId, $collectionId, $groups, $users);
     }
@@ -1083,15 +1321,7 @@ final readonly class OrganizationsController
     private static function saveCollectionAccess(string $orgId, string $collectionId, array $groups, array $users): void
     {
         foreach ($groups as $group) {
-            try {
-                DB::table('collections_groups')->upsert(
-                    [['collections_uuid' => $collectionId, 'groups_uuid' => $group['id'], 'read_only' => $group['readOnly'], 'hide_passwords' => $group['hidePasswords'], 'manage' => $group['manage']]],
-                    ['collections_uuid', 'groups_uuid'],
-                    ['read_only', 'hide_passwords', 'manage'],
-                );
-            } catch (QueryException) {
-                throw ApiError::message('Error adding group to collection');
-            }
+            (new CollectionGroup($collectionId, $group['id'], $group['readOnly'], $group['hidePasswords'], $group['manage']))->save($orgId);
         }
 
         foreach ($users as $user) {
@@ -1120,7 +1350,7 @@ final readonly class OrganizationsController
      */
     private static function groupIds(string $orgId): array
     {
-        return array_values(array_filter(DB::table('groups')->where('organizations_uuid', $orgId)->pluck('uuid')->all(), is_string(...)));
+        return array_values(Group::findByOrganization($orgId)->map(static fn (Group $group): string => $group->uuid)->all());
     }
 
     /**
@@ -1128,14 +1358,21 @@ final readonly class OrganizationsController
      */
     private static function addToGroup(string $orgId, string $groupId, string $memberId): void
     {
-        if (! DB::table('groups')->where('uuid', $groupId)->where('organizations_uuid', $orgId)->exists()) {
-            throw ApiError::message('Group not found in Organization');
-        }
-        try {
-            DB::table('groups_users')->insertOrIgnore(['groups_uuid' => $groupId, 'users_organizations_uuid' => $memberId]);
-        } catch (QueryException) {
-            throw ApiError::message('Error adding user to group');
-        }
+        Group::findByUuidAndOrg($groupId, $orgId) ?? throw ApiError::message('Group not found in Organization');
+        (new GroupUser($groupId, $memberId))->save();
+    }
+
+    /**
+     * The groups' accesses to a collection; none while groups are disabled,
+     * as the clients ask regardless.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private static function collectionGroups(string $collectionUuid): array
+    {
+        return Group::enabled()
+            ? array_map(static fn (CollectionGroup $access): array => $access->toApiDetailsForGroup(), CollectionGroup::findByCollection($collectionUuid))
+            : [];
     }
 
     /**
