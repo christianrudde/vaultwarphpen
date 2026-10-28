@@ -4,8 +4,8 @@ Vaultwarphpen uses Vaultwarden's database, data folder and settings unchanged. A
 can therefore move over, and back again.
 
 > [!WARNING]
-> Vaultwarphpen does not have all of Vaultwarden's features yet: two-step login, emergency access, the
-> admin panel, the web vault, push notifications and mails are missing (see the
+> Vaultwarphpen does not have all of Vaultwarden's features yet: two-step login, the admin panel, the
+> web vault, push notifications and mails are missing (see the
 > [README](../README.md#status)). Users who rely on them cannot use it yet. Try the move with a copy of
 > your data first.
 

@@ -8,11 +8,11 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 
 | Area | Total | ✅ | 🟨 | ⬜ | ➖ | With tests |
 |---|--:|--:|--:|--:|--:|--:|
-| Routes | 294 | 127 | 64 | 102 | 1 | 191 |
-| Settings | 153 | 64 | 89 | 0 | 0 | 153 |
+| Routes | 294 | 145 | 64 | 84 | 1 | 209 |
+| Settings | 153 | 65 | 88 | 0 | 0 | 153 |
 | Scheduled jobs | 9 | 9 | 0 | 0 | 0 | 9 |
 | Database tables | 28 | 28 | 0 | 0 | 0 | 28 |
-| Templates | 74 | 21 | 53 | 0 | 0 | 74 |
+| Templates | 74 | 33 | 41 | 0 | 0 | 74 |
 | Static assets | 21 | 0 | 0 | 21 | 0 | 0 |
 
 ## Routes
@@ -138,24 +138,24 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | PUT `/api/ciphers/archive` | src/api/core/ciphers.rs:1837 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
 | 🟨 | PUT `/api/ciphers/{cipher_id}/unarchive` | src/api/core/ciphers.rs:1847 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
 | 🟨 | PUT `/api/ciphers/unarchive` | src/api/core/ciphers.rs:1852 | 1 | Personal vault compared with Vaultwarden in tests/Differential/CipherTest; organization ciphers answer "Organizations are not implemented yet". No live notifications. |
-| ⬜ | GET `/api/emergency-access/trusted` | src/api/core/emergency_access.rs:51 | 0 |  |
-| ⬜ | GET `/api/emergency-access/granted` | src/api/core/emergency_access.rs:72 | 0 |  |
-| ⬜ | GET `/api/emergency-access/{emer_id}` | src/api/core/emergency_access.rs:91 | 0 |  |
-| ⬜ | PUT `/api/emergency-access/{emer_id}` | src/api/core/emergency_access.rs:118 | 0 |  |
-| ⬜ | POST `/api/emergency-access/{emer_id}` | src/api/core/emergency_access.rs:128 | 0 |  |
-| ⬜ | DELETE `/api/emergency-access/{emer_id}` | src/api/core/emergency_access.rs:167 | 0 |  |
-| ⬜ | POST `/api/emergency-access/{emer_id}/delete` | src/api/core/emergency_access.rs:190 | 0 |  |
-| ⬜ | POST `/api/emergency-access/invite` | src/api/core/emergency_access.rs:207 | 0 |  |
-| ⬜ | POST `/api/emergency-access/{emer_id}/reinvite` | src/api/core/emergency_access.rs:288 | 0 |  |
-| ⬜ | POST `/api/emergency-access/{emer_id}/accept` | src/api/core/emergency_access.rs:338 | 0 |  |
-| ⬜ | POST `/api/emergency-access/{emer_id}/confirm` | src/api/core/emergency_access.rs:399 | 0 |  |
-| ⬜ | POST `/api/emergency-access/{emer_id}/initiate` | src/api/core/emergency_access.rs:452 | 0 |  |
-| ⬜ | POST `/api/emergency-access/{emer_id}/approve` | src/api/core/emergency_access.rs:503 | 0 |  |
-| ⬜ | POST `/api/emergency-access/{emer_id}/reject` | src/api/core/emergency_access.rs:544 | 0 |  |
-| ⬜ | POST `/api/emergency-access/{emer_id}/takeover` | src/api/core/emergency_access.rs:619 | 0 |  |
-| ⬜ | POST `/api/emergency-access/{emer_id}/password` | src/api/core/emergency_access.rs:663 | 0 |  |
-| ⬜ | POST `/api/emergency-access/{emer_id}/view` | src/api/core/emergency_access.rs:581 | 0 |  |
-| ⬜ | GET `/api/emergency-access/{emer_id}/policies` | src/api/core/emergency_access.rs:722 | 0 |  |
+| ✅ | GET `/api/emergency-access/trusted` | src/api/core/emergency_access.rs:51 | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest, without mail and with it (mails included). |
+| ✅ | GET `/api/emergency-access/granted` | src/api/core/emergency_access.rs:72 | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest, without mail and with it (mails included). |
+| ✅ | GET `/api/emergency-access/{emer_id}` | src/api/core/emergency_access.rs:91 | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest, without mail and with it (mails included). |
+| ✅ | PUT `/api/emergency-access/{emer_id}` | src/api/core/emergency_access.rs:118 | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest, without mail and with it (mails included). |
+| ✅ | POST `/api/emergency-access/{emer_id}` | src/api/core/emergency_access.rs:128 | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest, without mail and with it (mails included). |
+| ✅ | DELETE `/api/emergency-access/{emer_id}` | src/api/core/emergency_access.rs:167 | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest, without mail and with it (mails included). |
+| ✅ | POST `/api/emergency-access/{emer_id}/delete` | src/api/core/emergency_access.rs:190 | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest, without mail and with it (mails included). |
+| ✅ | POST `/api/emergency-access/invite` | src/api/core/emergency_access.rs:207 | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest, without mail and with it (mails included). |
+| ✅ | POST `/api/emergency-access/{emer_id}/reinvite` | src/api/core/emergency_access.rs:288 | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest, without mail and with it (mails included). |
+| ✅ | POST `/api/emergency-access/{emer_id}/accept` | src/api/core/emergency_access.rs:338 | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest with mail, mails included; without mail an invitation is accepted at once or at registration. |
+| ✅ | POST `/api/emergency-access/{emer_id}/confirm` | src/api/core/emergency_access.rs:399 | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest, without mail and with it (mails included). |
+| ✅ | POST `/api/emergency-access/{emer_id}/initiate` | src/api/core/emergency_access.rs:452 | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest, without mail and with it (mails included). |
+| ✅ | POST `/api/emergency-access/{emer_id}/approve` | src/api/core/emergency_access.rs:503 | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest, without mail and with it (mails included). |
+| ✅ | POST `/api/emergency-access/{emer_id}/reject` | src/api/core/emergency_access.rs:544 | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest, without mail and with it (mails included). |
+| ✅ | POST `/api/emergency-access/{emer_id}/takeover` | src/api/core/emergency_access.rs:619 | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest, without mail and with it (mails included). |
+| ✅ | POST `/api/emergency-access/{emer_id}/password` | src/api/core/emergency_access.rs:663 | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest, without mail and with it (mails included). |
+| ✅ | POST `/api/emergency-access/{emer_id}/view` | src/api/core/emergency_access.rs:581 | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest, without mail and with it (mails included). |
+| ✅ | GET `/api/emergency-access/{emer_id}/policies` | src/api/core/emergency_access.rs:722 | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest, without mail and with it (mails included). |
 | ✅ | GET `/api/organizations/{org_id}/events` | src/api/core/events.rs:42 | 1 | Compared with Vaultwarden in tests/Differential/EventTest, with ORG_EVENTS_ENABLED on and off. |
 | ✅ | GET `/api/ciphers/{cipher_id}/events` | src/api/core/events.rs:69 | 1 | Compared with Vaultwarden in tests/Differential/EventTest, with ORG_EVENTS_ENABLED on and off. |
 | ✅ | GET `/api/organizations/{org_id}/users/{member_id}/events` | src/api/core/events.rs:90 | 1 | Compared with Vaultwarden in tests/Differential/EventTest, with ORG_EVENTS_ENABLED on and off. |
@@ -304,7 +304,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | POST `/identity/accounts/prelogin` | src/api/identity.rs:1019 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
 | ✅ | POST `/identity/accounts/prelogin/password` | src/api/identity.rs:1024 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. |
 | 🟨 | POST `/identity/accounts/register/send-verification-email` | src/api/identity.rs:1050 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Not yet: sending the verification mail (SMTP is not ported). |
-| 🟨 | POST `/identity/accounts/register/finish` | src/api/identity.rs:1099 | 2 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Normal, organization and emergency access registrations. Not yet: welcome mails and email 2FA activation (SMTP is not ported). |
+| 🟨 | POST `/identity/accounts/register/finish` | src/api/identity.rs:1099 | 3 | Compared with Vaultwarden in tests/Differential: same status, headers and body. Normal, organization and emergency access registrations. Not yet: welcome mails and email 2FA activation (SMTP is not ported). |
 | ⬜ | GET `/identity/sso/prevalidate` | src/api/identity.rs:1176 | 0 |  |
 | ⬜ | GET `/identity/connect/authorize` | src/api/identity.rs:1292 | 0 |  |
 | ⬜ | GET `/identity/connect/oidc-signin` | src/api/identity.rs:1190 | 0 |  |
@@ -365,7 +365,7 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `ORG_CREATION_USERS` | src/config.rs:648 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `INVITATIONS_ALLOWED` | src/config.rs:650 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | 🟨 | `INVITATION_EXPIRATION_HOURS` | src/config.rs:653 | 1 | Sets the lifetime of mailed tokens in App\Mail\Mail; not compared with Vaultwarden. |
-| 🟨 | `EMERGENCY_ACCESS_ALLOWED` | src/config.rs:655 | 1 | The scheduled emergency access jobs honour it; the emergency access routes are not ported yet. |
+| ✅ | `EMERGENCY_ACCESS_ALLOWED` | src/config.rs:655 | 2 | The emergency access routes, registration with an emergency invitation and the scheduled jobs honour it (tests/Feature/Api/EmergencyAccessTest, tests/Feature/Scheduler). |
 | 🟨 | `EMAIL_CHANGE_ALLOWED` | src/config.rs:657 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
 | ✅ | `PASSWORD_ITERATIONS` | src/config.rs:660 | 2 | Read like Vaultwarden and used by registration and login. |
 | 🟨 | `PASSWORD_HINTS_ALLOWED` | src/config.rs:662 | 1 | Read, defaulted and validated like Vaultwarden (App\Config); the feature behind it is not implemented yet. |
@@ -543,20 +543,20 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | ✅ | `email/email_footer` | src/static/templates/email/email_footer.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
 | ✅ | `email/email_footer_text` | src/static/templates/email/email_footer_text.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
 | ✅ | `email/email_header` | src/static/templates/email/email_header.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
-| 🟨 | `email/emergency_access_invite_accepted` | src/static/templates/email/emergency_access_invite_accepted.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/emergency_access_invite_accepted.html` | src/static/templates/email/emergency_access_invite_accepted.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/emergency_access_invite_confirmed` | src/static/templates/email/emergency_access_invite_confirmed.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/emergency_access_invite_confirmed.html` | src/static/templates/email/emergency_access_invite_confirmed.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/emergency_access_recovery_approved` | src/static/templates/email/emergency_access_recovery_approved.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/emergency_access_recovery_approved.html` | src/static/templates/email/emergency_access_recovery_approved.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/emergency_access_recovery_initiated` | src/static/templates/email/emergency_access_recovery_initiated.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/emergency_access_recovery_initiated.html` | src/static/templates/email/emergency_access_recovery_initiated.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/emergency_access_recovery_rejected` | src/static/templates/email/emergency_access_recovery_rejected.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/emergency_access_recovery_rejected.html` | src/static/templates/email/emergency_access_recovery_rejected.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/emergency_access_recovery_reminder` | src/static/templates/email/emergency_access_recovery_reminder.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/emergency_access_recovery_reminder.html` | src/static/templates/email/emergency_access_recovery_reminder.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/emergency_access_recovery_timed_out` | src/static/templates/email/emergency_access_recovery_timed_out.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/emergency_access_recovery_timed_out.html` | src/static/templates/email/emergency_access_recovery_timed_out.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| ✅ | `email/emergency_access_invite_accepted` | src/static/templates/email/emergency_access_invite_accepted.hbs | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest: subject, text and HTML of the mail. |
+| ✅ | `email/emergency_access_invite_accepted.html` | src/static/templates/email/emergency_access_invite_accepted.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest: subject, text and HTML of the mail. |
+| ✅ | `email/emergency_access_invite_confirmed` | src/static/templates/email/emergency_access_invite_confirmed.hbs | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest: subject, text and HTML of the mail. |
+| ✅ | `email/emergency_access_invite_confirmed.html` | src/static/templates/email/emergency_access_invite_confirmed.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest: subject, text and HTML of the mail. |
+| ✅ | `email/emergency_access_recovery_approved` | src/static/templates/email/emergency_access_recovery_approved.hbs | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest: subject, text and HTML of the mail. |
+| ✅ | `email/emergency_access_recovery_approved.html` | src/static/templates/email/emergency_access_recovery_approved.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest: subject, text and HTML of the mail. |
+| ✅ | `email/emergency_access_recovery_initiated` | src/static/templates/email/emergency_access_recovery_initiated.hbs | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest: subject, text and HTML of the mail. |
+| ✅ | `email/emergency_access_recovery_initiated.html` | src/static/templates/email/emergency_access_recovery_initiated.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest: subject, text and HTML of the mail. |
+| ✅ | `email/emergency_access_recovery_rejected` | src/static/templates/email/emergency_access_recovery_rejected.hbs | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest: subject, text and HTML of the mail. |
+| ✅ | `email/emergency_access_recovery_rejected.html` | src/static/templates/email/emergency_access_recovery_rejected.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest: subject, text and HTML of the mail. |
+| 🟨 | `email/emergency_access_recovery_reminder` | src/static/templates/email/emergency_access_recovery_reminder.hbs | 1 | App\Mail\Mail renders it and the scheduled job sends it (tests/Feature/Scheduler/ScheduledJobsTest); not compared with Vaultwarden, whose job only acts after a day of wait time. |
+| 🟨 | `email/emergency_access_recovery_reminder.html` | src/static/templates/email/emergency_access_recovery_reminder.html.hbs | 1 | App\Mail\Mail renders it and the scheduled job sends it (tests/Feature/Scheduler/ScheduledJobsTest); not compared with Vaultwarden, whose job only acts after a day of wait time. |
+| 🟨 | `email/emergency_access_recovery_timed_out` | src/static/templates/email/emergency_access_recovery_timed_out.hbs | 1 | App\Mail\Mail renders it and the scheduled job sends it (tests/Feature/Scheduler/ScheduledJobsTest); not compared with Vaultwarden, whose job only acts after a day of wait time. |
+| 🟨 | `email/emergency_access_recovery_timed_out.html` | src/static/templates/email/emergency_access_recovery_timed_out.html.hbs | 1 | App\Mail\Mail renders it and the scheduled job sends it (tests/Feature/Scheduler/ScheduledJobsTest); not compared with Vaultwarden, whose job only acts after a day of wait time. |
 | 🟨 | `email/incomplete_2fa_login` | src/static/templates/email/incomplete_2fa_login.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
 | 🟨 | `email/incomplete_2fa_login.html` | src/static/templates/email/incomplete_2fa_login.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
 | ✅ | `email/invite_accepted` | src/static/templates/email/invite_accepted.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
@@ -577,8 +577,8 @@ Status: ✅ done (needs a test) · 🟨 partial · ⬜ todo · ➖ won't fix
 | 🟨 | `email/register_verify_email.html` | src/static/templates/email/register_verify_email.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
 | ✅ | `email/send_2fa_removed_from_org` | src/static/templates/email/send_2fa_removed_from_org.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
 | ✅ | `email/send_2fa_removed_from_org.html` | src/static/templates/email/send_2fa_removed_from_org.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
-| 🟨 | `email/send_emergency_access_invite` | src/static/templates/email/send_emergency_access_invite.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
-| 🟨 | `email/send_emergency_access_invite.html` | src/static/templates/email/send_emergency_access_invite.html.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
+| ✅ | `email/send_emergency_access_invite` | src/static/templates/email/send_emergency_access_invite.hbs | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest: subject, text and HTML of the mail. |
+| ✅ | `email/send_emergency_access_invite.html` | src/static/templates/email/send_emergency_access_invite.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/EmergencyAccessTest: subject, text and HTML of the mail. |
 | ✅ | `email/send_org_invite` | src/static/templates/email/send_org_invite.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
 | ✅ | `email/send_org_invite.html` | src/static/templates/email/send_org_invite.html.hbs | 2 | Compared with Vaultwarden in tests/Differential/MailTest: subject, text and HTML of the mail. |
 | 🟨 | `email/send_single_org_removed_from_org` | src/static/templates/email/send_single_org_removed_from_org.hbs | 1 | App\Mail\Mail renders and sends it (tests/Feature/Mail/MailTest); the route or job that sends it is not ported yet. |
