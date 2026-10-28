@@ -62,6 +62,7 @@ Route::prefix('/api')->group(function (): void {
     Route::post('/ciphers/purge', [CiphersController::class, 'purgeVault'])->name('core::ciphers::purge_personal_vault');
     Route::put('/ciphers/share', [CiphersController::class, 'putCipherShareSelected'])->name('core::ciphers::put_cipher_share_selected');
     Route::get('/ciphers/organization-details', [OrganizationsController::class, 'getOrgDetails'])->name('core::organizations::get_org_details');
+    Route::post('/ciphers/import-organization', [OrganizationsController::class, 'postOrgImport'])->name('core::organizations::post_org_import');
     Route::post('/ciphers/bulk-collections', [OrganizationsController::class, 'postBulkCollections'])->name('core::organizations::post_bulk_collections');
     Route::post('/ciphers/create', [CiphersController::class, 'postCiphersCreate'])->name('core::ciphers::post_ciphers_create');
     Route::post('/ciphers/admin', [CiphersController::class, 'postCiphersCreate'])->name('core::ciphers::post_ciphers_admin');
@@ -145,6 +146,7 @@ Route::prefix('/api')->group(function (): void {
     Route::get('/organizations/{orgId}/collections/{colId}/details', [OrganizationsController::class, 'getOrgCollectionDetail'])->name('core::organizations::get_org_collection_detail');
     Route::get('/organizations/{orgId}/collections/{colId}/users', [OrganizationsController::class, 'getCollectionUsers'])->name('core::organizations::get_collection_users');
 
+    Route::get('/organizations/{orgId}/export', [OrganizationsController::class, 'getOrgExport'])->name('core::organizations::get_org_export');
     Route::post('/organizations/{orgId}/api-key', [OrganizationsController::class, 'postApiKey'])->name('core::organizations::post_api_key');
     Route::post('/organizations/{orgId}/rotate-api-key', [OrganizationsController::class, 'rotateApiKey'])->name('core::organizations::rotate_api_key');
     Route::get('/organizations/{orgId}/policies', [OrganizationsController::class, 'listPolicies'])->name('core::organizations::list_policies');

@@ -44,6 +44,35 @@ final class JsonValue
     }
 
     /**
+     * util::convert_json_key_lcase_first for values built here: the keys of
+     * every object, as stdClass or array, with a lower-cased first letter.
+     */
+    public static function lowercaseFirstKeys(mixed $value): mixed
+    {
+        if ($value instanceof stdClass) {
+            $value = get_object_vars($value);
+            if ($value === []) {
+                return new stdClass;
+            }
+        }
+        if (! is_array($value)) {
+            return $value;
+        }
+        if (array_is_list($value)) {
+            return array_map(self::lowercaseFirstKeys(...), $value);
+        }
+
+        $result = [];
+        foreach ($value as $key => $item) {
+            $key = (string) $key;
+            $key = strtolower($key) === 'ssn' ? 'ssn' : mb_strtolower(mb_substr($key, 0, 1)).mb_substr($key, 1);
+            $result[$key] = self::lowercaseFirstKeys($item);
+        }
+
+        return $result;
+    }
+
+    /**
      * Objects as arrays, keeping empty ones as objects.
      */
     public static function toArrays(mixed $value): mixed

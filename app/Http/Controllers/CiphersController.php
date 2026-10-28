@@ -924,7 +924,7 @@ final readonly class CiphersController
      *
      * @throws ApiError
      */
-    private function validateCipherData(array $ciphers): void
+    public function validateCipherData(array $ciphers): void
     {
         $maxNoteSize = $this->config->int('_max_note_size');
         $errors = [];

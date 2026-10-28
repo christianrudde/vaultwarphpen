@@ -15,6 +15,7 @@ use App\Config\Config;
 use App\Http\ApiError;
 use App\Http\Data\AuthenticationData;
 use App\Http\Data\Body;
+use App\Http\Data\CipherData;
 use App\Http\Data\Fields;
 use App\Http\Data\NumberOrString;
 use App\Http\Data\PasswordOrOtpData;
@@ -48,9 +49,9 @@ use stdClass;
 
 /**
  * src/api/core/organizations.rs: organizations, their members, collections,
- * groups, policies, account recovery and API keys. Import and export are
- * not ported yet; nor are the mails (account recovery needs them), so the
- * accept route that the invitation links lead to is missing too.
+ * groups, policies, account recovery, API keys, import and export. The
+ * mails are not ported yet (account recovery needs them), so the accept
+ * route that the invitation links lead to is missing too.
  */
 final readonly class OrganizationsController
 {
@@ -965,6 +966,105 @@ final readonly class OrganizationsController
         $membership->save();
 
         return new EmptyResponse;
+    }
+
+    /**
+     * POST /api/ciphers/import-organization?organizationId=: ciphers into
+     * existing or new collections. Ciphers that fail are skipped silently.
+     */
+    public function postOrgImport(OrgMemberHeaders $headers, Request $request): EmptyResponse
+    {
+        $orgId = Query::first($request, 'organizationId') ?? throw new HttpStatus(422, 'No organizationId.');
+        $body = Body::json($request);
+        $ciphers = array_map(CipherData::fromFields(...), $body->objectList('ciphers'));
+        $collections = array_map(static fn (Fields $collection): array => [
+            'name' => $collection->string('name'),
+            'id' => $collection->optionalString('id'),
+            'externalId' => $collection->optionalString('externalId'),
+        ], $body->objectList('collections'));
+        $relations = array_map(
+            static fn (Fields $relation): array => [$relation->unsigned('key'), $relation->unsigned('value')],
+            $body->objectList('collectionRelationships'),
+        );
+
+        if ($orgId !== $headers->membership->org_uuid) {
+            throw ApiError::message('Organization not found', logMessage: "Organization id's do not match");
+        }
+        // The guard lets invited and accepted members through too.
+        if ($headers->membership->status !== Membership::STATUS_CONFIRMED) {
+            throw ApiError::message('You need to be a Member of the Organization to call this endpoint');
+        }
+
+        // Nothing is imported if one item is invalid.
+        $ciphersController = app(CiphersController::class);
+        $ciphersController->validateCipherData($ciphers);
+
+        $existing = [];
+        foreach (OrgCollection::findByOrganization($orgId) as $collection) {
+            $existing[$collection->uuid] = $collection;
+        }
+        $collectionIds = [];
+        foreach ($collections as $data) {
+            $collection = $data['id'] === null ? null : ($existing[$data['id']] ?? null);
+            if ($collection !== null) {
+                if ($headers->membership->typeBelow(Membership::TYPE_ADMIN) && ! $collection->isWritableByUser($headers->membership->user_uuid)) {
+                    throw ApiError::compact("The current user isn't allowed to manage this collection");
+                }
+            } else {
+                // Only members who manage all collections may create new ones.
+                if ($headers->membership->typeBelow(Membership::TYPE_ADMIN) && ! $headers->membership->hasFullAccess()) {
+                    throw ApiError::compact("The current user isn't allowed to create new collections");
+                }
+                $collection = OrgCollection::new($orgId, $data['name'], $data['externalId']);
+                $collection->save();
+            }
+            $collectionIds[] = $collection->uuid;
+        }
+
+        $userHeaders = new Headers($headers->host, $headers->device, $headers->user, $headers->ip);
+        $cipherIds = [];
+        foreach ($ciphers as $data) {
+            $data->folderId = null;
+            // The organization of the request, whatever the client claims.
+            $data->organizationId = $orgId;
+            $cipher = Cipher::new($data->type, $data->name);
+            try {
+                $ciphersController->updateCipherFromData($cipher, $data, $userHeaders, false, $collectionIds);
+            } catch (ApiError) {
+                // Upstream ignores the cipher's errors, but still relates its id below.
+            }
+            $cipherIds[] = $cipher->uuid;
+        }
+
+        foreach ($relations as [$cipherIndex, $collectionIndex]) {
+            if (! isset($cipherIds[$cipherIndex], $collectionIds[$collectionIndex])) {
+                throw ApiError::compact('Invalid collection relationship');
+            }
+            CollectionCipher::save($cipherIds[$cipherIndex], $collectionIds[$collectionIndex]);
+        }
+
+        $headers->user->updateRevision();
+
+        return new EmptyResponse;
+    }
+
+    /**
+     * GET /api/organizations/{org_id}/export: all collections and ciphers,
+     * for owners and admins; exporting only managed collections is not supported.
+     */
+    public function getOrgExport(AdminHeaders $headers, Request $request, string $orgId): Response
+    {
+        $orgId = $this->orgId($request, $orgId, $headers);
+
+        $collections = OrgCollection::findByOrganization($orgId)->map(static fn (OrgCollection $collection): array => $collection->toApi())->all();
+        $sync = CiphersController::syncData($headers->user->uuid, organizationView: true);
+        $ciphers = Cipher::findByOrg($orgId)->map(static fn (Cipher $cipher): array => $cipher->toApi($headers->host, $headers->user->uuid, $sync, organizationView: true))->all();
+
+        // Clients cannot read keys with an upper-case first letter.
+        return Json::response(Json::sorted([
+            'collections' => JsonValue::lowercaseFirstKeys(array_values($collections)),
+            'ciphers' => JsonValue::lowercaseFirstKeys(array_values($ciphers)),
+        ]));
     }
 
     /**
