@@ -9,6 +9,7 @@ use App\Http\Controllers\EmergencyAccessController;
 use App\Http\Controllers\EventsController;
 use App\Http\Controllers\FoldersController;
 use App\Http\Controllers\IdentityController;
+use App\Http\Controllers\NotificationsController;
 use App\Http\Controllers\OrganizationsController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\SendsController;
@@ -340,6 +341,14 @@ Route::prefix('/identity')->group(function (): void {
 Route::prefix('/events')->group(function (): void {
     Route::post('/collect', [EventsController::class, 'postEventsCollect'])->name('core::events::post_events_collect');
 });
+
+// api::notifications_routes(): the hubs, served by the notifications daemon.
+if (app(Config::class)->bool('enable_websocket')) {
+    Route::prefix('/notifications')->group(function (): void {
+        Route::get('/hub', [NotificationsController::class, 'websocketsHub'])->name('notifications::websockets_hub');
+        Route::get('/anonymous-hub', [NotificationsController::class, 'anonymousWebsocketsHub'])->name('notifications::anonymous_websockets_hub');
+    });
+}
 
 // api::admin_routes(): without a token only the notice that the panel is disabled.
 Route::prefix('/admin')->group(function (): void {

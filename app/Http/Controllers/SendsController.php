@@ -18,20 +18,22 @@ use App\Http\FileResponse;
 use App\Http\HttpStatus;
 use App\Http\Json;
 use App\Models\Attachment;
+use App\Models\Device;
 use App\Models\OrgPolicy;
 use App\Models\Send;
+use App\Notifications\Notify;
 use App\Support\CheckedInt;
 use App\Support\Dates;
 use App\Support\EscapeDebug;
 use App\Support\JsonValue;
+use App\Support\UpdateType;
 use App\Support\Uuid;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use stdClass;
 
 /**
- * src/api/core/sends.rs. Live notifications to other devices are not
- * ported yet; clients see changes at their next sync.
+ * src/api/core/sends.rs
  */
 final readonly class SendsController
 {
@@ -40,7 +42,20 @@ final readonly class SendsController
     public function __construct(
         private Config $config,
         private Jwt $jwt,
+        private Notify $nt,
     ) {}
+
+    /**
+     * ANON_PUSH_DEVICE: the acting device of anonymous Send accesses.
+     */
+    private static function anonPushDevice(): Device
+    {
+        $device = Device::new('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000', '', 14);
+        $device->push_uuid = '00000000-0000-0000-0000-000000000000';
+        $device->refresh_token = '';
+
+        return $device;
+    }
 
     /**
      * GET /api/sends
@@ -78,6 +93,7 @@ final readonly class SendsController
 
         $send = $this->createSend($data, $headers->user->uuid);
         $send->save();
+        $this->nt->sendSendUpdate(UpdateType::SyncSendCreate, $send, $send->updateUsersRevision(), $headers->device);
 
         return Json::response($send->toApi());
     }
@@ -185,7 +201,8 @@ final readonly class SendsController
             throw ApiError::message('Io', logMessage: 'ConditionNotMatch: the send file exists already');
         }
         $data->store($path);
-        $send->updateUsersRevision();
+
+        $this->nt->sendSendUpdate(UpdateType::SyncSendCreate, $send, $send->updateUsersRevision(), $headers->device);
 
         return new EmptyResponse;
     }
@@ -204,7 +221,7 @@ final readonly class SendsController
             throw ApiError::message(self::INACCESSIBLE, 404);
         }
 
-        $send->updateUsersRevision();
+        $this->nt->sendSendUpdate(UpdateType::SyncSendUpdate, $send, $send->updateUsersRevision(), self::anonPushDevice());
 
         return Json::response($send->toApiAccess());
     }
@@ -231,7 +248,7 @@ final readonly class SendsController
             throw ApiError::message(self::INACCESSIBLE, 404);
         }
 
-        $send->updateUsersRevision();
+        $this->nt->sendSendUpdate(UpdateType::SyncSendUpdate, $send, $send->updateUsersRevision(), self::anonPushDevice());
 
         $now = Dates::now()->getTimestamp();
         $token = $this->jwt->encode([
@@ -307,7 +324,7 @@ final readonly class SendsController
             ?? throw ApiError::message('Send not found', logMessage: 'Invalid send uuid, or does not belong to user');
 
         $send->deleteSend();
-        $send->updateUsersRevision();
+        $this->nt->sendSendUpdate(UpdateType::SyncSendDelete, $send, $send->updateUsersRevision(), $headers->device);
 
         return new EmptyResponse;
     }
@@ -325,6 +342,7 @@ final readonly class SendsController
 
         $send->setPassword(null);
         $send->save();
+        $this->nt->sendSendUpdate(UpdateType::SyncSendUpdate, $send, $send->updateUsersRevision(), $headers->device);
 
         return Json::response($send->toApi());
     }
@@ -393,6 +411,7 @@ final readonly class SendsController
         }
 
         $send->save();
+        $this->nt->sendSendUpdate(UpdateType::SyncSendUpdate, $send, $send->updateUsersRevision(), $headers->device);
     }
 
     /**

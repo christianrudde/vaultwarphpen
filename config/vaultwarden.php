@@ -22,4 +22,18 @@ return [
 
     'web_vault_version' => '2026.8.0',
 
+    /*
+    |--------------------------------------------------------------------------
+    | Notifications daemon
+    |--------------------------------------------------------------------------
+    |
+    | Where requests hand their live notifications to the daemon
+    | (php artisan vaultwarden:notifications) and where it listens for them:
+    | unix:///path/to/socket or tcp://127.0.0.1:port. Null means the Unix
+    | socket notifications.sock in DATA_FOLDER.
+    |
+    */
+
+    'notifications_socket' => env('NOTIFICATIONS_SOCKET'),
+
 ];

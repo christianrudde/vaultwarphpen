@@ -45,6 +45,7 @@ use App\Support\CheckedInt;
 use App\Support\Dates;
 use App\Support\EscapeDebug;
 use App\Support\FormUrlencoded;
+use App\Support\Push;
 use App\Support\RateLimiter;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -661,9 +662,9 @@ final readonly class IdentityController
     {
         $this->notifyNewDevice($user, $device, $ip);
 
-        // Pushing to mobile devices is not ported yet; without PUSH_ENABLED Vaultwarden skips it too.
-        if (! $device->isNew() && $this->config->bool('push_enabled') && $device->isPushDevice()) {
-            logger()->warning('Registering push devices is not implemented yet.');
+        // register push device
+        if (! $device->isNew()) {
+            Push::registerDevice($device);
         }
 
         // Saved to track usage and the new status.

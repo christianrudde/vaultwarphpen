@@ -32,6 +32,7 @@ use App\Models\Membership;
 use App\Models\OrgCollection;
 use App\Models\OrgPolicy;
 use App\Models\Send;
+use App\Notifications\Notify;
 use App\Support\CheckedInt;
 use App\Support\Dates;
 use App\Support\UpdateType;
@@ -56,6 +57,7 @@ final readonly class CiphersController
 
     public function __construct(
         private Config $config,
+        private Notify $nt,
     ) {}
 
     /**
@@ -238,7 +240,9 @@ final readonly class CiphersController
             $this->updateCipherFromData($cipher, $data, $headers, UpdateType::None);
         }
 
-        $headers->user->updateRevision();
+        $user = $headers->user;
+        $user->updateRevision();
+        $this->nt->sendUserUpdate(UpdateType::SyncVault, $user, $headers->device->push_uuid);
 
         return new EmptyResponse;
     }
@@ -286,6 +290,9 @@ final readonly class CiphersController
                 $responses[] = self::cipherMini($response);
             }
         }
+
+        // Multi share actions do not send out a push for each cipher, we need to send a general sync here
+        $this->nt->sendUserUpdate(UpdateType::SyncCiphers, $headers->user, $headers->device->push_uuid);
 
         return Json::response(Json::sorted(['data' => $responses, 'object' => 'list', 'continuationToken' => null]));
     }
@@ -526,6 +533,9 @@ final readonly class CiphersController
             $this->deleteCipherByUuid($cipherId, $headers, soft: true, multi: true);
         }
 
+        // Multi delete actions do not send out a push for each cipher, we need to send a general sync here
+        $this->nt->sendUserUpdate(UpdateType::SyncCiphers, $headers->user, $headers->device->push_uuid);
+
         return new EmptyResponse;
     }
 
@@ -538,6 +548,9 @@ final readonly class CiphersController
         foreach (self::cipherIds($request) as $cipherId) {
             $this->deleteCipherByUuid($cipherId, $headers, soft: false, multi: true);
         }
+
+        // Multi delete actions do not send out a push for each cipher, we need to send a general sync here
+        $this->nt->sendUserUpdate(UpdateType::SyncCiphers, $headers->user, $headers->device->push_uuid);
 
         return new EmptyResponse;
     }
@@ -560,6 +573,9 @@ final readonly class CiphersController
             $ciphers[] = $this->restoreCipherByUuid($cipherId, $headers, multi: true);
         }
 
+        // Multi move actions do not send out a push for each cipher, we need to send a general sync here
+        $this->nt->sendUserUpdate(UpdateType::SyncCiphers, $headers->user, $headers->device->push_uuid);
+
         return Json::response(Json::sorted(['data' => $ciphers, 'object' => 'list', 'continuationToken' => null]));
     }
 
@@ -580,8 +596,19 @@ final readonly class CiphersController
         // Ciphers the user cannot access are left out. Upstream's query takes
         // no ids as no filter, so an empty list moves every cipher.
         $accessible = Cipher::findByUserVisible($userUuid, $ids);
+        $singleCipher = null;
         foreach ($accessible as $cipher) {
             $cipher->moveToFolder($folderId, $userUuid);
+            if (count($ids) === 1) {
+                $singleCipher = $cipher;
+            }
+        }
+
+        if ($singleCipher !== null) {
+            $this->nt->sendCipherUpdate(UpdateType::SyncCipherUpdate, $singleCipher, [$userUuid], $headers->device);
+        } else {
+            // Multi move actions do not send out a push for each cipher, we need to send a general sync here
+            $this->nt->sendUserUpdate(UpdateType::SyncCiphers, $headers->user, $headers->device->push_uuid);
         }
 
         if (count($ids) !== $accessible->count()) {
@@ -614,6 +641,8 @@ final readonly class CiphersController
             foreach (Cipher::findByOrg($organizationId) as $cipher) {
                 $cipher->deleteCipher();
             }
+            $this->nt->sendUserUpdate(UpdateType::SyncVault, $owner->user, $owner->device->push_uuid);
+
             Event::log(Event::ORGANIZATION_PURGED_VAULT, $organizationId, $organizationId, $owner->user->uuid, $owner->device->atype, $owner->ip);
 
             return new EmptyResponse;
@@ -628,6 +657,7 @@ final readonly class CiphersController
         }
         Folder::deleteAllByUser($user->uuid);
         $user->updateRevision();
+        $this->nt->sendUserUpdate(UpdateType::SyncVault, $user, $headers->device->push_uuid);
 
         return new EmptyResponse;
     }
@@ -725,11 +755,11 @@ final readonly class CiphersController
      * ciphers::update_cipher_from_data
      *
      * @param  UpdateType  $updateType  None for imports: no revision check, no event
-     * @param  list<string>  $sharedToCollections  The collections a share put the cipher in
+     * @param  list<string>|null  $sharedToCollections  The collections a share put the cipher in
      *
      * @throws ApiError
      */
-    public function updateCipherFromData(Cipher $cipher, CipherData $data, Headers $headers, UpdateType $updateType, array $sharedToCollections = []): void
+    public function updateCipherFromData(Cipher $cipher, CipherData $data, Headers $headers, UpdateType $updateType, ?array $sharedToCollections = null): void
     {
         $this->enforcePersonalOwnershipPolicy($data, $headers);
 
@@ -762,7 +792,7 @@ final readonly class CiphersController
                 ?? throw ApiError::message("You don't have permission to add item to organization");
             // Collections that were shared to were checked for write access by the caller;
             // write access to the cipher counts only once it belongs to the organization.
-            if ($sharedToCollections !== [] || $member->hasFullAccess() || (! $transfer && $cipher->isWriteAccessibleToUser($headers->user->uuid))) {
+            if (($sharedToCollections ?? []) !== [] || $member->hasFullAccess() || (! $transfer && $cipher->isWriteAccessibleToUser($headers->user->uuid))) {
                 $cipher->organization_uuid = $data->organizationId;
                 $cipher->user_uuid = null;
             } else {
@@ -832,14 +862,17 @@ final readonly class CiphersController
             }
         }
 
-        // Only ciphers of organizations have events.
-        if ($updateType !== UpdateType::None && $cipher->organization_uuid !== null) {
-            $type = match (true) {
-                $updateType === UpdateType::SyncCipherCreate && $transfer => Event::CIPHER_CREATED,
-                $updateType === UpdateType::SyncCipherUpdate && $transfer => Event::CIPHER_SHARED,
-                default => Event::CIPHER_UPDATED,
-            };
-            self::logEvent($type, $cipher->uuid, $cipher->organization_uuid, $headers);
+        if ($updateType !== UpdateType::None) {
+            // Only ciphers of organizations have events.
+            if ($cipher->organization_uuid !== null) {
+                $type = match (true) {
+                    $updateType === UpdateType::SyncCipherCreate && $transfer => Event::CIPHER_CREATED,
+                    $updateType === UpdateType::SyncCipherUpdate && $transfer => Event::CIPHER_SHARED,
+                    default => Event::CIPHER_UPDATED,
+                };
+                self::logEvent($type, $cipher->uuid, $cipher->organization_uuid, $headers);
+            }
+            $this->nt->sendCipherUpdate($updateType, $cipher, $cipher->updateUsersRevision(), $headers->device, $sharedToCollections);
         }
     }
 
@@ -880,7 +913,7 @@ final readonly class CiphersController
                 CollectionCipher::delete($cipher->uuid, $collection->uuid);
             }
         }
-        $cipher->updateUsersRevision();
+        $this->nt->sendCipherUpdate(UpdateType::SyncCipherUpdate, $cipher, $cipher->updateUsersRevision(), $headers->device, $posted);
         self::logEvent(Event::CIPHER_UPDATED_COLLECTIONS, $cipher->uuid, $orgUuid, $headers);
 
         return $cipher;
@@ -1032,7 +1065,9 @@ final readonly class CiphersController
         }
 
         $data->store(Attachment::path($cipherId, $fileId));
-        $cipher->updateUsersRevision();
+
+        $this->nt->sendCipherUpdate(UpdateType::SyncCipherUpdate, $cipher, $cipher->updateUsersRevision(), $headers->device);
+
         if ($cipher->organization_uuid !== null) {
             self::logEvent(Event::CIPHER_ATTACHMENT_CREATED, $cipher->uuid, $cipher->organization_uuid, $headers);
         }
@@ -1084,8 +1119,10 @@ final readonly class CiphersController
             throw ApiError::message('Cipher cannot be deleted by user');
         }
 
+        // Delete attachment
         $attachment->deleteAttachment();
-        $cipher->updateUsersRevision();
+        $this->nt->sendCipherUpdate(UpdateType::SyncCipherUpdate, $cipher, $cipher->updateUsersRevision(), $headers->device);
+
         if ($cipher->organization_uuid !== null) {
             self::logEvent(Event::CIPHER_ATTACHMENT_DELETED, $cipher->uuid, $cipher->organization_uuid, $headers);
         }
@@ -1112,7 +1149,8 @@ final readonly class CiphersController
             $cipher->deleteCipher();
         }
         if (! $multi) {
-            $cipher->updateUsersRevision();
+            $type = $soft ? UpdateType::SyncCipherUpdate : UpdateType::SyncLoginDelete;
+            $this->nt->sendCipherUpdate($type, $cipher, $cipher->updateUsersRevision(), $headers->device);
         }
         if ($cipher->organization_uuid !== null) {
             self::logEvent($soft ? Event::CIPHER_SOFT_DELETED : Event::CIPHER_DELETED, $cipher->uuid, $cipher->organization_uuid, $headers);
@@ -1136,7 +1174,7 @@ final readonly class CiphersController
         $cipher->deleted_at = null;
         $cipher->save();
         if (! $multi) {
-            $cipher->updateUsersRevision();
+            $this->nt->sendCipherUpdate(UpdateType::SyncCipherUpdate, $cipher, $cipher->updateUsersRevision(), $headers->device);
         }
         if ($cipher->organization_uuid !== null) {
             self::logEvent(Event::CIPHER_RESTORED, $cipher->uuid, $cipher->organization_uuid, $headers);
@@ -1165,7 +1203,7 @@ final readonly class CiphersController
             Archive::deleteByCipher($headers->user->uuid, $cipher->uuid);
         }
         if (! $multi) {
-            $cipher->updateUsersRevision();
+            $this->nt->sendCipherUpdate(UpdateType::SyncCipherUpdate, $cipher, $cipher->updateUsersRevision(), $headers->device);
         }
 
         return $cipher->toApi($headers->host, $headers->user->uuid);
@@ -1180,6 +1218,9 @@ final readonly class CiphersController
         foreach (self::cipherIds($request) as $cipherId) {
             $ciphers[] = $this->archiveCipherByUuid($cipherId, $headers, $archive, multi: true);
         }
+
+        // Multi archive does not send out a push for each cipher, we need to send a general sync here
+        $this->nt->sendUserUpdate(UpdateType::SyncCiphers, $headers->user, $headers->device->push_uuid);
 
         return Json::response(Json::sorted(['data' => $ciphers, 'object' => 'list', 'continuationToken' => null]));
     }

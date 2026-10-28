@@ -42,6 +42,7 @@ use App\Models\OrgCollection;
 use App\Models\OrgPolicy;
 use App\Models\TwoFactor;
 use App\Models\User;
+use App\Notifications\Notify;
 use App\Support\CheckedInt;
 use App\Support\Dates;
 use App\Support\EscapeDebug;
@@ -73,6 +74,7 @@ final readonly class OrganizationsController
     public function __construct(
         private Config $config,
         private Jwt $jwt,
+        private Notify $nt,
     ) {}
 
     /**
@@ -980,6 +982,8 @@ final readonly class OrganizationsController
         }
         $user->save();
 
+        $this->nt->sendLogout($user, null);
+
         if ($resetMasterPassword) {
             self::logEvent(Event::ORGANIZATION_USER_ADMIN_RESET_PASSWORD, $memberId, $orgId, $headers);
         }
@@ -1866,7 +1870,14 @@ final readonly class OrganizationsController
             Mail::sendInviteConfirmed($user->email, $org->name);
         }
 
-        $member->save();
+        try {
+            $member->save();
+        } finally {
+            $user = User::findByUuid($member->user_uuid);
+            if ($user !== null) {
+                $this->nt->sendUserUpdate(UpdateType::SyncOrgKeys, $user, $headers->device->push_uuid);
+            }
+        }
     }
 
     /**
@@ -1890,6 +1901,9 @@ final readonly class OrganizationsController
 
         self::logEvent(Event::ORGANIZATION_USER_REMOVED, $member->uuid, $orgId, $headers);
         $user = User::findByUuid($member->user_uuid);
+        if ($user !== null) {
+            $this->nt->sendUserUpdate(UpdateType::SyncOrgKeys, $user, $headers->device->push_uuid);
+        }
         // Without mail the invitation goes with the last pending membership.
         if ($user !== null && ! $this->config->mailEnabled()
             && ! Membership::findInvitedByUser($user->uuid)->contains(static fn (Membership $other): bool => $other->uuid !== $member->uuid)) {

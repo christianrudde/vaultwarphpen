@@ -111,8 +111,53 @@ abstract class DifferentialTestCase extends TestCase
         if ($referenceUrl === '' || $subjectUrl === '') {
             $this->markTestSkipped('This pair of servers is not configured.');
         }
-        $reference = $flow(new Server($referenceUrl, $referenceMailDir));
-        $subject = $flow(new Server($subjectUrl, $subjectMailDir));
+
+        return $this->assertSameFlowsBetween(new Server($referenceUrl, $referenceMailDir), new Server($subjectUrl, $subjectMailDir), $flow);
+    }
+
+    /**
+     * assertSameFlows on the default pair, with the hubs of the subject served
+     * by its notifications daemon (VW_SUBJECT_NOTIFICATIONS_URL).
+     *
+     * @param  callable(Server): array<string, Exchange>  $flow  The exchanges by step name
+     * @return array{array<string, Exchange>, array<string, Exchange>} Reference and subject
+     */
+    protected function assertSameNotificationFlows(callable $flow): array
+    {
+        if (! getenv('VW_SUBJECT_NOTIFICATIONS_URL')) {
+            $this->markTestSkipped('Set VW_SUBJECT_NOTIFICATIONS_URL to compare the notification hubs.');
+        }
+        $reference = (string) getenv('VW_REFERENCE_URL');
+
+        return $this->assertSameFlowsBetween(new Server($reference, notificationsUrl: $reference),
+            new Server((string) getenv('VW_SUBJECT_URL'), notificationsUrl: (string) getenv('VW_SUBJECT_NOTIFICATIONS_URL')), $flow);
+    }
+
+    /**
+     * assertSameFlows on the pair with groups and events, which also pushes
+     * to the fake relays features-reference and features-subject.
+     *
+     * @param  callable(Server): array<string, Exchange>  $flow  The exchanges by step name
+     * @return array{array<string, Exchange>, array<string, Exchange>} Reference and subject
+     */
+    protected function assertSamePushFlows(callable $flow): array
+    {
+        if (! getenv('VW_FEATURES_REFERENCE_URL') || ! getenv('VW_SERVICES_HOST')) {
+            $this->markTestSkipped('This pair of servers is not configured.');
+        }
+
+        return $this->assertSameFlowsBetween(new Server((string) getenv('VW_FEATURES_REFERENCE_URL'), relay: 'features-reference'),
+            new Server((string) getenv('VW_FEATURES_SUBJECT_URL'), relay: 'features-subject'), $flow);
+    }
+
+    /**
+     * @param  callable(Server): array<string, Exchange>  $flow  The exchanges by step name
+     * @return array{array<string, Exchange>, array<string, Exchange>} Reference and subject
+     */
+    protected function assertSameFlowsBetween(Server $referenceServer, Server $subjectServer, callable $flow): array
+    {
+        $reference = $flow($referenceServer);
+        $subject = $flow($subjectServer);
 
         $this->assertSame(array_keys($reference), array_keys($subject), 'Steps of the flow');
         foreach ($reference as $step => $exchange) {

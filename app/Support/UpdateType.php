@@ -3,14 +3,34 @@
 namespace App\Support;
 
 /**
- * The kinds of api::UpdateType that cipher updates distinguish. Live
- * notifications are not ported; the type still decides the revision check
+ * api::UpdateType: the kinds of live notification, numbered like Bitwarden's
+ * PushType. Cipher updates also use the type to decide the revision check
  * and the event that is logged.
  */
-enum UpdateType
+enum UpdateType: int
 {
-    case SyncCipherCreate;
-    case SyncCipherUpdate;
+    case SyncCipherUpdate = 0;
+    case SyncCipherCreate = 1;
+    case SyncLoginDelete = 2;
+    case SyncFolderDelete = 3;
+    case SyncCiphers = 4;
+
+    case SyncVault = 5;
+    case SyncOrgKeys = 6;
+    case SyncFolderCreate = 7;
+    case SyncFolderUpdate = 8;
+    // SyncCipherDelete = 9 redirects to SyncLoginDelete upstream.
+    case SyncSettings = 10;
+
+    case LogOut = 11;
+
+    case SyncSendCreate = 12;
+    case SyncSendUpdate = 13;
+    case SyncSendDelete = 14;
+
+    case AuthRequest = 15;
+    case AuthRequestResponse = 16;
+
     // Imports and bulk changes: no revision check, no event.
-    case None;
+    case None = 100;
 }

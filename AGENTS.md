@@ -28,9 +28,20 @@ environment variables, so the official Bitwarden clients and existing Vaultwarde
   fallback (`EMAIL_2FA_*`); accounts registered by the tests are unverified unless their token
   says otherwise. A fifth pair logs in with SSO (`VW_SSO_*`) at the fake OpenID provider of
   `fake-services.php` (`/oidc`), where tests pick the user with extra parameters on the
-  authorization URL. `signedToken()` signs tokens with the key all
+  authorization URL. The default pair also runs our notifications daemon (`VW_SUBJECT_NOTIFICATIONS_URL`);
+  `assertSameNotificationFlows()` hands flows a `Server` whose `hub()` opens a WebSocket
+  (`Tests\Support\WebSocketClient`) at Vaultwarden's or the daemon's address. The features pair pushes to
+  fake relays of `fake-services.php` (`/relay/<label>`); `assertSamePushFlows()` and `Server::relayed()`
+  compare what arrived. `signedToken()` signs tokens with the key all
   servers share (`VW_RSA_KEY`). Responses are compared as JSON with objects kept apart from
   lists, after placeholders replace random values (`DifferentialTestCase::PLACEHOLDERS`).
+- Live notifications: `php86 artisan vaultwarden:notifications` (`App\Notifications\Server`) serves the hubs of
+  `src/api/notifications.rs` over WebSocket; upgrade requests go through the HTTP kernel to
+  `NotificationsController`, which only accepts them inside the daemon. Handlers send updates with
+  `App\Notifications\Notify` (Rust's `nt`), which hands them over a signed `Channel` (a Unix socket in the data
+  folder, or `NOTIFICATIONS_SOCKET`) and calls `App\Support\Push` (src/api/push.rs); tests put
+  `Tests\Fakes\NotificationsChannelFake` in the container. Work Vaultwarden spawns runs after the response
+  (`App\Support\Deferred`).
 - Mail: `App\Mail\Mail` ports `src/mail.rs`; the transport (`App\Mail\Transport`) is SMTP or
   sendmail. Tests put `Tests\Fakes\MailTransportFake` in the container. Locally, Herd Pro's mail
   service catches SMTP on 127.0.0.1:2525 (`SMTP_SECURITY=off`).

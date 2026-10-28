@@ -61,6 +61,14 @@ no effect so far. The `config:` items in [PARITY.md](../PARITY.md) show the stat
   (`--once`), not inside the web server ([Installation](installation.md#scheduled-jobs)).
   `JOB_POLL_INTERVAL_MS` sets how often the process checks; with cron, cron decides, but `0` still
   turns all jobs off.
+- **Live notifications** over WebSocket come from a daemon of their own (`php artisan
+  vaultwarden:notifications`), to which the web server passes `/notifications/`
+  ([Installation](installation.md#live-notifications)). Requests reach it through a socket in the data
+  folder, or at `NOTIFICATIONS_SOCKET`, a setting of Vaultwarphpen's (`unix:///path` or
+  `tcp://host:port`) for both sides. `ENABLE_WEBSOCKET=false` keeps the daemon from starting.
+- **Push notifications** (`PUSH_*`) go to Bitwarden's relay like Vaultwarden's. The relay's access token
+  is kept in Laravel's cache, shared by all PHP workers, for half of its lifetime. Notifications that
+  Vaultwarden sends in the background go out after the response.
 - **Rate limits** live in Laravel's cache (`storage/framework/cache`) instead of in memory, so all PHP
   workers share them. Vaultwarden keeps them per process.
 - **The server's name.** Where Vaultwarden names itself to the clients (the `server` object of

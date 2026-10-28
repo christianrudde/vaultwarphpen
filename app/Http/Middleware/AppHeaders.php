@@ -46,6 +46,10 @@ final readonly class AppHeaders
                 $response->headers->remove('X-Frame-Options');
                 $response->headers->remove('X-Content-Type-Options');
                 $response->headers->remove('Permissions-Policy');
+                // Rocket sends none of its own here; Symfony computes one for every response.
+                if ($response->headers->get('Cache-Control') === 'no-cache, private') {
+                    $response->headers->remove('Cache-Control');
+                }
 
                 return $response;
             }

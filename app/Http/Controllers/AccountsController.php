@@ -38,6 +38,7 @@ use App\Models\Organization;
 use App\Models\OrgPolicy;
 use App\Models\Send;
 use App\Models\User;
+use App\Notifications\Notify;
 use App\Support\CheckedInt;
 use App\Support\Dates;
 use App\Support\Push;
@@ -82,6 +83,7 @@ final readonly class AccountsController
         private Jwt $jwt,
         private RsaKeys $keys,
         private RateLimiter $limiter,
+        private Notify $nt,
     ) {}
 
     /**
@@ -569,7 +571,12 @@ final readonly class AccountsController
         $this->enforcePasswordHintSetting($user->password_hint);
         // The client that asked may finish what it does with the old stamp.
         $user->setPassword($newHash, $key, true, ['post_rotatekey', 'get_contacts', 'get_public_keys', 'get_api_webauthn']);
-        $user->save();
+        try {
+            $user->save();
+        } finally {
+            // Prevent logging out the client where the user requested this endpoint from.
+            $this->nt->sendLogout($user, $headers->device);
+        }
 
         return new EmptyResponse;
     }
@@ -591,7 +598,11 @@ final readonly class AccountsController
         $authentication->check($user, $unlock);
         self::setKdfData($user, $unlock->kdf);
         $user->setPassword($authentication->masterPasswordAuthenticationHash, $unlock->masterKeyWrappedUserKey, true, null);
-        $user->save();
+        try {
+            $user->save();
+        } finally {
+            $this->nt->sendLogout($user, $headers->device);
+        }
 
         return new EmptyResponse;
     }
@@ -698,7 +709,12 @@ final readonly class AccountsController
 
         $user->private_key = $privateKey;
         $user->setPassword($unlock['masterKeyAuthenticationHash'], $unlock['masterKeyEncryptedUserKey'], true, null);
-        $user->save();
+        try {
+            $user->save();
+        } finally {
+            // Prevent logging out the client where the user requested this endpoint from.
+            $this->nt->sendLogout($user, $headers->device);
+        }
 
         return new EmptyResponse;
     }
@@ -729,8 +745,12 @@ final readonly class AccountsController
         $data->validate($user, true, $this->config);
 
         $user->resetSecurityStamp();
-        $user->save();
-        Device::deleteAllByUser($user->uuid);
+        try {
+            $user->save();
+        } finally {
+            $this->nt->sendLogout($user, null);
+            Device::deleteAllByUser($user->uuid);
+        }
 
         return new EmptyResponse;
     }
@@ -832,7 +852,11 @@ final readonly class AccountsController
         $user->email_new = null;
         $user->email_new_token = null;
         $user->setPassword($newHash, $key, true, null);
-        $user->save();
+        try {
+            $user->save();
+        } finally {
+            $this->nt->sendLogout($user, null);
+        }
 
         return new EmptyResponse;
     }
@@ -1133,6 +1157,9 @@ final readonly class AccountsController
 
         $authRequest = AuthRequest::new($user->uuid, $deviceIdentifier, $deviceType, $ip, $accessCode, $publicKey);
         $authRequest->save();
+
+        $this->nt->sendAuthRequest($user->uuid, $authRequest->uuid, $device);
+
         Event::logUser(Event::USER_REQUESTED_DEVICE_APPROVAL, $user->uuid, $deviceType, $ip);
 
         // A new request reads as not approved, rather than undecided.
@@ -1179,6 +1206,10 @@ final readonly class AccountsController
             $authRequest->response_device_id = $deviceIdentifier;
             $authRequest->response_date = $responseDate;
             $authRequest->save();
+
+            $this->nt->sendAnonymousAuthResponse($authRequest->user_uuid, $authRequest->uuid);
+            $this->nt->sendAuthResponse($authRequest->user_uuid, $authRequest->uuid, $headers->device);
+
             Event::logUser(Event::ORGANIZATION_USER_APPROVED_AUTH_REQUEST, $headers->user->uuid, $headers->device->atype, $headers->ip);
         } else {
             // A rejected request is of no further use.
