@@ -1,6 +1,7 @@
 <?php
 
 use App\Config\Config;
+use App\Config\ConfigException;
 use App\Http\ErrorRenderer;
 use App\Http\Middleware\AppHeaders;
 use App\Http\Middleware\Cors;
@@ -14,7 +15,17 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         // Vaultwarden mounts its routes below the path of DOMAIN.
         using: function (): void {
-            Route::prefix(app(Config::class)->string('domain_path'))->group(base_path('routes/vaultwarden.php'));
+            try {
+                $path = app(Config::class)->string('domain_path');
+            } catch (ConfigException $exception) {
+                // Commands still run with settings Vaultwarden would refuse, without the routes
+                // (vaultwarden:check reports them); those that need the settings fail when they read them.
+                if (app()->runningInConsole()) {
+                    return;
+                }
+                throw $exception;
+            }
+            Route::prefix($path)->group(base_path('routes/vaultwarden.php'));
         },
         commands: __DIR__.'/../routes/console.php',
     )

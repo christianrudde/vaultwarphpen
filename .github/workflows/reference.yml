@@ -4,7 +4,8 @@ name: Reference
 # when started by hand, for macOS), so its behaviour can be compared with ours
 # without a local Rust toolchain. The binaries are kept as workflow artifacts.
 # The compare job then checks that Vaultwarden and we create the same databases,
-# accept each other's tokens and answer requests alike (.github/scripts).
+# accept each other's tokens and answer requests alike (.github/scripts); the
+# migrate job moves an installation Vaultwarden filled to us and back.
 on:
   push:
     paths:
@@ -19,6 +20,8 @@ on:
       - "resources/**"
       - "tests/Differential/**"
       - "tests/Clients/**"
+      - "tests/Migration/**"
+      - "tests/Support/**"
       - "database/vaultwarden/**"
       # Dependency updates, Dependabot's included, can change what we answer.
       - "composer.json"
@@ -317,4 +320,89 @@ jobs:
           path: |
             tests/Clients/playwright-report/
             tests/Clients/test-results/
+          retention-days: 14
+
+  migrate:
+    name: Move an installation (${{ matrix.database }})
+    needs: build
+    # Only the Linux binary is needed; run even if the macOS build failed.
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        database: [sqlite, mysql, pgsql]
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: root
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U root"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+
+    steps:
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libmariadb3 libpq5
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Read the pinned commit
+        id: pin
+        run: echo "commit=$(jq -r .commit parity/reference.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Download Vaultwarden
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: vaultwarden-${{ steps.pin.outputs.commit }}-linux-x86_64
+          path: ${{ runner.temp }}/vaultwarden
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2 (2.40.0)
+        with:
+          php-version: "8.5"
+          extensions: pdo_sqlite, pdo_mysql, pdo_pgsql, sodium, openssl
+          coverage: none
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Prepare environment
+        run: cp .env.example .env && php artisan key:generate
+
+      - name: Move the installation
+        env:
+          VW_MIGRATION_WORK: ${{ runner.temp }}/migration
+        run: |
+          chmod +x "${RUNNER_TEMP}/vaultwarden/vaultwarden"
+          mkdir -p "${VW_MIGRATION_WORK}"
+          .github/scripts/migration.sh "${RUNNER_TEMP}/vaultwarden/vaultwarden" "${{ matrix.database }}"
+
+      - name: Upload what the phases saw
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: migration-${{ matrix.database }}
+          # Test data only: example.com accounts and made-up vault items.
+          path: |
+            ${{ runner.temp }}/migration/*/state/
+            ${{ runner.temp }}/migration/*/*.log
+          if-no-files-found: ignore
           retention-days: 14

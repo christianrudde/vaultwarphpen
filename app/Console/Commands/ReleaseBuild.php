@@ -30,7 +30,6 @@ class ReleaseBuild extends Command
         'CLAUDE.md',
         'CONTRIBUTING.md',
         'parity/matrix.json',
-        'parity/schema',
         'phpstan.neon',
         'phpunit.xml',
         'tests',

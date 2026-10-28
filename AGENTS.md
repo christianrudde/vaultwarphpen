@@ -79,12 +79,19 @@ environment variables, so the official Bitwarden clients and existing Vaultwarde
   names contain; read them with `getClientOriginalPath()` (see `App\Http\Data\UploadData`).
 - Database schema: `php86 artisan vaultwarden:migrate`. It also converts old U2F and WebAuthn data,
   which Vaultwarden does at every start.
+- Moving installations ([docs/migrating-from-vaultwarden.md](docs/migrating-from-vaultwarden.md)):
+  `php86 artisan vaultwarden:check` looks at an installation before it moves (settings, data folder,
+  schema against `parity/schema`, rows we could not read). Its output may be shared, so it prints counts
+  and names only, never values or paths; keep it that way. The migration test (`tests/Migration`,
+  `.github/scripts/migration.sh <vaultwarden binary> sqlite|mysql|pgsql`) lets Vaultwarden fill an
+  installation, moves it to us and back, and compares what the clients read after each move. When you
+  port something that stores data, add it to the test's fill or move phase.
 - CI (GitHub Actions): `tests.yml` runs Pint, PHPStan, `composer audit` and the tests on SQLite, MySQL
   and PostgreSQL.
   `reference.yml` builds the pinned Vaultwarden for Linux, and for macOS (arm64) only when started by
   hand (Actions → Reference → Run workflow), and keeps the binaries as workflow artifacts. Its databases job lets Vaultwarden create SQLite, MySQL and PostgreSQL databases
-  and checks both directions with `.github/scripts/database-parity.sh`. It runs when the pin, the
-  snapshots or the migrator change, or on demand.
+  and checks both directions with `.github/scripts/database-parity.sh`; its migrate job runs the
+  migration test on all three. It runs when the pin, the snapshots or the migrator change, or on demand.
 - Advisories and upstream changes ([docs/maintenance.md](docs/maintenance.md)): Dependabot proposes
   security updates and patches (`.github/dependabot.yml`), and `watch.yml` runs `php artisan
   parity:watch --issues`, which keeps one issue per finding (`app/Parity/Watch`). Run it without

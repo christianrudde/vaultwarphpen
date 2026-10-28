@@ -52,6 +52,8 @@ class MailTest extends TestCase
         $user = User::new('kim@example.com');
         $device = Device::new(Random::uuid(), $user->uuid, 'firefox', 3);
         $date = new DateTimeImmutable('2026-10-08 09:05:07 UTC');
+        // Dates are local; TZ makes them the same on every host.
+        $this->changeVaultwardenEnvironment(['TZ' => 'Europe/Berlin']);
 
         Mail::sendPasswordHint('kim@example.com', 'my hint');
         Mail::sendPasswordHint('kim@example.com', null);
@@ -94,7 +96,7 @@ class MailTest extends TestCase
 
         $device = $this->mails->sent[20];
         $this->assertSame('New Device Logged In From Firefox', $device['subject']);
-        $this->assertStringContainsString('Date: Thursday, October  8, 2026 at 09:05:07 AM +00:00', $device['text']);
+        $this->assertStringContainsString('Date: Thursday, October  8, 2026 at 11:05:07 AM CEST', $device['text']);
         $this->assertStringContainsString('Device Name: Firefox', $device['text']);
     }
 

@@ -23,9 +23,38 @@ final class SoftwareAuthenticator
         private readonly string $origin = 'http://localhost',
         public bool $backupEligible = false,
         public bool $backupState = false,
+        ?string $credentialId = null,
+        ?OpenSSLAsymmetricKey $key = null,
     ) {
-        $this->credentialId = random_bytes(32);
-        $this->key = self::ecKey();
+        $this->credentialId = $credentialId ?? random_bytes(32);
+        $this->key = $key ?? self::ecKey();
+    }
+
+    /**
+     * What another process needs to go on as this authenticator (see restore()).
+     *
+     * @return array{origin: string, credentialId: string, key: string, counter: int}
+     */
+    public function export(): array
+    {
+        if (! openssl_pkey_export($this->key, $pem) || ! is_string($pem)) {
+            throw new RuntimeException('Cannot export the key');
+        }
+
+        return ['origin' => $this->origin, 'credentialId' => self::base64($this->credentialId), 'key' => $pem, 'counter' => $this->counter];
+    }
+
+    /**
+     * @param  array<mixed>  $exported  What export() returned
+     */
+    public static function restore(array $exported): self
+    {
+        $key = openssl_pkey_get_private(self::string($exported['key'] ?? null)) ?: throw new RuntimeException('Cannot read the key');
+        $credentialId = base64_decode(strtr(self::string($exported['credentialId'] ?? null), '-_', '+/'), true);
+        $authenticator = new self(self::string($exported['origin'] ?? null), credentialId: is_string($credentialId) ? $credentialId : null, key: $key);
+        $authenticator->counter = is_int($exported['counter'] ?? null) ? $exported['counter'] : 0;
+
+        return $authenticator;
     }
 
     /**

@@ -39,6 +39,7 @@ use App\Models\User;
 use App\Notifications\Notify;
 use App\Support\Dates;
 use App\Support\HttpClient;
+use App\Support\LocalTimeZone;
 use App\Support\Push;
 use App\Support\RateLimiter;
 use App\Support\Release;
@@ -916,7 +917,7 @@ final readonly class AdminController
 
     /**
      * util::format_naive_datetime_local with "%Y-%m-%d %H:%M:%S %Z": in the
-     * TZ time zone with its abbreviation, else in the server's with its offset.
+     * TZ time zone with its abbreviation, else in the local one with its offset.
      */
     private static function localDateTime(DateTimeImmutable $date): string
     {
@@ -927,22 +928,15 @@ final readonly class AdminController
             $timezone = null;
         }
 
-        return $date->setTimezone($timezone ?? new DateTimeZone(date_default_timezone_get()))->format($timezone === null ? 'Y-m-d H:i:s P' : 'Y-m-d H:i:s T');
+        return $date->setTimezone($timezone ?? LocalTimeZone::get())->format($timezone === null ? 'Y-m-d H:i:s P' : 'Y-m-d H:i:s T');
     }
 
     /**
-     * chrono's Local::now(): TZ, if it names a time zone, else the server's.
+     * chrono's Local::now().
      */
     private static function localZoneNow(): DateTimeImmutable
     {
-        $zone = getenv('TZ');
-        try {
-            $timezone = new DateTimeZone(is_string($zone) && $zone !== '' ? $zone : date_default_timezone_get());
-        } catch (Throwable) {
-            $timezone = new DateTimeZone(date_default_timezone_get());
-        }
-
-        return Dates::now()->setTimezone($timezone);
+        return Dates::now()->setTimezone(LocalTimeZone::get());
     }
 
     private function renderAdminLogin(?string $message, ?string $redirect, int $status = 200): Response

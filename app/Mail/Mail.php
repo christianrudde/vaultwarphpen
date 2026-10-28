@@ -10,6 +10,7 @@ use App\Models\Device;
 use App\Models\DeviceType;
 use App\Models\User;
 use App\Support\FormUrlencoded;
+use App\Support\LocalTimeZone;
 use App\Support\Random;
 use App\Templates\TemplateRenderer;
 use DateTimeImmutable;
@@ -521,7 +522,7 @@ final class Mail
 
     /**
      * util::format_naive_datetime_local with "%A, %B %_d, %Y at %r %Z": in
-     * the TZ time zone with its abbreviation, else in the server's with its offset.
+     * the TZ time zone with its abbreviation, else in the local one with its offset.
      */
     private static function localDateTime(DateTimeImmutable $date): string
     {
@@ -531,7 +532,7 @@ final class Mail
         } catch (Throwable) {
             $timezone = null;
         }
-        $local = $date->setTimezone($timezone ?? new DateTimeZone(date_default_timezone_get()));
+        $local = $date->setTimezone($timezone ?? LocalTimeZone::get());
 
         return $local->format(sprintf(self::DATETIME_FORMAT, str_pad($local->format('j'), 2, ' ', STR_PAD_LEFT))).' '.$local->format($timezone !== null ? 'T' : 'P');
     }
