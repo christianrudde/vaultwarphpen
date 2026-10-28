@@ -7,8 +7,9 @@ use stdClass;
 /**
  * Signed JWTs of an OpenID provider, checked like openidconnect's JWT code
  * does: the key from the provider's JWK set (by key id and compatible
- * type), and RS*, ES*, EdDSA or, with the client secret, HS* signatures.
- * PS* signatures are not supported.
+ * type), and RS*, PS*, ES256, ES384, EdDSA or, with the client secret, HS*
+ * signatures. RSA keys are held to the limits of the rsa crate. ES512 is
+ * known, but openidconnect cannot verify P-521 signatures, so none is valid.
  */
 final class Jws
 {
@@ -23,7 +24,17 @@ final class Jws
         'EdDSA' => ['OKP', null],
     ];
 
-    private const array CURVES = ['P-256' => '06082a8648ce3d030107', 'P-384' => '06052b81040022', 'P-521' => '06052b81040023'];
+    /**
+     * The curves openidconnect verifies: their object identifier and the length of a coordinate.
+     */
+    private const array CURVES = ['P-256' => ['06082a8648ce3d030107', 32], 'P-384' => ['06052b81040022', 48]];
+
+    /**
+     * RsaPublicKey::MAX_SIZE and MAX_PUB_EXPONENT of the rsa crate.
+     */
+    private const int RSA_MAX_BITS = 4096;
+
+    private const int RSA_MAX_EXPONENT = (1 << 33) - 1;
 
     /**
      * @param  stdClass  $header  The JOSE header
@@ -106,17 +117,29 @@ final class Jws
             return ($key->crv ?? null) === 'Ed25519' && $x !== null && strlen($x) === SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES
                 && strlen($this->signature) === SODIUM_CRYPTO_SIGN_BYTES && sodium_crypto_sign_verify_detached($this->signature, $this->signingInput, $x);
         }
-        if (str_starts_with($algorithm, 'PS') || ! is_string($hash)) {
+        if (! is_string($hash)) {
+            return false;
+        }
+        if ($type === 'RSA') {
+            $rsaKey = self::rsaKey($key);
+            // rsa::Pkcs1v15Sign and rsa::Pss want a signature as long as the modulus.
+            if ($rsaKey === null || strlen($this->signature) !== strlen($rsaKey[0])) {
+                return false;
+            }
+            $pem = self::rsaPem(...$rsaKey);
+
+            return str_starts_with($algorithm, 'PS')
+                ? self::verifyPss($this->signingInput, $this->signature, $pem, $rsaKey[0], $hash)
+                : openssl_verify($this->signingInput, $this->signature, $pem, $hash) === 1;
+        }
+
+        $pem = self::ecPem($key, $algorithm);
+        // p256::ecdsa::Signature::from_slice takes r and s of the curve's size only.
+        if ($pem === null || strlen($this->signature) !== ($algorithm === 'ES256' ? 64 : 96)) {
             return false;
         }
 
-        $pem = $type === 'RSA' ? self::rsaPem($key) : self::ecPem($key, $algorithm);
-        $signature = $type === 'EC' ? self::ecDerSignature($this->signature) : $this->signature;
-        if ($pem === null || $signature === null) {
-            return false;
-        }
-
-        return openssl_verify($this->signingInput, $signature, $pem, $hash) === 1;
+        return openssl_verify($this->signingInput, self::ecDerSignature($this->signature), $pem, $hash) === 1;
     }
 
     public static function base64UrlDecode(string $value): ?string
@@ -129,29 +152,94 @@ final class Jws
         return $decoded === false ? null : $decoded;
     }
 
-    private static function rsaPem(stdClass $key): ?string
+    /**
+     * Modulus and exponent of a JWK, without leading zeros, if
+     * RsaPublicKey::new takes them: a modulus of at most 4096 bits, both odd,
+     * and an exponent from 2 to 2^33 - 1, below the modulus.
+     *
+     * @return array{string, string}|null
+     */
+    private static function rsaKey(stdClass $key): ?array
     {
-        $n = is_string($key->n ?? null) ? self::base64UrlDecode($key->n) : null;
-        $e = is_string($key->e ?? null) ? self::base64UrlDecode($key->e) : null;
-        if ($n === null || $e === null || $n === '' || $e === '') {
+        $n = ltrim((string) (is_string($key->n ?? null) ? self::base64UrlDecode($key->n) : ''), "\0");
+        $e = ltrim((string) (is_string($key->e ?? null) ? self::base64UrlDecode($key->e) : ''), "\0");
+        if ($n === '' || $e === '' || strlen($e) > 5) {
             return null;
         }
+        $exponent = (int) hexdec(bin2hex($e));
+        $bits = 8 * strlen($n) - (8 - strlen(decbin(ord($n[0]))));
+        $odd = static fn (string $number): bool => (ord($number[strlen($number) - 1]) & 1) === 1;
+        $below = strlen($e) < strlen($n) || (strlen($e) === strlen($n) && strcmp($e, $n) < 0);
+        if ($bits > self::RSA_MAX_BITS || ! $below || ! $odd($n) || ! $odd($e) || $exponent < 2 || $exponent > self::RSA_MAX_EXPONENT) {
+            return null;
+        }
+
+        return [$n, $e];
+    }
+
+    private static function rsaPem(string $n, string $e): string
+    {
         $rsaKey = self::der(0x30, self::derInteger($n).self::derInteger($e));
         $algorithm = self::der(0x30, hex2bin('06092a864886f70d0101010500') ?: '');
 
         return self::pem(self::der(0x30, $algorithm.self::der(0x03, "\0".$rsaKey)));
     }
 
+    /**
+     * RSASSA-PSS as the rsa crate verifies it (RFC 8017 section 9.1.2): MGF1
+     * with the message's hash, and a salt exactly as long as the hash.
+     */
+    private static function verifyPss(string $message, string $signature, string $pem, string $modulus, string $hash): bool
+    {
+        if (! openssl_public_decrypt($signature, $decrypted, $pem, OPENSSL_NO_PADDING) || ! is_string($decrypted)) {
+            return false;
+        }
+        $keyBits = 8 * strlen($modulus) - (8 - strlen(decbin(ord($modulus[0]))));
+        $emBits = $keyBits - 1;
+        $emLength = intdiv($emBits + 7, 8);
+        $em = substr(str_pad($decrypted, strlen($modulus), "\0", STR_PAD_LEFT), strlen($modulus) - $emLength);
+        $messageHash = hash($hash, $message, true);
+        $hashLength = strlen($messageHash);
+        $saltLength = $hashLength;
+        if ($emLength < $hashLength + $saltLength + 2 || $em[$emLength - 1] !== "\xBC") {
+            return false;
+        }
+
+        $maskedDb = substr($em, 0, $emLength - $hashLength - 1);
+        $h = substr($em, $emLength - $hashLength - 1, $hashLength);
+        $zeroBits = 8 * $emLength - $emBits;
+        if ($zeroBits > 0 && (ord($maskedDb[0]) & (0xFF << (8 - $zeroBits)) & 0xFF) !== 0) {
+            return false;
+        }
+
+        $mask = '';
+        for ($counter = 0; strlen($mask) < strlen($maskedDb); $counter++) {
+            $mask .= hash($hash, $h.pack('N', $counter), true);
+        }
+        $db = $maskedDb ^ substr($mask, 0, strlen($maskedDb));
+        $db[0] = chr(ord($db[0]) & (0xFF >> $zeroBits));
+
+        $padding = $emLength - $hashLength - $saltLength - 2;
+        if (strspn($db, "\0", 0, $padding) !== $padding || $db[$padding] !== "\x01") {
+            return false;
+        }
+        $salt = substr($db, -$saltLength);
+
+        return hash_equals($h, hash($hash, str_repeat("\0", 8).$messageHash.$salt, true));
+    }
+
     private static function ecPem(stdClass $key, string $algorithm): ?string
     {
         $curve = is_string($key->crv ?? null) ? $key->crv : '';
-        $expected = ['ES256' => 'P-256', 'ES384' => 'P-384', 'ES512' => 'P-521'][$algorithm] ?? null;
+        $expected = ['ES256' => 'P-256', 'ES384' => 'P-384'][$algorithm] ?? null;
         $x = is_string($key->x ?? null) ? self::base64UrlDecode($key->x) : null;
         $y = is_string($key->y ?? null) ? self::base64UrlDecode($key->y) : null;
-        if ($curve !== $expected || $x === null || $y === null) {
+        // VerifyingKey::from_sec1_bytes takes coordinates of the curve's size only.
+        if ($expected === null || $curve !== $expected || $x === null || $y === null
+            || strlen($x) !== self::CURVES[$curve][1] || strlen($y) !== self::CURVES[$curve][1]) {
             return null;
         }
-        $algorithmId = self::der(0x30, (hex2bin('06072a8648ce3d0201') ?: '').(hex2bin(self::CURVES[$curve]) ?: ''));
+        $algorithmId = self::der(0x30, (hex2bin('06072a8648ce3d0201') ?: '').(hex2bin(self::CURVES[$curve][0]) ?: ''));
 
         return self::pem(self::der(0x30, $algorithmId.self::der(0x03, "\0\x04".$x.$y)));
     }
@@ -159,13 +247,9 @@ final class Jws
     /**
      * The raw r and s of a JWS ECDSA signature as the DER sequence OpenSSL expects.
      */
-    private static function ecDerSignature(string $signature): ?string
+    private static function ecDerSignature(string $signature): string
     {
-        $length = strlen($signature);
-        if ($length === 0 || $length % 2 !== 0) {
-            return null;
-        }
-        $half = intdiv($length, 2);
+        $half = intdiv(strlen($signature), 2);
 
         return self::der(0x30, self::derInteger(substr($signature, 0, $half)).self::derInteger(substr($signature, $half)));
     }

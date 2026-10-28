@@ -160,6 +160,16 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Start Keycloak
+        # tests/Differential/KeycloakTest logs in at a real OpenID provider. It starts while the job goes on;
+        # differential.sh waits for its realm. A service container could not be given its command.
+        run: |
+          docker run -d --name keycloak -p 127.0.0.1:8180:8080 \
+            -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
+            -v "${GITHUB_WORKSPACE}/.github/scripts/keycloak-realm.json:/opt/keycloak/data/import/vaultwarden.json:ro" \
+            quay.io/keycloak/keycloak:26.8.1@sha256:a78d6b79572168cb25886b80a8b5b8d4ed4390743e3eecb810538683e209dd6b \
+            start-dev --import-realm
+
       - name: Read the pinned commit
         id: pin
         run: echo "commit=$(jq -r .commit parity/reference.json)" >> "$GITHUB_OUTPUT"
@@ -201,7 +211,13 @@ jobs:
 
       - name: Compare responses
         if: ${{ !cancelled() }}
+        env:
+          KEYCLOAK_URL: http://127.0.0.1:8180
         run: .github/scripts/differential.sh "${RUNNER_TEMP}/vaultwarden/vaultwarden"
+
+      - name: Keycloak log
+        if: ${{ failure() }}
+        run: docker logs keycloak 2>&1 | tail -200
 
       - name: Compare with the committed snapshots
         if: ${{ !cancelled() }}

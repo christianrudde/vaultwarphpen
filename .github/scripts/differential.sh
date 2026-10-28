@@ -8,6 +8,8 @@
 # Ports 8000-8004 (Vaultwarden), 8080-8084 (PHP), 8090 (our notifications daemon), 2501-2502
 # (SMTP sinks) and 2503 (fake Yubico, Duo, OpenID and push relay services) must be free.
 # Ports 80 and 443 serve fake websites for the icon tests, where they can be bound.
+# With KEYCLOAK_URL, a Keycloak that imported keycloak-realm.json (reference.yml starts one), a sixth
+# pair logs in there, on ports 8005 (Vaultwarden) and 8085 (PHP).
 
 set -euo pipefail
 
@@ -166,6 +168,36 @@ for url in http://127.0.0.1:{8000,8001,8002,8003,8004,8080,8081,8082,8083,8084}/
         sleep 1
     done
 done
+
+# A sixth pair logs in with SSO at a real OpenID provider, Keycloak (tests/Differential/KeycloakTest),
+# with the admin panel to change the SSO settings between flows.
+if [[ -n "${KEYCLOAK_URL:-}" ]]; then
+    mkdir -p "${work}/keycloak-reference" "${work}/keycloak-subject"
+    cp "${work}/subject/rsa_key.pem" "${work}/keycloak-reference/rsa_key.pem"
+    cp "${work}/subject/rsa_key.pem" "${work}/keycloak-subject/rsa_key.pem"
+    keycloak_env=(SSO_ENABLED=true SSO_AUTHORITY="${KEYCLOAK_URL}/realms/vaultwarden" SSO_CLIENT_ID=vaultwarden
+        'SSO_CLIENT_SECRET=differential+keycloak/secret=' ADMIN_TOKEN="${admin_token}")
+    env DATA_FOLDER="${work}/keycloak-reference" "${keycloak_env[@]}" ROCKET_PORT=8005 "${binary}" > "${work}/keycloak-reference.log" 2>&1 &
+    pids+=($!)
+    DATA_FOLDER="${work}/keycloak-subject" php artisan vaultwarden:migrate --no-ansi > /dev/null
+    (cd public && exec env DATA_FOLDER="${work}/keycloak-subject" "${keycloak_env[@]}" CACHE_PATH="${work}/keycloak-cache" \
+        php -d upload_max_filesize=525M -d post_max_size=0 -S 127.0.0.1:8085 ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php) \
+        > "${work}/keycloak-subject.log" 2>&1 &
+    pids+=($!)
+    # Keycloak takes a while to start and import the realm.
+    for url in "${KEYCLOAK_URL}/realms/vaultwarden/.well-known/openid-configuration" http://127.0.0.1:{8005,8085}/alive; do
+        for attempt in $(seq 120); do
+            curl -fsS "${url}" > /dev/null 2>&1 && break
+            if [[ "${attempt}" == 120 ]]; then
+                cat "${work}"/keycloak-*.log
+                echo "::error::${url} did not answer."
+                exit 1
+            fi
+            sleep 1
+        done
+    done
+    export VW_KEYCLOAK_URL="${KEYCLOAK_URL}" VW_KEYCLOAK_REFERENCE_URL=http://127.0.0.1:8005 VW_KEYCLOAK_SUBJECT_URL=http://127.0.0.1:8085
+fi
 
 # Without ports 80 and 443 (on macOS, say) the tests of the icon service are skipped.
 for attempt in $(seq 20); do

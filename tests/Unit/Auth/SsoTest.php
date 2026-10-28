@@ -37,6 +37,52 @@ class SsoTest extends TestCase
         }
     }
 
+    /**
+     * Signatures made by the OpenSSL command line tool, with a salt as long as
+     * the hash (rsa_pss_saltlen:-1), which the rsa crate requires, and one of
+     * 20 bytes, which it refuses.
+     */
+    public function test_rsa_pss_signatures(): void
+    {
+        $jwk = (object) ['kty' => 'RSA', 'kid' => 'key-1', 'e' => 'AQAB', 'n' => '65RC8fSAm2FLG3mT59RgzPrMReP9QyppTOOKCMLeQOLCqznz0bPlqnp8_HwGaToh28j2fMeOANJ3F0'
+            .'MAZrrlQGylBj6mbjpn5A0wpXyhqc6WNtJnuaOKJYHkDdWdD0b8ONtxp6GTOqgFAIOu9_pSdbMkgkjgEyozTFCSYWu_DAVnxqem7kuBr3pgXwWF5JheyizQFfgpR4a7oE37dWLbCUfQI'
+            .'O2iypfYrVr7duTyRFL_2N0cagwKmD4vWC0KJ6ei0ATF1tR1_YCC9tdfTZrGHMtsye8qJXPr08HvCGiVtx48Rqs13NQHoNr0gAU_LbqjXri5mIomZXBbKsdfngj7wQ'];
+        $input = 'eyJhbGciOiJQUzI1NiIsImtpZCI6ImtleS0xIn0.eyJzdWIiOiIxIn0';
+        $hashLong = 'du0KmA88x6RKzHzWOFDOMQp87HWstPODrKf59es5IpnY1iKtk94FjH3bNfgOj7DulgIZjgowoiKSpUJZjUcOtSINnnkaeKmSbC6iS03U2uAs22_E47Z_8oh22kA9mARimj6twgD19X'
+            .'IWwMrMRT1fDk5sTseLRJI1jVfWZesMnm5qdjdycEINbGd5l5anGIKTUZrcF4opcr6VGRSHisUSG3pSdAUQlBhfCZ1dgbT09q6ChGHqybjqc4x0lbYPUJu2dQDfiPSvHBFmPXMY6q0hi1II'
+            .'pUq4FwXbaNN09EJTw_B438VCVEzxx3jHDWPDF1QK0cp0fxpn3NrvNRe1AoruOw';
+        $short = 'QzRcF1klu60FkSaEeEB7FSHSvFr1lQLigHS8G0ePavQZnkG3P9oRzt4gDa7Zd83FgtE6BuVBYBkZ4vIfUdP7mkFH9mGsa2SYgxEgsI9yADQBEbk8FKjxzo-wu_NWhEjXhuEhxJd5YQi'
+            .'PCqZIx9zrl3teH4JwIiHe93Tdryo9KkmvF1ppeZnKa6qIJE_-cWK9Gc-iv0T0Osrz3lOtxqReESnfYbaoB9oO5cUdhYbzAIvOI6rVzV4Tj3Sbe3hOAergJ1aFm2HaDh2GDIbr55H3q1z'
+            .'weAUAJgM7Iro5o_9yxs9NW8qdqkX1eozDFajgY2Hk4toMOf3sIJulrp-fvRfnGQ';
+
+        $jws = Jws::parse("{$input}.{$hashLong}");
+        $this->assertNotNull($jws);
+        $this->assertSame([$jwk], Jws::filterKeys([$jwk], 'key-1', 'PS256'));
+        $this->assertTrue($jws->verify('PS256', $jwk));
+        $this->assertFalse($jws->verify('PS384', $jwk));
+        $this->assertFalse($jws->verify('RS256', $jwk));
+        $this->assertFalse(Jws::parse("{$input}.{$short}")?->verify('PS256', $jwk) ?? true);
+        $this->assertFalse(Jws::parse('eyJhbGciOiJQUzI1NiJ9.eyJzdWIiOiIxIn0.'.$hashLong)?->verify('PS256', $jwk) ?? true);
+    }
+
+    /**
+     * openidconnect verifies RSA keys of up to 4096 bits and no P-521 signatures.
+     */
+    public function test_keys_openidconnect_does_not_take(): void
+    {
+        $large = openssl_pkey_new(['private_key_type' => OPENSSL_KEYTYPE_RSA, 'private_key_bits' => 4104]);
+        $this->assertInstanceOf(OpenSSLAsymmetricKey::class, $large);
+        [$token, $jwk] = $this->signed('RS256', $large, 'sha256');
+        $this->assertFalse(Jws::parse($token)?->verify('RS256', $jwk) ?? true);
+        $this->assertSame(1, openssl_verify(...$this->opensslArguments($token, $large)));
+
+        $p521 = openssl_pkey_new(['private_key_type' => OPENSSL_KEYTYPE_EC, 'curve_name' => 'secp521r1']);
+        $this->assertInstanceOf(OpenSSLAsymmetricKey::class, $p521);
+        [$token, $jwk] = $this->signed('ES512', $p521, 'sha512');
+        $this->assertSame([$jwk], Jws::filterKeys([$jwk], 'key-1', 'ES512'));
+        $this->assertFalse(Jws::parse($token)?->verify('ES512', $jwk) ?? true);
+    }
+
     public function test_shared_secret_and_eddsa_signatures(): void
     {
         $input = $this->base64('{"alg":"HS256"}').'.'.$this->base64('{"sub":"1"}');
@@ -108,13 +154,31 @@ class SsoTest extends TestCase
             $jwk = (object) ['kty' => 'RSA', 'kid' => 'key-1', 'n' => $this->part($details, 'rsa', 'n'), 'e' => $this->part($details, 'rsa', 'e')];
         } else {
             // A DER signature becomes the raw r and s of JWS.
-            $size = $algorithm === 'ES256' ? 32 : 48;
+            [$size, $curve] = ['ES256' => [32, 'P-256'], 'ES384' => [48, 'P-384'], 'ES512' => [66, 'P-521']][$algorithm] ?? [0, ''];
             $signature = $this->rawEcSignature(is_string($signature) ? $signature : '', $size);
-            $jwk = (object) ['kty' => 'EC', 'kid' => 'key-1', 'crv' => $algorithm === 'ES256' ? 'P-256' : 'P-384',
-                'x' => $this->part($details, 'ec', 'x'), 'y' => $this->part($details, 'ec', 'y')];
+            $jwk = (object) ['kty' => 'EC', 'kid' => 'key-1', 'crv' => $curve,
+                'x' => $this->base64(str_pad((string) base64_decode(strtr($this->part($details, 'ec', 'x'), '-_', '+/')), $size, "\0", STR_PAD_LEFT)),
+                'y' => $this->base64(str_pad((string) base64_decode(strtr($this->part($details, 'ec', 'y'), '-_', '+/')), $size, "\0", STR_PAD_LEFT))];
         }
 
         return [$input.'.'.$this->base64(is_string($signature) ? $signature : ''), $jwk];
+    }
+
+    /**
+     * The arguments of openssl_verify() for an RS256 token and its key.
+     *
+     * @return array{string, string, OpenSSLAsymmetricKey, string}
+     */
+    private function opensslArguments(string $token, OpenSSLAsymmetricKey $key): array
+    {
+        [$header, $payload, $signature] = explode('.', $token);
+        $details = openssl_pkey_get_details($key);
+        $this->assertIsArray($details);
+        $this->assertIsString($details['key'] ?? null);
+        $public = openssl_pkey_get_public($details['key']);
+        $this->assertInstanceOf(OpenSSLAsymmetricKey::class, $public);
+
+        return ["{$header}.{$payload}", (string) base64_decode(strtr($signature, '-_', '+/')), $public, 'sha256'];
     }
 
     /**

@@ -224,8 +224,8 @@ final readonly class OidcClient
                 $result = ['refresh_token' => self::stringField($tokens, 'refresh_token'), 'access_token' => self::stringField($tokens, 'access_token'),
                     'expires_in' => self::expiresIn($tokens)];
             } catch (TokenRequestError $error) {
-                logger()->error("Request to exchange_refresh_token endpoint failed: {$error->getMessage()}");
-                $result = ['error' => "Request to exchange_refresh_token endpoint failed: {$error->getMessage()}"];
+                logger()->error("Request to exchange_refresh_token endpoint failed: {$error->display}");
+                $result = ['error' => "Request to exchange_refresh_token endpoint failed: {$error->display}"];
             }
             Cache::put($key, $result, 30);
         }
@@ -369,29 +369,31 @@ final readonly class OidcClient
         try {
             [$status, $body, $responseHeaders] = HttpClient::send('POST', $this->tokenEndpoint, $headers, FormUrlencoded::encodePairs($params), enforceBlock: false, redirects: false);
         } catch (ApiError $error) {
-            throw new TokenRequestError('Request('.EscapeDebug::debug($error->getMessage()).')');
+            throw new TokenRequestError('Request('.EscapeDebug::debug($error->getMessage()).')', 'Request failed');
         }
 
         if ($status !== 200) {
             if ($body === '') {
-                throw new TokenRequestError('Other("server returned empty error response")');
+                throw new TokenRequestError('Other("server returned empty error response")', 'Other error: server returned empty error response');
             }
             $error = json_decode($body);
             if (! $error instanceof stdClass || ! is_string($error->error ?? null)) {
-                throw new TokenRequestError('Parse(..)');
+                throw new TokenRequestError('Parse(..)', 'Failed to parse server response');
             }
 
-            throw new TokenRequestError(self::serverResponseDebug($error));
+            throw new TokenRequestError(self::serverResponseDebug($error), 'Server returned error response: '.self::serverResponseDisplay($error));
         }
         $contentType = $responseHeaders['content-type'] ?? null;
         if ($contentType !== null && ! self::hasEssence($contentType, 'application/json')) {
-            throw new TokenRequestError('Other('.EscapeDebug::debug('Unexpected response Content-Type: '.EscapeDebug::debug($contentType).', should be `application/json`').')');
+            $other = 'Unexpected response Content-Type: '.EscapeDebug::debug($contentType).', should be `application/json`';
+
+            throw new TokenRequestError('Other('.EscapeDebug::debug($other).')', "Other error: {$other}");
         }
 
         $tokens = json_decode($body);
         if (! $tokens instanceof stdClass || ! is_string($tokens->access_token ?? null) || ! is_string($tokens->token_type ?? null)
             || strtolower($tokens->token_type) !== 'bearer') {
-            throw new TokenRequestError('Parse(..)');
+            throw new TokenRequestError('Parse(..)', 'Failed to parse server response');
         }
         // The ID token's claims are parsed with the response.
         $idToken = is_string($tokens->id_token ?? null) ? Jws::parse($tokens->id_token) : null;
@@ -473,8 +475,9 @@ final readonly class OidcClient
         if ($algorithm === null || ! Jws::isKnown($algorithm)) {
             throw new ClaimsVerificationError('Signature verification failed');
         }
+        // SignatureVerification(DisallowedAlg(..)) shows only its own text.
         if (! in_array($algorithm, $this->signingAlgorithms, true)) {
-            throw new ClaimsVerificationError("Signature verification failed: algorithm `{$algorithm}` is not one of: ".implode(', ', $this->signingAlgorithms));
+            throw new ClaimsVerificationError('Signature verification failed');
         }
         if (Jws::usesSharedSecret($algorithm)) {
             $key = $this->config->string('sso_client_secret');
@@ -525,6 +528,17 @@ final readonly class OidcClient
         $uri = $uri === null ? 'None' : 'Some('.EscapeDebug::debug($uri).')';
 
         return "ServerResponse(StandardErrorResponse { error: {$type}, error_description: {$description}, error_uri: {$uri} })";
+    }
+
+    /**
+     * The Display form of StandardErrorResponse: the code, then ": description" and " (see uri)".
+     */
+    private static function serverResponseDisplay(stdClass $error): string
+    {
+        $description = self::stringField($error, 'error_description');
+        $uri = self::stringField($error, 'error_uri');
+
+        return (self::stringField($error, 'error') ?? '').($description === null ? '' : ": {$description}").($uri === null ? '' : " (see {$uri})");
     }
 
     private static function authMethodDebug(string $method): string

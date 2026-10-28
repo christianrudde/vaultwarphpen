@@ -1,0 +1,136 @@
+{
+    "realm": "vaultwarden",
+    "displayName": "Differential tests (tests/Differential/KeycloakTest)",
+    "enabled": true,
+    "sslRequired": "none",
+    "registrationAllowed": false,
+    "loginWithEmailAllowed": false,
+    "duplicateEmailsAllowed": true,
+    "verifyEmail": false,
+    "revokeRefreshToken": true,
+    "refreshTokenMaxReuse": 0,
+    "clients": [
+        {
+            "clientId": "vaultwarden",
+            "name": "Vaultwarden",
+            "protocol": "openid-connect",
+            "publicClient": false,
+            "secret": "differential+keycloak/secret=",
+            "standardFlowEnabled": true,
+            "directAccessGrantsEnabled": false,
+            "redirectUris": ["http://localhost/identity/connect/oidc-signin"],
+            "attributes": {"pkce.code.challenge.method": "S256"}
+        },
+        {
+            "clientId": "vaultwarden-unverified",
+            "name": "Like Microsoft Entra ID: the email address without email_verified",
+            "protocol": "openid-connect",
+            "publicClient": false,
+            "secret": "differential+keycloak/secret=",
+            "standardFlowEnabled": true,
+            "directAccessGrantsEnabled": false,
+            "redirectUris": ["http://localhost/identity/connect/oidc-signin"],
+            "attributes": {"pkce.code.challenge.method": "S256"},
+            "defaultClientScopes": ["basic", "profile", "roles", "web-origins", "acr"],
+            "optionalClientScopes": ["offline_access"],
+            "protocolMappers": [
+                {
+                    "name": "email",
+                    "protocol": "openid-connect",
+                    "protocolMapper": "oidc-usermodel-property-mapper",
+                    "config": {
+                        "user.attribute": "email",
+                        "claim.name": "email",
+                        "jsonType.label": "String",
+                        "id.token.claim": "true",
+                        "access.token.claim": "true",
+                        "userinfo.token.claim": "true"
+                    }
+                }
+            ]
+        },
+        {
+            "clientId": "vaultwarden-audiences",
+            "name": "ID tokens for a second audience",
+            "protocol": "openid-connect",
+            "publicClient": false,
+            "secret": "differential+keycloak/secret=",
+            "standardFlowEnabled": true,
+            "directAccessGrantsEnabled": false,
+            "redirectUris": ["http://localhost/identity/connect/oidc-signin"],
+            "attributes": {"pkce.code.challenge.method": "S256"},
+            "protocolMappers": [
+                {
+                    "name": "other audience",
+                    "protocol": "openid-connect",
+                    "protocolMapper": "oidc-audience-mapper",
+                    "config": {
+                        "included.custom.audience": "vaultwarden-other-audience",
+                        "id.token.claim": "true",
+                        "access.token.claim": "true"
+                    }
+                }
+            ]
+        },
+        {
+            "clientId": "vaultwarden-access-only",
+            "name": "Access tokens of an hour, no refresh tokens",
+            "protocol": "openid-connect",
+            "publicClient": false,
+            "secret": "differential+keycloak/secret=",
+            "standardFlowEnabled": true,
+            "directAccessGrantsEnabled": false,
+            "redirectUris": ["http://localhost/identity/connect/oidc-signin"],
+            "attributes": {"pkce.code.challenge.method": "S256", "use.refresh.tokens": "false", "access.token.lifespan": "3600"}
+        },
+        {
+            "clientId": "vaultwarden-algorithms",
+            "name": "ID tokens signed with the algorithm the test sets",
+            "protocol": "openid-connect",
+            "publicClient": false,
+            "secret": "differential+keycloak/secret=",
+            "standardFlowEnabled": true,
+            "directAccessGrantsEnabled": false,
+            "redirectUris": ["http://localhost/identity/connect/oidc-signin"],
+            "attributes": {"pkce.code.challenge.method": "S256", "id.token.signed.response.alg": "RS256"}
+        }
+    ],
+    "users": [
+        {"username": "kc-alice", "email": "kc-alice@example.com", "emailVerified": true, "firstName": "Alice", "lastName": "Keycloak", "enabled": true,
+            "realmRoles": ["default-roles-vaultwarden"], "credentials": [{"type": "password", "value": "Differential-Password-1", "temporary": false}]},
+        {"username": "kc-linked", "email": "kc-linked@example.com", "emailVerified": true, "firstName": "Linked", "lastName": "Keycloak", "enabled": true,
+            "realmRoles": ["default-roles-vaultwarden"], "credentials": [{"type": "password", "value": "Differential-Password-1", "temporary": false}]},
+        {"username": "kc-unverified", "email": "kc-unverified@example.com", "emailVerified": false, "firstName": "Unverified", "lastName": "Keycloak", "enabled": true,
+            "realmRoles": ["default-roles-vaultwarden"], "credentials": [{"type": "password", "value": "Differential-Password-1", "temporary": false}]},
+        {"username": "kc-unverified-linked", "email": "kc-unverified-linked@example.com", "emailVerified": false, "firstName": "Unverified", "lastName": "Linked", "enabled": true,
+            "realmRoles": ["default-roles-vaultwarden"], "credentials": [{"type": "password", "value": "Differential-Password-1", "temporary": false}]},
+        {"username": "kc-twin-1", "email": "kc-twin@example.com", "emailVerified": true, "firstName": "First", "lastName": "Twin", "enabled": true,
+            "realmRoles": ["default-roles-vaultwarden"], "credentials": [{"type": "password", "value": "Differential-Password-1", "temporary": false}]},
+        {"username": "kc-twin-2", "email": "kc-twin@example.com", "emailVerified": true, "firstName": "Second", "lastName": "Twin", "enabled": true,
+            "realmRoles": ["default-roles-vaultwarden"], "credentials": [{"type": "password", "value": "Differential-Password-1", "temporary": false}]},
+        {"username": "kc-invitee", "email": "kc-invitee@example.com", "emailVerified": true, "firstName": "Invitee", "lastName": "Keycloak", "enabled": true,
+            "realmRoles": ["default-roles-vaultwarden"], "credentials": [{"type": "password", "value": "Differential-Password-1", "temporary": false}]},
+        {"username": "kc-no-match", "email": "kc-no-match@example.com", "emailVerified": true, "firstName": "No", "lastName": "Match", "enabled": true,
+            "realmRoles": ["default-roles-vaultwarden"], "credentials": [{"type": "password", "value": "Differential-Password-1", "temporary": false}]},
+        {"username": "kc-unknown", "email": "kc-unknown@example.com", "emailVerified": true, "firstName": "Unknown", "lastName": "Keycloak", "enabled": true,
+            "realmRoles": ["default-roles-vaultwarden"], "credentials": [{"type": "password", "value": "Differential-Password-1", "temporary": false}]},
+        {"username": "kc-unknown-linked", "email": "kc-unknown-linked@example.com", "emailVerified": true, "firstName": "Unknown", "lastName": "Linked", "enabled": true,
+            "realmRoles": ["default-roles-vaultwarden"], "credentials": [{"type": "password", "value": "Differential-Password-1", "temporary": false}]},
+        {"username": "kc-sso-only", "email": "kc-sso-only@example.com", "emailVerified": true, "firstName": "Only", "lastName": "Keycloak", "enabled": true,
+            "realmRoles": ["default-roles-vaultwarden"], "credentials": [{"type": "password", "value": "Differential-Password-1", "temporary": false}]},
+        {"username": "kc-own-session", "email": "kc-own-session@example.com", "emailVerified": true, "firstName": "Own", "lastName": "Session", "enabled": true,
+            "realmRoles": ["default-roles-vaultwarden"], "credentials": [{"type": "password", "value": "Differential-Password-1", "temporary": false}]},
+        {"username": "kc-offline", "email": "kc-offline@example.com", "emailVerified": true, "firstName": "Offline", "lastName": "Keycloak", "enabled": true,
+            "realmRoles": ["default-roles-vaultwarden"], "credentials": [{"type": "password", "value": "Differential-Password-1", "temporary": false}]},
+        {"username": "kc-access-only", "email": "kc-access-only@example.com", "emailVerified": true, "firstName": "Access", "lastName": "Only", "enabled": true,
+            "realmRoles": ["default-roles-vaultwarden"], "credentials": [{"type": "password", "value": "Differential-Password-1", "temporary": false}]},
+        {"username": "kc-rotation", "email": "kc-rotation@example.com", "emailVerified": true, "firstName": "Rotation", "lastName": "Keycloak", "enabled": true,
+            "realmRoles": ["default-roles-vaultwarden"], "credentials": [{"type": "password", "value": "Differential-Password-1", "temporary": false}]},
+        {"username": "kc-audience", "email": "kc-audience@example.com", "emailVerified": true, "firstName": "Audience", "lastName": "Keycloak", "enabled": true,
+            "realmRoles": ["default-roles-vaultwarden"], "credentials": [{"type": "password", "value": "Differential-Password-1", "temporary": false}]},
+        {"username": "kc-algorithms", "email": "kc-algorithms@example.com", "emailVerified": true, "firstName": "Algorithms", "lastName": "Keycloak", "enabled": true,
+            "realmRoles": ["default-roles-vaultwarden"], "credentials": [{"type": "password", "value": "Differential-Password-1", "temporary": false}]},
+        {"username": "kc-errors", "email": "kc-errors@example.com", "emailVerified": true, "firstName": "Errors", "lastName": "Keycloak", "enabled": true,
+            "realmRoles": ["default-roles-vaultwarden"], "credentials": [{"type": "password", "value": "Differential-Password-1", "temporary": false}]}
+    ]
+}
