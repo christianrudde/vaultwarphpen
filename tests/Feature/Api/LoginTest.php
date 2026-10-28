@@ -7,6 +7,7 @@ use App\Auth\JwtIssuer;
 use App\Models\Device;
 use App\Models\User;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Testing\TestResponse;
 use Tests\Attributes\Parity;
 use Tests\Concerns\UsesVaultwardenDatabase;
@@ -88,9 +89,14 @@ class LoginTest extends TestCase
 
     public function test_failed_logins(): void
     {
+        $log = Log::spy();
+        $this->login(['username' => "o'neil@example.com"])->assertStatus(400);
+        $log->shouldHaveReceived('error')->with("Username or password is incorrect. Try again. IP: 127.0.0.1. Username: o\\'neil@example.com.");
+
         $this->login(['password' => 'wrong'])->assertStatus(400)->assertJsonPath('message', 'Username or password is incorrect. Try again');
         $this->login(['username' => 'nobody@example.com'])->assertStatus(400)->assertJsonPath('message', 'Username or password is incorrect. Try again');
         $this->login(['scope' => 'api'])->assertStatus(400)->assertJsonPath('message', 'Scope (api) not supported');
+        $this->login(['scope' => "api'\x01"])->assertStatus(400)->assertJsonPath('message', "Scope (api\\'\\u{1}) not supported");
         $this->login(['device_type' => null])->assertStatus(400)->assertJsonPath('message', 'device_type cannot be blank');
         $this->postForm(['grant_type' => 'magic'])->assertStatus(400)->assertJsonPath('message', 'Invalid type');
         $this->postForm(['scope' => 'api'], ['Accept' => 'application/json'])->assertStatus(422);

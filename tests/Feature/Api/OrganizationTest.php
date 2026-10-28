@@ -61,6 +61,8 @@ class OrganizationTest extends TestCase
             ->assertJsonPath('name', '2.renamed')->assertJsonPath('billingEmail', 'new@example.com');
         $this->putJson("/api/organizations/{$org}", ['billingEmail' => 'nope', 'name' => '2.x'], $this->owner)
             ->assertStatus(400)->assertJsonPath('message', 'BillingEmail nope is not a valid email address');
+        $this->putJson("/api/organizations/{$org}", ['billingEmail' => "o'neil", 'name' => '2.x'], $this->owner)
+            ->assertStatus(400)->assertJsonPath('message', "BillingEmail o\\'neil is not a valid email address");
 
         $this->postJson("/api/organizations/{$org}/keys", ['encryptedPrivateKey' => '2.private', 'publicKey' => 'public'], $this->owner)
             ->assertJsonPath('publicKey', 'public')->assertJsonPath('privateKey', '2.private');
@@ -140,6 +142,33 @@ class OrganizationTest extends TestCase
         $this->post("/api/organizations/{$org}/leave", [], $this->member)->assertStatus(200);
         $this->post("/api/organizations/{$org}/leave", [], $this->owner)->assertStatus(400)->assertJsonPath('message', "The last owner can't leave");
         $this->assertSame(1, Membership::query()->count());
+    }
+
+    /**
+     * Error messages print emails with Rust's escape_debug.
+     */
+    public function test_invitations_of_unusual_emails(): void
+    {
+        $org = $this->createOrganization();
+        $invite = fn (string $email) => $this->postJson("/api/organizations/{$org}/users/invite", ['emails' => [$email], 'groups' => [], 'type' => 2], $this->owner);
+
+        $invite("o'neil@example.com")->assertStatus(200);
+        $invite("o'neil@example.com")->assertStatus(400)->assertJsonPath('message', "User already in organization: o\\'neil@example.com");
+        $invite("o'neil\x01@example.com")->assertStatus(400)
+            ->assertJsonPath('message', "Invitation email o\\'neil\\u{1}@example.com is not a valid email address");
+    }
+
+    /**
+     * Settings change before the first request, which resolves the controller.
+     */
+    public function test_invitations_without_invitations_allowed(): void
+    {
+        $this->changeVaultwardenEnvironment(['INVITATIONS_ALLOWED' => 'false']);
+        $org = $this->createOrganization();
+
+        $this->postJson("/api/organizations/{$org}/users/invite", ['emails' => ["o'neil@example.com"], 'groups' => [], 'type' => 2], $this->owner)
+            ->assertStatus(400)->assertJsonPath('message', "User does not exist: o\\'neil@example.com");
+        $this->assertNull(User::findByMail("o'neil@example.com"));
     }
 
     public function test_collections_and_organization_ciphers(): void

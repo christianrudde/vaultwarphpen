@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Database\Rows;
 use App\Http\ApiError;
 use App\Support\EmailAddress;
+use App\Support\EscapeDebug;
 use Illuminate\Database\QueryException;
 
 /**
@@ -33,7 +34,7 @@ final class Invitation extends Model
     public function save(array $options = []): bool
     {
         if (! EmailAddress::isValid($this->email)) {
-            throw ApiError::message('Invitation email '.addcslashes($this->email, "\0..\37\"\\").' is not a valid email address');
+            throw ApiError::message('Invitation email '.EscapeDebug::of($this->email).' is not a valid email address');
         }
 
         try {

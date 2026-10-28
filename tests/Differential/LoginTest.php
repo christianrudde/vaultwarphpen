@@ -21,6 +21,7 @@ class LoginTest extends DifferentialTestCase
             $steps['wrong password'] = $server->form('/identity/connect/token', [...$login, 'password' => 'wrong']);
             $steps['unknown user'] = $server->form('/identity/connect/token', [...$login, 'username' => 'nobody@example.com']);
             $steps['wrong scope'] = $server->form('/identity/connect/token', [...$login, 'scope' => 'api']);
+            $steps['escaped scope'] = $server->form('/identity/connect/token', [...$login, 'scope' => "api'\x01"]);
             $steps['login'] = $server->form('/identity/connect/token', $login);
             $refreshToken = $steps['login']->jsonString('refresh_token');
 

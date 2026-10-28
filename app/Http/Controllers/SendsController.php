@@ -22,6 +22,7 @@ use App\Models\OrgPolicy;
 use App\Models\Send;
 use App\Support\CheckedInt;
 use App\Support\Dates;
+use App\Support\EscapeDebug;
 use App\Support\JsonValue;
 use App\Support\Uuid;
 use Illuminate\Http\Request;
@@ -165,7 +166,7 @@ final readonly class SendsController
             throw ApiError::message('Send file name does not match or is not provided.');
         }
         if ($rawName !== $sendFile['fileName'] && ! ($headers->device->isCli() && str_ends_with($sendFile['fileName'], $rawName))) {
-            throw ApiError::message('Send file name does not match.', logMessage: "Expected file name '{$sendFile['fileName']}' got '{$rawName}'");
+            throw ApiError::message('Send file name does not match.', logMessage: "Expected file name '".EscapeDebug::of($sendFile['fileName'])."' got '".EscapeDebug::of($rawName)."'");
         }
 
         if ($fileId !== $sendFile['id']) {

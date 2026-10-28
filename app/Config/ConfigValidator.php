@@ -6,6 +6,7 @@ use App\Database\DatabaseUrl;
 use App\Logging\LogLevel;
 use App\Support\CronSchedule;
 use App\Support\EmailAddress;
+use App\Support\EscapeDebug;
 use App\Support\IpNetwork;
 
 /**
@@ -151,9 +152,11 @@ final class ConfigValidator
 
         $invalidFlags = array_keys(FeatureFlags::parse($config->string('experimental_client_feature_flags'), 'invalid'));
         if ($invalidFlags !== []) {
-            $message = 'Unrecognized experimental client feature flags: '.json_encode($invalidFlags).".\n"
+            // Debug output of a HashMap<String, bool>, whose order is random in Rust, and of a &[&str].
+            $invalid = array_map(fn (string $flag): string => EscapeDebug::debug($flag).': true', $invalidFlags);
+            $message = 'Unrecognized experimental client feature flags: {'.implode(', ', $invalid)."}.\n"
                 ."Please ensure all feature flags are spelled correctly and that they are supported in this version.\n"
-                .'Supported flags: '.json_encode(FeatureFlags::SUPPORTED);
+                .'Supported flags: ['.implode(', ', array_map(EscapeDebug::debug(...), FeatureFlags::SUPPORTED))."]\n";
             if ($onUpdate) {
                 self::fail($message);
             }
@@ -308,14 +311,14 @@ final class ConfigValidator
                 self::fail("sendmail command {$command} not found in \$PATH");
             }
             if (! file_exists($path)) {
-                self::fail("sendmail command not found at `\"{$path}\"`");
+                self::fail('sendmail command not found at `'.EscapeDebug::debug($path).'`');
             }
             // The message is Vaultwarden's, although it is raised for a directory.
             if (is_dir($path)) {
-                self::fail("sendmail command at `\"{$path}\"` isn't a directory");
+                self::fail('sendmail command at `'.EscapeDebug::debug($path)."` isn't a directory");
             }
             if (! is_executable($path)) {
-                self::fail("sendmail command at `\"{$path}\"` isn't executable");
+                self::fail('sendmail command at `'.EscapeDebug::debug($path)."` isn't executable");
             }
         } else {
             if (($host !== null) === ($from === '')) {

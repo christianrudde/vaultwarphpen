@@ -55,6 +55,8 @@ class ConfigValidatorTest extends TestCase
         yield 'smtp from' => [['SMTP_HOST' => 'smtp.example.com', 'SMTP_FROM' => 'vault'], "SMTP_FROM 'vault' is not a valid email address"];
         yield 'email token size' => [['SMTP_HOST' => 'smtp.example.com', 'SMTP_FROM' => 'v@example.com', 'EMAIL_TOKEN_SIZE' => '5'], '`EMAIL_TOKEN_SIZE` has a minimum size of 6'];
         yield 'sendmail missing' => [['USE_SENDMAIL' => 'true', 'SENDMAIL_COMMAND' => 'no-such-sendmail-command', 'SMTP_FROM' => 'v@example.com'], 'sendmail command no-such-sendmail-command not found in $PATH'];
+        yield 'sendmail path' => [['USE_SENDMAIL' => 'true', 'SENDMAIL_COMMAND' => "/no/such/o'neil\tsendmail", 'SMTP_FROM' => 'v@example.com'],
+            "sendmail command not found at `\"/no/such/o'neil\\tsendmail\"`"];
         yield 'email 2fa without transport' => [['_ENABLE_EMAIL_2FA' => 'true'], 'To enable email 2FA, a mail transport must be configured'];
         yield 'email 2fa fallback' => [['EMAIL_2FA_AUTO_FALLBACK' => 'true'], 'To use email 2FA as automatic fallback, email 2fa has to be enabled!'];
         yield 'block regex' => [['HTTP_REQUEST_BLOCK_REGEX' => '(unclosed'], '`HTTP_REQUEST_BLOCK_REGEX` is invalid'];
@@ -116,7 +118,11 @@ class ConfigValidatorTest extends TestCase
         ]);
 
         $this->assertCount(3, $config->warnings);
-        $this->assertStringContainsString('Unrecognized experimental client feature flags: ["unknown-flag"]', $config->warnings[0]);
+        $this->assertStringStartsWith('Unrecognized experimental client feature flags: {"unknown-flag": true}.', $config->warnings[0]);
+        $this->assertStringEndsWith('Supported flags: ["pm-5594-safari-account-switching", "pm-32413-multi-client-password-management", '
+            .'"undetermined-cipher-scenario-logic", "enable-basic-auth-response", "ssh-agent-v2", "windows-desktop-autotype", '
+            .'"windows-desktop-autotype-ga", "biometrics-sdk-ipc", "windows-native-credential-sync", "pm-34171-card-scanner", '
+            ."\"pm-30529-webauthn-related-origins\", \"pm-32009-new-item-types\"]\n", $config->warnings[0]);
         $this->assertStringContainsString('plain text `ADMIN_TOKEN`', $config->warnings[1]);
         $this->assertStringContainsString('Secure Note size limit is increased', $config->warnings[2]);
     }

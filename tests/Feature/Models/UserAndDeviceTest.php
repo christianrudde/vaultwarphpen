@@ -113,9 +113,9 @@ class UserAndDeviceTest extends TestCase
         $this->useDatabase('sqlite');
 
         $this->expectException(ApiError::class);
-        $this->expectExceptionMessage('User email not-an-email is not a valid email address');
+        $this->expectExceptionMessage("User email o\\'neil\\u{1} is not a valid email address");
 
-        User::new('not-an-email')->save();
+        User::new("o'neil\x01")->save();
     }
 
     public function test_stamp_exceptions(): void

@@ -9,6 +9,7 @@ use App\Models\Casts\Binary;
 use App\Models\Casts\NaiveDateTime;
 use App\Support\Dates;
 use App\Support\EmailAddress;
+use App\Support\EscapeDebug;
 use App\Support\Random;
 use DateTimeImmutable;
 use Illuminate\Database\QueryException;
@@ -293,7 +294,7 @@ final class User extends Model
     public function save(array $options = []): bool
     {
         if (! EmailAddress::isValid($this->email)) {
-            throw ApiError::message('User email '.addcslashes($this->email, "\0..\37\"\\").' is not a valid email address');
+            throw ApiError::message('User email '.EscapeDebug::of($this->email).' is not a valid email address');
         }
 
         $this->updated_at = Dates::now();

@@ -3,6 +3,7 @@
 namespace App\Auth;
 
 use App\Http\ApiError;
+use App\Support\EscapeDebug;
 
 /**
  * How a session was started (auth::AuthMethod); the subject of refresh tokens.
@@ -41,7 +42,7 @@ enum AuthMethod: string
         return match (true) {
             $scope === null => throw ApiError::message('Missing scope'),
             $scope === $this->scope() => $scope,
-            default => throw ApiError::message('Scope ('.addcslashes($scope, "\0..\37\"'\\").') not supported'),
+            default => throw ApiError::message('Scope ('.EscapeDebug::of($scope).') not supported'),
         };
     }
 }

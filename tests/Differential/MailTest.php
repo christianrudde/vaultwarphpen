@@ -41,6 +41,7 @@ class MailTest extends DifferentialTestCase
             $steps['invite'] = $server->json('POST', "{$users}/invite", ['emails' => ['mail-member@example.com', 'mail-new@example.com'], 'groups' => [], 'type' => 2], $owner);
             $steps['invitation mail'] = $server->mail('mail-member@example.com')->exchange();
             $steps['invitation mail to a new user'] = $server->mail('mail-new@example.com')->exchange();
+            $steps['invite an invalid email'] = $server->json('POST', "{$users}/invite", ['emails' => ["mail-o'neil\x01@example.com"], 'groups' => [], 'type' => 2], $owner);
             $steps['members'] = $members = $server->send('GET', $users, $owner);
             $ids = OrganizationTest::memberIds($members);
             $memberId = $ids['mail-member@example.com'];

@@ -44,6 +44,7 @@ use App\Models\TwoFactor;
 use App\Models\User;
 use App\Support\CheckedInt;
 use App\Support\Dates;
+use App\Support\EscapeDebug;
 use App\Support\JsonValue;
 use App\Support\UpdateType;
 use App\Support\Uuid;
@@ -525,7 +526,7 @@ final readonly class OrganizationsController
             $created = $user === null;
             if ($user === null) {
                 if (! $this->config->bool('invitations_allowed')) {
-                    throw ApiError::message('User does not exist: '.addcslashes($email, "\0..\37\"\\"));
+                    throw ApiError::message('User does not exist: '.EscapeDebug::of($email));
                 }
                 if (! $this->config->isEmailDomainAllowed($email)) {
                     throw ApiError::message('Email domain not eligible for invitations');
@@ -537,7 +538,7 @@ final readonly class OrganizationsController
                 $user->save();
             } else {
                 if (Membership::findByUserAndOrg($user->uuid, $orgId) !== null) {
-                    throw ApiError::message('User already in organization: '.addcslashes($email, "\0..\37\"\\"));
+                    throw ApiError::message('User already in organization: '.EscapeDebug::of($email));
                 }
                 if (! $this->config->mailEnabled()) {
                     if ($user->password_hash === '') {

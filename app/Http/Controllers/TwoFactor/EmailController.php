@@ -17,6 +17,7 @@ use App\Models\TwoFactor;
 use App\Models\TwoFactorIncomplete;
 use App\Models\User;
 use App\Support\CheckedInt;
+use App\Support\EscapeDebug;
 use App\Support\JsonValue;
 use App\Support\Random;
 use App\Support\RateLimiter;
@@ -63,7 +64,7 @@ final readonly class EmailController
         $authRequestId = $authRequestId === '' ? null : $authRequestId;
 
         if ($email !== null) {
-            $logged = addcslashes($email, "\0..\37\"'\\");
+            $logged = EscapeDebug::of($email);
             $user = User::findByMail($email)
                 ?? throw ApiError::message('Username or password is incorrect. Try again', logMessage: "IP: {$ip}. Username: {$logged}.");
 
@@ -93,7 +94,7 @@ final readonly class EmailController
             // SSO logins only send the device: its latest pending login names the user.
             $userUuid = TwoFactorIncomplete::userOfDevice($deviceIdentifier);
             $user = ($userUuid === null ? null : User::findByUuid($userUuid))
-                ?? throw ApiError::message('Username or password is incorrect. Try again', logMessage: "IP: {$ip}. Device: ".addcslashes($deviceIdentifier, "\0..\37\"'\\").'.');
+                ?? throw ApiError::message('Username or password is incorrect. Try again', logMessage: "IP: {$ip}. Device: ".EscapeDebug::of($deviceIdentifier).'.');
         }
 
         self::sendToken($user->uuid);

@@ -35,6 +35,7 @@ use App\Models\TwoFactorIncomplete;
 use App\Models\User;
 use App\Support\CheckedInt;
 use App\Support\Dates;
+use App\Support\EscapeDebug;
 use App\Support\RateLimiter;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -302,7 +303,7 @@ final readonly class IdentityController
         $this->limiter->check('login', $ip);
 
         $username = trim($username);
-        $logUsername = addcslashes($username, "\0..\37\"'\\");
+        $logUsername = EscapeDebug::of($username);
         $user = User::findByMail($username)
             ?? throw ApiError::message('Username or password is incorrect. Try again', logMessage: "IP: {$ip}. Username: {$logUsername}.");
         $userId = $user->uuid;

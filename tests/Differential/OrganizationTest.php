@@ -36,6 +36,7 @@ class OrganizationTest extends DifferentialTestCase
             $steps['get invalid id'] = $server->send('GET', '/api/organizations/nope', $owner);
             $steps['update'] = $server->json('PUT', "/api/organizations/{$org}", ['billingEmail' => 'NEW@example.com', 'name' => '2.renamed'], $owner);
             $steps['update with a bad email'] = $server->json('PUT', "/api/organizations/{$org}", ['billingEmail' => 'nope', 'name' => '2.x'], $owner);
+            $steps['update with an escaped email'] = $server->json('PUT', "/api/organizations/{$org}", ['billingEmail' => "o'neil\x01", 'name' => '2.x'], $owner);
             $steps['keys'] = $server->json('POST', "/api/organizations/{$org}/keys", ['encryptedPrivateKey' => '2.private', 'publicKey' => 'public'], $owner);
             $steps['keys again'] = $server->json('POST', "/api/organizations/{$org}/keys", ['encryptedPrivateKey' => '2.x', 'publicKey' => 'x'], $owner);
             $steps['public key'] = $server->send('GET', "/api/organizations/{$org}/public-key", $owner);
@@ -84,6 +85,9 @@ class OrganizationTest extends DifferentialTestCase
                 'collections' => [['id' => 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', 'readOnly' => false, 'hidePasswords' => false, 'manage' => false]]], $owner);
             $steps['invite to an unknown group'] = $server->json('POST', "/api/organizations/{$org}/users/invite", ['emails' => ['x@example.com'], 'groups' => ['aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'], 'type' => 2], $owner);
             $steps['invite without groups'] = $server->json('POST', "/api/organizations/{$org}/users/invite", ['emails' => ['x@example.com'], 'type' => 2], $owner);
+            $steps['invite with a quote'] = $server->json('POST', "/api/organizations/{$org}/users/invite", ['emails' => ["members-o'neil@example.com"], 'groups' => [], 'type' => 2], $owner);
+            $steps['invite with a quote again'] = $server->json('POST', "/api/organizations/{$org}/users/invite", ['emails' => ["members-o'neil@example.com"], 'groups' => [], 'type' => 2], $owner);
+            $steps['invite an invalid email'] = $server->json('POST', "/api/organizations/{$org}/users/invite", ['emails' => ["members-o'neil\x01@example.com"], 'groups' => [], 'type' => 2], $owner);
 
             $steps['members'] = $members = $server->send('GET', "/api/organizations/{$org}/users", $owner);
             $steps['members with collections'] = $server->send('GET', "/api/organizations/{$org}/users?includeCollections=true&includeGroups=true", $owner);

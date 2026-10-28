@@ -6,6 +6,7 @@ use App\Config\Config;
 use App\Http\ApiError;
 use App\Http\Json;
 use App\Support\EmailAddress;
+use App\Support\EscapeDebug;
 use App\Support\Random;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -108,7 +109,7 @@ final class Organization extends Model
     public function save(array $options = []): bool
     {
         if (! EmailAddress::isValid($this->billing_email)) {
-            throw ApiError::message('BillingEmail '.addcslashes($this->billing_email, "\0..\37\"\\").' is not a valid email address');
+            throw ApiError::message('BillingEmail '.EscapeDebug::of($this->billing_email).' is not a valid email address');
         }
 
         foreach (Membership::findByOrg($this->uuid) as $member) {
