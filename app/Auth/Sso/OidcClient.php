@@ -398,7 +398,7 @@ final readonly class OidcClient
         // The ID token's claims are parsed with the response.
         $idToken = is_string($tokens->id_token ?? null) ? Jws::parse($tokens->id_token) : null;
         if ($idToken !== null && ! self::hasBooleanClaims($idToken->payload)) {
-            throw new TokenRequestError('Parse(..)');
+            throw new TokenRequestError('Parse(..)', 'Failed to parse server response');
         }
 
         return $tokens;
