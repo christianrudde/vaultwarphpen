@@ -208,6 +208,90 @@ away, whatever its schedule:
 php artisan vaultwarden:job trash_purge
 ```
 
+## Live notifications
+
+The Bitwarden clients keep a WebSocket open to `/notifications/hub`, through which Vaultwarden tells them
+at once when something changed on another device; a device that logs in with the help of another one
+waits on `/notifications/anonymous-hub` for the approval. PHP-FPM cannot keep such connections open, so
+a small daemon serves both hubs:
+
+```bash
+php artisan vaultwarden:notifications
+```
+
+It listens on `127.0.0.1:3012` (`--listen=address:port` to change that) and needs PHP's `pcntl`
+extension to stop cleanly. The web requests hand their notifications to it through the Unix socket
+`notifications.sock` in the data folder; every message is signed with a key derived from the RSA key
+both read. Where Unix sockets are not available, or the data folder's path is too long for one (about
+100 characters), set a TCP address for both sides in `.env`:
+
+```dotenv
+NOTIFICATIONS_SOCKET=tcp://127.0.0.1:3013
+```
+
+Without the daemon, or with `ENABLE_WEBSOCKET=false` (the daemon then refuses to start), Vaultwarphpen
+behaves like Vaultwarden with WebSockets turned off: the clients see changes at their next sync.
+
+Run it as a service, as the user PHP runs as (so that it can read the RSA key and the web requests can
+reach its socket), for example with systemd:
+
+```ini
+[Unit]
+Description=Vaultwarphpen live notifications
+After=network.target
+
+[Service]
+User=www-data
+WorkingDirectory=/var/www/vaultwarphpen
+ExecStart=/usr/bin/php artisan vaultwarden:notifications
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Then let the web server pass everything below `/notifications/` to the daemon, with the path unchanged
+(below the path of `DOMAIN`, if it has one). With nginx, inside the `server` block:
+
+```nginx
+location /notifications/ {
+    proxy_pass http://127.0.0.1:3012;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_read_timeout 1h;
+}
+```
+
+With Apache 2.4.47 or newer, `mod_proxy` and `mod_proxy_http`:
+
+```apache
+ProxyPass /notifications/ http://127.0.0.1:3012/notifications/ upgrade=websocket
+RequestHeader set X-Real-IP "%{REMOTE_ADDR}s"
+```
+
+The daemon reads the client's address from `IP_HEADER` like Vaultwarden (`X-Real-IP` from a local proxy
+by default); the anonymous hub allows 25 connections per address. It is a single PHP process: it can
+hold about a thousand connections at a time, as many as PHP's `stream_select()` allows.
+
+### Push notifications for the mobile apps
+
+The mobile apps are notified through Bitwarden's push relay, as with Vaultwarden. Request an
+installation id and key at <https://bitwarden.com/host> and set:
+
+```dotenv
+PUSH_ENABLED=true
+PUSH_INSTALLATION_ID=...
+PUSH_INSTALLATION_KEY=...
+# For installations registered in the EU region:
+# PUSH_RELAY_URI=https://api.bitwarden.eu
+# PUSH_IDENTITY_URI=https://identity.bitwarden.eu
+```
+
+This needs no daemon: the web requests send the notifications themselves, once their response is out.
+
 ## Updating
 
 1. Back up the database and the `data` folder.
@@ -226,6 +310,6 @@ php artisan vaultwarden:job trash_purge
 
 4. If `web_vault` in `parity/reference.json` changed, unpack that web vault as described
    [above](#web-vault), after removing the old `web-vault` folder.
-5. Restart the scheduler service, if you use one, so that it loads the new code.
+5. Restart the scheduler and the notifications daemon, if you use them, so that they load the new code.
 
 There are no releases yet; `main` is the current state.

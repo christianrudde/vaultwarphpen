@@ -8,16 +8,21 @@ use App\Http\Data\Body;
 use App\Http\EmptyResponse;
 use App\Http\Json;
 use App\Models\Folder;
+use App\Notifications\Notify;
+use App\Support\UpdateType;
 use App\Support\Uuid;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 /**
- * src/api/core/folders.rs. Live notifications to other devices are not
- * ported yet; clients pick changes up at their next sync.
+ * src/api/core/folders.rs
  */
 final readonly class FoldersController
 {
+    public function __construct(
+        private Notify $nt,
+    ) {}
+
     /**
      * GET /api/folders
      */
@@ -47,6 +52,7 @@ final readonly class FoldersController
 
         $folder = Folder::new($headers->user->uuid, $name);
         $folder->save();
+        $this->nt->sendFolderUpdate(UpdateType::SyncFolderCreate, $folder, $headers->device);
 
         return Json::response($folder->toApi());
     }
@@ -70,6 +76,7 @@ final readonly class FoldersController
         $folder = $this->folder($headers, $request, $folderId);
         $folder->name = $name;
         $folder->save();
+        $this->nt->sendFolderUpdate(UpdateType::SyncFolderUpdate, $folder, $headers->device);
 
         return Json::response($folder->toApi());
     }
@@ -87,7 +94,11 @@ final readonly class FoldersController
      */
     public function deleteFolder(Headers $headers, Request $request, string $folderId): EmptyResponse
     {
-        $this->folder($headers, $request, $folderId)->deleteFolder();
+        $folder = $this->folder($headers, $request, $folderId);
+        // Delete the actual folder entry
+        $folder->deleteFolder();
+
+        $this->nt->sendFolderUpdate(UpdateType::SyncFolderDelete, $folder, $headers->device);
 
         return new EmptyResponse;
     }

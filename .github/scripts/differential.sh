@@ -5,8 +5,8 @@
 # test suite against both.
 #
 # Usage: differential.sh <vaultwarden binary> [phpunit arguments...]
-# Ports 8000-8003 (Vaultwarden), 8080-8083 (PHP), 2501-2502 (SMTP sinks) and 2503 (fake Yubico
-# and Duo services) must be free.
+# Ports 8000-8004 (Vaultwarden), 8080-8084 (PHP), 8090 (our notifications daemon), 2501-2502
+# (SMTP sinks) and 2503 (fake Yubico, Duo, OpenID and push relay services) must be free.
 
 set -euo pipefail
 
@@ -68,7 +68,15 @@ sso_secret=differential-sso-secret
 env YUBICO_SECRET_KEY=MDEyMzQ1Njc4OWFiY2RlZmdoaWo= SSO_CLIENT_SECRET="${sso_secret}" php .github/scripts/fake-services.php 2503 \
     "${work}/services.pem" "${work}/services.key" "${work}/services-state" > "${work}/services.log" 2>&1 &
 pids+=($!)
-env DATA_FOLDER="${work}/features-reference" "${features_env[@]}" ROCKET_PORT=8002 "${binary}" > "${work}/features-reference.log" 2>&1 &
+# The pair also pushes to mobile devices, each server to a fake relay of its own.
+push_installation=2c4d6e8f-1a3b-4c5d-8e9f-0a1b2c3d4e5f
+features_env+=(PUSH_ENABLED=true PUSH_INSTALLATION_ID="${push_installation}"
+    PUSH_INSTALLATION_KEY="$(php -r "echo substr(hash('sha256', 'relay:${push_installation}'), 0, 20);")")
+push_env() {
+    echo "PUSH_RELAY_URI=https://127.0.0.1:2503/relay/$1" "PUSH_IDENTITY_URI=https://127.0.0.1:2503/relay/$1/identity"
+}
+# shellcheck disable=SC2046
+env DATA_FOLDER="${work}/features-reference" "${features_env[@]}" $(push_env features-reference) ROCKET_PORT=8002 "${binary}" > "${work}/features-reference.log" 2>&1 &
 pids+=($!)
 # A fourth pair sends mail, each server to an SMTP sink of its own that keeps the messages.
 php .github/scripts/smtp-sink.php 2501 "${work}/mail-reference-inbox" > "${work}/sink-reference.log" 2>&1 &
@@ -99,7 +107,8 @@ pids+=($!)
 (cd public && DATA_FOLDER="${work}/shared" CACHE_PATH="${work}/shared-cache" exec php -d upload_max_filesize=525M -d post_max_size=0 -S 127.0.0.1:8081 ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php) \
     > "${work}/shared-subject.log" 2>&1 &
 pids+=($!)
-(cd public && exec env DATA_FOLDER="${work}/features-subject" "${features_env[@]}" CACHE_PATH="${work}/features-cache" \
+# shellcheck disable=SC2046
+(cd public && exec env DATA_FOLDER="${work}/features-subject" "${features_env[@]}" $(push_env features-subject) CACHE_PATH="${work}/features-cache" \
     php -d upload_max_filesize=525M -d post_max_size=0 -S 127.0.0.1:8082 ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php) \
     > "${work}/features-subject.log" 2>&1 &
 pids+=($!)
@@ -112,8 +121,23 @@ pids+=($!)
     > "${work}/sso-subject.log" 2>&1 &
 pids+=($!)
 
+# The hubs of the default pair: Vaultwarden serves them itself, we from the notifications daemon,
+# which the requests of the PHP server reach through a socket in its data folder.
+DATA_FOLDER="${work}/subject" php artisan vaultwarden:notifications --listen=127.0.0.1:8090 --no-ansi > "${work}/notifications.log" 2>&1 &
+pids+=($!)
+
 for attempt in $(seq 30); do
     curl -sS --cacert "${work}/ca.pem" -o /dev/null https://127.0.0.1:2503/ 2> /dev/null && break
+    sleep 0.5
+done
+for attempt in $(seq 30); do
+    # Any answer will do; requests that are no upgrade get the 404 page.
+    curl -sS -o /dev/null http://127.0.0.1:8090/notifications/hub 2> /dev/null && break
+    if [[ "${attempt}" == 30 ]]; then
+        cat "${work}/notifications.log"
+        echo "::error::The notifications daemon did not answer."
+        exit 1
+    fi
     sleep 0.5
 done
 for url in http://127.0.0.1:{8000,8001,8002,8003,8004,8080,8081,8082,8083,8084}/alive; do
@@ -129,7 +153,7 @@ for url in http://127.0.0.1:{8000,8001,8002,8003,8004,8080,8081,8082,8083,8084}/
 done
 
 status=0
-VW_REFERENCE_URL=http://127.0.0.1:8000 VW_SUBJECT_URL=http://127.0.0.1:8080 \
+VW_REFERENCE_URL=http://127.0.0.1:8000 VW_SUBJECT_URL=http://127.0.0.1:8080 VW_SUBJECT_NOTIFICATIONS_URL=http://127.0.0.1:8090 \
     VW_SHARED_REFERENCE_URL=http://127.0.0.1:8001 VW_SHARED_SUBJECT_URL=http://127.0.0.1:8081 \
     VW_FEATURES_REFERENCE_URL=http://127.0.0.1:8002 VW_FEATURES_SUBJECT_URL=http://127.0.0.1:8082 \
     VW_MAIL_REFERENCE_URL=http://127.0.0.1:8003 VW_MAIL_SUBJECT_URL=http://127.0.0.1:8083 \

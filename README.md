@@ -31,9 +31,10 @@ pinned Vaultwarden version and whether it is ported. In short:
   device; folders and Sends; ciphers and attachments; the organization API (members, collections,
   groups, policies, account recovery, import and export, API keys, the event log); emergency access;
   mails over SMTP or sendmail; Vaultwarden's scheduled jobs; the admin panel; the web vault (from
-  Vaultwarden's [builds](docs/installation.md#web-vault)); SSO with OpenID Connect.
-- **Not yet:** push and WebSocket notifications (clients see changes at their next sync) and website
-  icons.
+  Vaultwarden's [builds](docs/installation.md#web-vault)); SSO with OpenID Connect; live
+  notifications over WebSocket, served by an optional daemon ([installation](docs/installation.md#live-notifications)),
+  and mobile push through Bitwarden's relay.
+- **Not yet:** website icons.
 
 Every ported route is compared with Vaultwarden itself: the differential tests send the same requests
 to both servers and compare the answers.

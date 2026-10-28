@@ -36,6 +36,7 @@ use App\Models\OrgPolicy;
 use App\Models\SsoUser;
 use App\Models\TwoFactor;
 use App\Models\User;
+use App\Notifications\Notify;
 use App\Support\Dates;
 use App\Support\HttpClient;
 use App\Support\Push;
@@ -105,6 +106,7 @@ final readonly class AdminController
         private RateLimiter $rateLimiter,
         private DatabaseManager $databases,
         private Repository $cache,
+        private Notify $nt,
     ) {}
 
     /**
@@ -403,10 +405,15 @@ final readonly class AdminController
         $this->token($request);
         $user = self::userOr404(Uuid::parameter($request, $userId));
 
-        // WebSocket notifications are not ported; nobody is told to log out.
+        $this->nt->sendLogout($user, null);
+
         if ($this->config->bool('push_enabled')) {
             foreach (Device::findPushDevicesByUser($user->uuid) as $device) {
-                Push::unregisterDevice($device->push_uuid);
+                try {
+                    Push::unregisterDevice($device->push_uuid);
+                } catch (ApiError $error) {
+                    logger()->error("Unable to unregister devices from Bitwarden server: {$error->displayText()}");
+                }
             }
         }
 
@@ -434,6 +441,7 @@ final readonly class AdminController
         try {
             $user->save();
         } finally {
+            $this->nt->sendLogout($user, null);
             Device::deleteAllByUser($user->uuid);
         }
 

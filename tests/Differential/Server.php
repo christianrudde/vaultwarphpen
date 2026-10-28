@@ -2,8 +2,12 @@
 
 namespace Tests\Differential;
 
+use RuntimeException;
+use Tests\Support\WebSocketClient;
+
 /**
- * One of the two servers in a flow of requests, with the mails it sent.
+ * One of the two servers in a flow of requests, with the mails it sent, its
+ * notification hubs and what it sent to its push relay.
  */
 final readonly class Server
 {
@@ -11,7 +15,35 @@ final readonly class Server
         public string $baseUrl,
         // Where the SMTP sink of the server writes its mails, for servers with mail.
         public ?string $mailDir = null,
+        // Where the hubs are: Vaultwarden serves them itself, we from the notifications daemon.
+        public ?string $notificationsUrl = null,
+        // The label of the server's fake push relay (fake-services.php), for servers with push.
+        public ?string $relay = null,
     ) {}
+
+    /**
+     * An upgrade request to a notification hub.
+     *
+     * @param  array<string, string|null>  $headers
+     */
+    public function hub(string $path, array $headers = []): WebSocketClient
+    {
+        return WebSocketClient::connect($this->notificationsUrl ?? $this->baseUrl, $path, $headers);
+    }
+
+    /**
+     * Everything the server's push relay received so far, in order.
+     *
+     * @return list<mixed>
+     */
+    public function relayed(): array
+    {
+        $context = stream_context_create(['ssl' => ['cafile' => (string) getenv('VW_SERVICES_CA')]]);
+        $body = file_get_contents('https://'.getenv('VW_SERVICES_HOST')."/relay/{$this->relay}/recorded", false, $context);
+        $recorded = json_decode((string) $body);
+
+        return is_array($recorded) ? array_values($recorded) : throw new RuntimeException("The push relay {$this->relay} cannot be read.");
+    }
 
     /**
      * The last mail the server sent to the address.
@@ -27,7 +59,7 @@ final readonly class Server
             }
         }
 
-        throw new \RuntimeException("No mail to {$to} in {$this->mailDir}.");
+        throw new RuntimeException("No mail to {$to} in {$this->mailDir}.");
     }
 
     /**
@@ -37,7 +69,7 @@ final readonly class Server
     {
         $text = $this->mail($to)->text;
 
-        return preg_match('/[?&]token=([\w.-]+)/', $text, $match) === 1 ? $match[1] : throw new \RuntimeException("No token in the mail to {$to}.");
+        return preg_match('/[?&]token=([\w.-]+)/', $text, $match) === 1 ? $match[1] : throw new RuntimeException("No token in the mail to {$to}.");
     }
 
     /**

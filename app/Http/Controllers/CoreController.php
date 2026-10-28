@@ -11,10 +11,12 @@ use App\Http\Data\Query;
 use App\Http\HttpStatus;
 use App\Http\Json;
 use App\Models\User;
+use App\Notifications\Notify;
 use App\Support\Dates;
 use App\Support\FormUrlencoded;
 use App\Support\HttpClient;
 use App\Support\JsonValue;
+use App\Support\UpdateType;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use LogicException;
@@ -27,6 +29,7 @@ final readonly class CoreController
 {
     public function __construct(
         private WebController $web,
+        private Notify $nt,
     ) {}
 
     /**
@@ -179,6 +182,8 @@ final readonly class CoreController
         $user->excluded_globals = Json::encode($excluded);
         $user->equivalent_domains = Json::encode($equivalent);
         $user->save();
+
+        $this->nt->sendUserUpdate(UpdateType::SyncSettings, $user, $headers->device->push_uuid);
 
         return Json::response(new stdClass);
     }

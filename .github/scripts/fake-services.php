@@ -20,6 +20,8 @@
  * client with a code, which the token endpoint exchanges once.
  *
  * OpenID Connect for SSO at /oidc: see oidcDiscovery().
+ *
+ * Bitwarden's push relay and its identity server at /relay/<label>: see relay().
  */
 [, $port, $certificate, $key, $state] = $argv + [null, null, null, null, null];
 if (! is_string($port) || ! is_string($certificate) || ! is_string($key) || ! is_string($state)) {
@@ -63,7 +65,7 @@ while (true) {
     }
 
     [$status, $type, $content, $extra] = respond($method, $target, $headers, $body, $state) + [3 => []];
-    $reasons = [200 => 'OK', 302 => 'Found', 400 => 'Bad Request', 401 => 'Unauthorized', 404 => 'Not Found'];
+    $reasons = [200 => 'OK', 204 => 'No Content', 302 => 'Found', 400 => 'Bad Request', 401 => 'Unauthorized', 404 => 'Not Found'];
     $response = "HTTP/1.1 {$status} ".($reasons[$status] ?? 'Error')."\r\nContent-Type: {$type}\r\nContent-Length: ".strlen($content)."\r\nConnection: close\r\n";
     foreach ($extra as $name => $value) {
         $response .= "{$name}: {$value}\r\n";
@@ -82,6 +84,10 @@ function respond(string $method, string $target, array $headers, string $body, s
     parse_str((string) parse_url($target, PHP_URL_QUERY), $query);
     parse_str($body, $form);
     $host = $headers['host'] ?? '';
+
+    if (preg_match('#^/relay/([\w-]+)(/.*)$#', $path, $relay) === 1) {
+        return relay($method, $relay[1], $relay[2], $headers, $body, $state);
+    }
 
     return match ("{$method} {$path}") {
         'GET /wsapi/2.0/verify' => yubico($target, $query),
@@ -397,6 +403,69 @@ function duoToken(array $form, string $host, string $state): array
 
     return [200, 'application/json', (string) json_encode(['id_token' => $idToken, 'access_token' => bin2hex(random_bytes(16)),
         'expires_in' => 3600, 'token_type' => 'Bearer'], JSON_UNESCAPED_SLASHES)];
+}
+
+/**
+ * A push relay (PUSH_RELAY_URI=https://<host>/relay/<label>) with its identity
+ * server (PUSH_IDENTITY_URI=https://<host>/relay/<label>/identity), one per
+ * label, so that each server under test has its own. The token endpoint
+ * takes the installation PUSH_INSTALLATION_ID with the key from
+ * relayInstallationKey(); the relay wants that token and answers every
+ * registration, notification and deletion with 200. Everything is recorded;
+ * GET /relay/<label>/recorded lists it in order.
+ *
+ * @param  array<string, string>  $headers
+ * @return array{int, string, string}
+ */
+function relay(string $method, string $label, string $path, array $headers, string $body, string $state): array
+{
+    $log = "{$state}/relay-{$label}.jsonl";
+    if ($method === 'GET' && $path === '/recorded') {
+        $lines = is_file($log) ? (file($log, FILE_IGNORE_NEW_LINES) ?: []) : [];
+
+        return [200, 'application/json', '['.implode(',', $lines).']'];
+    }
+
+    $type = $headers['content-type'] ?? null;
+    if ($type === 'application/x-www-form-urlencoded') {
+        parse_str($body, $decoded);
+    } else {
+        $decoded = $type === 'application/json' ? json_decode($body) : $body;
+    }
+    $entry = ['method' => $method, 'path' => $path, 'contentType' => $type, 'accept' => $headers['accept'] ?? null,
+        'authorization' => $headers['authorization'] ?? null, 'body' => $decoded];
+    file_put_contents($log, json_encode($entry, JSON_UNESCAPED_SLASHES)."\n", FILE_APPEND | LOCK_EX);
+
+    if ($method === 'POST' && $path === '/identity/connect/token') {
+        parse_str($body, $form);
+        $installation = substr((string) ($form['client_id'] ?? ''), strlen('installation.'));
+        if (($form['grant_type'] ?? null) !== 'client_credentials' || ($form['scope'] ?? null) !== 'api.push'
+            || ! str_starts_with((string) ($form['client_id'] ?? ''), 'installation.') || ($form['client_secret'] ?? null) !== relayInstallationKey($installation)) {
+            return [400, 'application/json', '{"error":"invalid_client"}'];
+        }
+
+        return [200, 'application/json', (string) json_encode(['access_token' => "relay-token-{$installation}", 'expires_in' => 3600,
+            'token_type' => 'Bearer', 'scope' => 'api.push'])];
+    }
+
+    $installation = substr($headers['authorization'] ?? '', strlen('Bearer relay-token-'));
+    if (! str_starts_with($headers['authorization'] ?? '', 'Bearer relay-token-') || $installation === '') {
+        return [401, 'text/plain', 'Unauthorized'];
+    }
+
+    return match (true) {
+        $method === 'POST' && in_array($path, ['/push/register', '/push/send'], true),
+        $method === 'POST' && str_starts_with($path, '/push/delete/') => [200, 'text/plain', ''],
+        default => [404, 'text/plain', 'Not found'],
+    };
+}
+
+/**
+ * The key of a push installation, which the tests share.
+ */
+function relayInstallationKey(string $installationId): string
+{
+    return substr(hash('sha256', "relay:{$installationId}"), 0, 20);
 }
 
 /**

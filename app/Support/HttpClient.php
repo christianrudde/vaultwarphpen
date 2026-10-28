@@ -30,7 +30,8 @@ final class HttpClient
         }
 
         $lines = [];
-        foreach (['User-Agent' => 'Vaultwarden', ...$headers] as $name => $value) {
+        // reqwest's client sends Accept: */* unless a request sets its own.
+        foreach (['User-Agent' => 'Vaultwarden', 'Accept' => '*/*', ...$headers] as $name => $value) {
             $lines[] = "{$name}: {$value}";
         }
         // Like rustls-native-certs, the trusted roots may come from SSL_CERT_FILE or SSL_CERT_DIR.

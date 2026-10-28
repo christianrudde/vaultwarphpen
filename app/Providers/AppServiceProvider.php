@@ -22,6 +22,9 @@ use App\Logging\LogLevel;
 use App\Mail\SendmailTransport;
 use App\Mail\SmtpTransport;
 use App\Mail\Transport as MailTransport;
+use App\Notifications\Channel as NotificationsChannel;
+use App\Notifications\SocketChannel;
+use App\Support\Deferred;
 use App\Support\WebVault;
 use App\Templates\TemplateRenderer;
 use Illuminate\Database\Connectors\ConnectionFactory;
@@ -78,6 +81,14 @@ class AppServiceProvider extends ServiceProvider
             ? new SendmailTransport($this->app->make(Config::class))
             : new SmtpTransport($this->app->make(Config::class)));
 
+        $this->app->singleton(Deferred::class);
+
+        // One connection to the notifications daemon per request, opened by the first update.
+        $this->app->scoped(NotificationsChannel::class, fn (): NotificationsChannel => SocketChannel::fromConfig(
+            $this->app->make(Config::class),
+            $this->app->make(RsaKeys::class),
+        ));
+
         $this->app->singleton(TemplateRenderer::class, function (): TemplateRenderer {
             $config = $this->app->make(Config::class);
 
@@ -123,6 +134,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Spawned work runs after the response; terminating callbacks themselves stay registered.
+        $this->app->terminating(fn () => $this->app->make(Deferred::class)->run());
     }
 }

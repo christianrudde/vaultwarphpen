@@ -53,6 +53,15 @@ final class RsaKeys
     }
 
     /**
+     * The key that signs what requests hand to the notifications daemon
+     * (App\Notifications\Channel), which reads the same key file.
+     */
+    public function notificationsKey(): string
+    {
+        return hash_hmac('sha256', 'notifications', $this->pem(), true);
+    }
+
+    /**
      * The PEM file as stored, created with a new 2048-bit key when missing.
      */
     private function pem(): string
