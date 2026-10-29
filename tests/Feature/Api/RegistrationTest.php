@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api;
 
+use App\Http\Data\Body;
 use App\Models\Invitation;
 use App\Models\User;
 use Tests\Attributes\Parity;
@@ -41,6 +42,17 @@ class RegistrationTest extends TestCase
 
     #[Parity('route:POST /identity/accounts/register/send-verification-email')]
     #[Parity('route:POST /identity/accounts/register/finish')]
+    public function test_json_bodies_are_limited_like_vaultwardens(): void
+    {
+        $prelogin = fn (string $body, array $server = []) => $this->call('POST', '/identity/accounts/prelogin',
+            server: ['CONTENT_TYPE' => 'application/json', ...$server], content: $body);
+        $json = '{"email":"a@example.com"}';
+
+        $prelogin(str_pad($json, Body::JSON_LIMIT))->assertStatus(200);
+        $prelogin(str_pad($json, Body::JSON_LIMIT + 1))->assertStatus(413)->assertSee('Payload Too Large');
+        $prelogin($json, ['CONTENT_LENGTH' => (string) (Body::JSON_LIMIT + 1)])->assertStatus(413);
+    }
+
     public function test_registration_with_the_old_format(): void
     {
         $token = $this->postJson('/identity/accounts/register/send-verification-email', ['email' => 'frank@example.com', 'name' => 'Frank'])

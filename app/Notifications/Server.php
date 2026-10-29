@@ -2,8 +2,8 @@
 
 namespace App\Notifications;
 
+use App\Http\Request;
 use Closure;
-use Illuminate\Http\Request;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
@@ -405,8 +405,8 @@ final class Server
             return;
         }
 
-        $request = $this->request($client, $method, $target, $protocol, $headers, $body);
         try {
+            $request = $this->request($client, $method, $target, $protocol, $headers, $body);
             $response = ($this->dispatch)($request);
         } catch (Throwable $exception) {
             report($exception);
@@ -631,9 +631,28 @@ final class Server
                 }
             }
         }
-        parse_str($queryString, $query);
 
-        return new Request($query, [], [], $cookies, [], $server, $body);
+        return new Request(self::queryFields($queryString), [], [], $cookies, [], $server, $body);
+    }
+
+    /**
+     * The query's fields, the last of a name winning as with parse_str(), but without its cut-off at
+     * max_input_vars: Rocket takes any number of fields.
+     *
+     * @return array<array-key, string>
+     */
+    private static function queryFields(string $queryString): array
+    {
+        $fields = [];
+        foreach (explode('&', $queryString) as $pair) {
+            if ($pair === '') {
+                continue;
+            }
+            [$name, $value] = array_pad(explode('=', $pair, 2), 2, '');
+            $fields[urldecode($name)] = urldecode($value);
+        }
+
+        return $fields;
     }
 
     /**

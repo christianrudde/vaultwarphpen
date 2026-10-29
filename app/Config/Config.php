@@ -296,7 +296,14 @@ final class Config
         if (! is_dir(dirname($file))) {
             @mkdir(dirname($file), 0777, true);
         }
-        if (@file_put_contents($file, $builder->toJson()) === false) {
+        // Every request reads the file, so it is replaced at once: one being written would read as empty and
+        // leave that request with the environment alone.
+        $temporary = $file.'.'.bin2hex(random_bytes(6)).'.tmp';
+        $mode = @fileperms($file);
+        if (@file_put_contents($temporary, $builder->toJson()) === false
+            || ($mode !== false && ! @chmod($temporary, $mode & 0777))
+            || ! @rename($temporary, $file)) {
+            @unlink($temporary);
             throw new ConfigException("Failed to write `{$this->configFile}`.");
         }
 

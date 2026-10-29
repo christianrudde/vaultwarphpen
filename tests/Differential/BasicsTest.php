@@ -38,6 +38,27 @@ class BasicsTest extends DifferentialTestCase
             'Access-Control-Request-Headers' => 'authorization,content-type',
         ]];
         yield 'preflight of an existing route' => ['OPTIONS', '/api/now', ['Origin' => 'http://localhost']];
+        yield 'script name in the path' => ['GET', '/index.php/alive', []];
+        yield 'script name before admin' => ['GET', '/index.php/admin', []];
+        yield 'script name before the api' => ['GET', '/index.php/api/now', ['Accept' => 'application/json']];
+        yield 'script name alone' => ['GET', '/index.php', []];
+        yield 'method override in the query' => ['POST', '/api/accounts?_method=DELETE', ['Accept' => 'application/json']];
+        yield 'method override header' => ['POST', '/api/accounts', ['X-HTTP-Method-Override' => 'DELETE', 'Accept' => 'application/json']];
+    }
+
+    public function test_data_limits_and_the_form_method_override(): void
+    {
+        $this->assertSameFlows(static function (Server $server): array {
+            $form = ['Content-Type' => 'application/x-www-form-urlencoded', 'Accept' => 'application/json'];
+
+            return [
+                'method override as the first field' => $server->send('POST', '/api/accounts', $form, '_method=DELETE'),
+                'method override as a later field' => $server->send('POST', '/api/accounts', $form, 'a=1&_method=DELETE'),
+                'form over the limit' => $server->send('POST', '/admin', $form, 'token='.str_repeat('a', 32 * 1024)),
+                'json over the limit' => $server->send('POST', '/identity/accounts/prelogin', ['Content-Type' => 'application/json', 'Accept' => 'application/json'],
+                    str_pad('{"email":"limits@example.com"}', 20_000_001)),
+            ];
+        });
     }
 
     /**

@@ -62,6 +62,17 @@ class ServerTest extends TestCase
         $this->assertStringEndsWith("\x82\x7e\x75\x30".str_repeat('s', 30_000), $this->read($small));
     }
 
+    public function test_a_query_with_more_fields_than_max_input_vars_is_served(): void
+    {
+        // parse_str() warns past max_input_vars, which ended the daemon for everybody.
+        $socket = $this->connect("tcp://{$this->server->address()}");
+        fwrite($socket, 'GET /notifications/hub?'.str_repeat('a&', ((int) ini_get('max_input_vars')) + 1)."access_token=t HTTP/1.1\r\nHost: localhost\r\n\r\n");
+        $this->pump();
+
+        $this->assertStringStartsWith('HTTP/1.1 101 ', $this->read($socket));
+        $this->hub();
+    }
+
     public function test_the_channel_takes_a_limited_number_of_requests_and_only_signed_lines(): void
     {
         $hub = $this->hub();

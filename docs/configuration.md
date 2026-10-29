@@ -82,6 +82,9 @@ The `config:` items in [PARITY.md](../PARITY.md) show the state of each setting 
   Vaultwarden sends in the background go out after the response.
 - **Rate limits** live in Laravel's cache (`storage/framework/cache`) instead of in memory, so all PHP
   workers share them. Vaultwarden keeps them per process.
+- **Waiting on purpose.** Where Vaultwarden waits a second so that unknown addresses cannot be told
+  apart by timing (the password hint, registration), a PHP worker waits with it; Vaultwarden's task
+  waits without holding anything. The rate limits bound how many workers one address can keep busy.
 - **The server's name.** Where Vaultwarden names itself to the clients (the `server` object of
   `/api/config`), Vaultwarphpen names itself and links to its own repository, so that users find the
   source of the server they use and report problems in the right place.

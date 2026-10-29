@@ -192,8 +192,16 @@ Vaultwarden accepts attachments and Sends up to 525 MB. Let PHP accept them as w
 upload_max_filesize = 525M
 post_max_size = 0          ; or anything above 525M
 max_input_time = 300       ; slow uploads of large files
+max_file_uploads = 2       ; the clients send one file per request
 expose_php = Off           ; Vaultwarden sends no X-Powered-By header
+display_errors = Off       ; errors belong in the log, not in responses
 ```
+
+PHP stores the files of a multipart request in `upload_tmp_dir` before Vaultwarphpen sees the request,
+whoever sends it and to whichever address; Vaultwarden reads a body only for a route that takes one, after
+checking the login. Keep `upload_tmp_dir` on a disk with room for a few uploads rather than in memory, and
+let the web server limit the size of a request (`client_max_body_size` and `LimitRequestBody` below).
+Vaultwarphpen itself refuses JSON bodies above 20 MB and forms above 32 KiB with 413, like Vaultwarden.
 
 ## Web server
 
@@ -244,6 +252,9 @@ Point the document root at `public` and allow its `.htaccess`, which needs `mod_
         AllowOverride All
         Require all granted
     </Directory>
+
+    # Uploads up to 525 MB, like client_max_body_size for nginx.
+    LimitRequestBody 550502400
 
     # SSLEngine on ...
 </VirtualHost>

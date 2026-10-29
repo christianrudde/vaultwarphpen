@@ -276,7 +276,8 @@ final readonly class Jwt
     }
 
     /**
-     * URL-safe base64 without padding, as jsonwebtoken requires it.
+     * URL-safe base64 without padding, as jsonwebtoken requires it. Like the base64 crate, the unused bits
+     * of the last character must be zero, so that every value has one spelling.
      */
     private static function base64UrlDecode(string $data): string
     {
@@ -284,7 +285,12 @@ final readonly class Jwt
             throw self::error('Base64');
         }
 
-        return (string) base64_decode(strtr($data, '-_', '+/'), true);
+        $decoded = (string) base64_decode(strtr($data, '-_', '+/'), true);
+        if (self::base64Url($decoded) !== $data) {
+            throw self::error('Base64');
+        }
+
+        return $decoded;
     }
 
     /**

@@ -718,7 +718,7 @@ final readonly class AdminController
         $this->requireFormat($request, 'application/json');
         $this->token($request);
 
-        $data = json_decode($request->getContent(), false, 512, JSON_BIGINT_AS_STRING);
+        $data = json_decode(Body::content($request, Body::JSON_LIMIT), false, 512, JSON_BIGINT_AS_STRING);
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new HttpStatus(400, 'Invalid JSON: '.json_last_error_msg());
         }
@@ -877,9 +877,11 @@ final readonly class AdminController
             return hash_equals(trim($adminToken), trim($token));
         }
 
+        // One verification, as in Rust: libsodium only where PHP was built without Argon2.
         try {
-            return password_verify(trim($token), $adminToken)
-                || (function_exists('sodium_crypto_pwhash_str_verify') && sodium_crypto_pwhash_str_verify($adminToken, trim($token)));
+            return defined('PASSWORD_ARGON2ID')
+                ? password_verify(trim($token), $adminToken)
+                : function_exists('sodium_crypto_pwhash_str_verify') && sodium_crypto_pwhash_str_verify($adminToken, trim($token));
         } catch (Throwable $exception) {
             logger()->error("The configured Argon2 PHC in `ADMIN_TOKEN` is invalid: {$exception->getMessage()}");
 

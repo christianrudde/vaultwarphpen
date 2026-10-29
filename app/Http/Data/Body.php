@@ -11,13 +11,23 @@ use Illuminate\Http\Request;
 final class Body
 {
     /**
+     * The "json" limit of src/main.rs (20.megabytes()).
+     */
+    public const int JSON_LIMIT = 20_000_000;
+
+    /**
+     * Rocket's Limits::FORM for urlencoded forms, which Vaultwarden leaves as it is.
+     */
+    public const int FORM_LIMIT = 32 * 1024;
+
+    /**
      * Json<T>: the content type is not checked; invalid JSON is a 400.
      *
      * @throws HttpStatus
      */
     public static function json(Request $request): Fields
     {
-        $decoded = json_decode($request->getContent(), false, 512, JSON_BIGINT_AS_STRING);
+        $decoded = json_decode(self::content($request, self::JSON_LIMIT), false, 512, JSON_BIGINT_AS_STRING);
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new HttpStatus(400, 'Invalid JSON: '.json_last_error_msg());
         }
@@ -34,7 +44,7 @@ final class Body
      */
     public static function jsonList(Request $request): array
     {
-        $decoded = json_decode($request->getContent(), false, 512, JSON_BIGINT_AS_STRING);
+        $decoded = json_decode(self::content($request, self::JSON_LIMIT), false, 512, JSON_BIGINT_AS_STRING);
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new HttpStatus(400, 'Invalid JSON: '.json_last_error_msg());
         }
@@ -70,7 +80,7 @@ final class Body
             return $fields;
         }
 
-        foreach (explode('&', $request->getContent()) as $pair) {
+        foreach (explode('&', self::content($request, self::FORM_LIMIT)) as $pair) {
             if ($pair === '') {
                 continue;
             }
@@ -97,5 +107,27 @@ final class Body
         }
 
         return count($values) === 1 ? $values[0] : null;
+    }
+
+    /**
+     * The body, read up to the data guard's limit like Data::open(limit); a longer one is a 413, as Rocket
+     * answers when the capped read is not complete.
+     *
+     * @throws HttpStatus
+     */
+    public static function content(Request $request, int $limit): string
+    {
+        $length = $request->server->get('CONTENT_LENGTH');
+        if (is_numeric($length) && (int) $length > $limit) {
+            throw new HttpStatus(413, 'Data limit exceeded.');
+        }
+
+        $stream = $request->getContent(true);
+        $content = stream_get_contents($stream, $limit + 1);
+        if (! is_string($content) || strlen($content) > $limit) {
+            throw new HttpStatus(413, 'Data limit exceeded.');
+        }
+
+        return $content;
     }
 }

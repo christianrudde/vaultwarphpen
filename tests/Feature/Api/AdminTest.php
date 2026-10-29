@@ -170,6 +170,31 @@ class AdminTest extends TestCase
         $this->postJson('/admin/config/delete')->assertStatus(200);
     }
 
+    public function test_config_json_is_replaced_at_once_and_keeps_its_mode(): void
+    {
+        $this->useDatabase('sqlite');
+        $this->login();
+        $file = "{$this->dataFolder}/config.json";
+        file_put_contents($file, '{}');
+        chmod($file, 0600);
+        $inode = fileinode($file);
+
+        $this->postJson('/admin/config', ['invitation_org_name' => 'Example', 'admin_token' => self::TOKEN])->assertStatus(200);
+
+        // Every request reads the file, so a new one takes its place instead of the old one being truncated and rewritten.
+        clearstatcache();
+        $this->assertNotSame($inode, fileinode($file));
+        $this->assertSame(0600, fileperms($file) & 0777);
+        $this->assertSame([], glob("{$this->dataFolder}/*.tmp"));
+    }
+
+    public function test_the_login_form_is_limited_like_rockets_forms(): void
+    {
+        $this->useDatabase('sqlite');
+
+        $this->form('/admin', ['token' => str_repeat('a', 32 * 1024)])->assertStatus(413);
+    }
+
     #[Parity('route:GET /admin/diagnostics/config')]
     public function test_support_settings_hide_what_identifies_the_server(): void
     {

@@ -133,6 +133,12 @@ class JwtTest extends TestCase
         $this->assertDecodingFails("{$header}.{$otherPayload}.{$signature}", 'Error decoding JWT: Error(InvalidSignature)');
         $this->assertDecodingFails("{$header}.{$payload}.{$signature}=", 'Error decoding JWT: Error(Base64)');
 
+        // The unused bits of the last character must be zero, as in the base64 crate.
+        $alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+        $last = strpos($alphabet, $signature[-1]);
+        $this->assertIsInt($last);
+        $this->assertDecodingFails("{$header}.{$payload}.".substr($signature, 0, -1).$alphabet[$last | 1], 'Error decoding JWT: Error(Base64)');
+
         $hs256 = rtrim(strtr(base64_encode('{"typ":"JWT","alg":"HS256"}'), '+/', '-_'), '=');
         $this->assertDecodingFails("{$hs256}.{$payload}.{$signature}", 'Error decoding JWT: Error(InvalidAlgorithm)');
     }
