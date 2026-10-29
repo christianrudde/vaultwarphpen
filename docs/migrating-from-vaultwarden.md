@@ -5,10 +5,11 @@ can therefore move over, and back again. Check a copy of your installation first
 vaultwarden:check` tells you what needs attention before you switch.
 
 > [!NOTE]
-> A few things work differently on a PHP host. Vaultwarphpen keeps its files on the local disk, so a data
-> folder on S3 (`s3://`) cannot move. The web server takes the place of the `ROCKET_*` settings, PHP's
-> upload limits must allow Vaultwarden's 525 MB, and live notifications need the
-> [notifications daemon](installation.md#live-notifications).
+> Vaultwarphpen covers Vaultwarden's features ([status](../README.md#status)). A few things work
+> differently on a PHP host ([differences](configuration.md#differences-from-vaultwarden)): files stay on
+> the local disk, so a data folder on S3 (`s3://`) cannot move; the web server takes the place of the
+> `ROCKET_*` settings; PHP's upload limits must allow Vaultwarden's 525 MB; and live notifications need
+> the [notifications daemon](installation.md#live-notifications). Try the move with a copy first.
 
 ## What carries over
 
