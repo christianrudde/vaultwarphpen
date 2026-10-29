@@ -37,6 +37,11 @@ pinned Vaultwarden version and whether it is ported. In short:
   notifications over WebSocket, served by an optional daemon ([installation](docs/installation.md#live-notifications)),
   and mobile push through Bitwarden's relay; website icons, fetched and cached like Vaultwarden's or
   redirected to an external icon service.
+- **Not ported:** attachments and Send files in anything but a local folder (Vaultwarden's S3 and other
+  OpenDAL backends), TPM and Android key attestation for WebAuthn (the clients send it only when asked,
+  which Vaultwarden does not do) and the SMTP debug log. A few settings have no effect in PHP, such as
+  the database pool sizes; [Configuration](docs/configuration.md#differences-from-vaultwarden) lists
+  every difference.
 
 Every ported route is compared with Vaultwarden itself: the differential tests send the same requests
 to both servers and compare the answers. End-to-end tests drive the official web vault and CLI against
@@ -81,6 +86,7 @@ For a real installation, read the documentation:
 - [Single sign-on](docs/sso.md): setting up Microsoft Entra ID, Keycloak or Google Workspace
 - [Moving from Vaultwarden](docs/migrating-from-vaultwarden.md): taking over an existing database and
   data folder, and going back
+- [Security review](docs/security-review.md): what was reviewed, found and fixed, and what is open
 
 ## Reporting problems
 
@@ -91,7 +97,9 @@ private channel described in [SECURITY.md](SECURITY.md).
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). [AGENTS.md](AGENTS.md) describes the commands, the parity
-workflow and the conventions of the code.
+workflow and the conventions of the code, [docs/clients.md](docs/clients.md) the tests with the official
+clients, and [docs/maintenance.md](docs/maintenance.md) how advisories and Vaultwarden's changes are
+followed.
 
 ## Credits
 
@@ -104,8 +112,10 @@ Vaultwarphpen exists because of the work of others. [NOTICE.md](NOTICE.md) lists
 - **[Bitwarden](https://github.com/bitwarden)** by Bitwarden, Inc.: the server whose API Vaultwarden
   reimplements (AGPL-3.0), and the clients Vaultwarphpen serves (GPL-3.0).
 - **[Rocket](https://rocket.rs)** (MIT), whose default error pages Vaultwarphpen copies, and the Rust
-  crates whose behaviour it reproduces: Diesel, serde_json, chrono, jsonwebtoken, governor,
-  data-encoding and url.
+  crates whose behaviour it reproduces, among them Diesel, serde_json, chrono, jsonwebtoken, lettre,
+  handlebars, webauthn-rs, openidconnect and oauth2.
+- **[scssphp](https://scssphp.github.io/scssphp/)** (MIT), which compiles the web vault's style changes
+  as grass does in Vaultwarden.
 - **[Laravel](https://laravel.com)** (MIT) and the PHP packages it runs on.
 
 Every commit so far was written with [Claude Code](https://claude.com/claude-code), Anthropic's AI

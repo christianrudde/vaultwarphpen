@@ -162,9 +162,9 @@ details. Please report anything new privately, as [SECURITY.md](../SECURITY.md) 
 
 Notes without a security impact:
 
-- `.env.example` is set up for development (`APP_ENV=local`, `APP_DEBUG=true`). No response showed more
-  with debug on, because every error goes through `ErrorRenderer`, but the installation documentation's
-  advice to switch both off on a server stands.
+- `.env.example` was set up for development (`APP_ENV=local`, `APP_DEBUG=true`). No response showed more
+  with debug on, because every error goes through `ErrorRenderer`; since the review, it has
+  `APP_ENV=production` and `APP_DEBUG=false`, so that installations start with both off.
 - `DnsResolver` asks the system's `getaddrinfo` through the sockets extension. Without that extension it
   takes IPv4 addresses from the system's resolver and IPv6 addresses from DNS, so an AAAA entry in the
   hosts file is not seen. Connections only go to addresses that were checked either way, so this cannot

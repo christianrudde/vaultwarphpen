@@ -72,8 +72,8 @@ archive of any commit [yourself](#building-an-archive).
    document root and point the document root at `public` (see [Web server](#web-server)).
 2. Let the user PHP runs as write to `data/`, `storage/` and `bootstrap/cache/` (see
    [Permissions](#permissions)). Uploaded by FTP, the files usually belong to that user already.
-3. Copy `.env.example` to `.env` and set at least `APP_ENV=production`, `APP_DEBUG=false` and `DOMAIN`
-   (see [Configuring it](#configuring-it), also for `DATABASE_URL`).
+3. Copy `.env.example` to `.env` and set at least `DOMAIN` (see [Configuring it](#configuring-it), also
+   for `DATABASE_URL`).
 4. In a shell on the server, in the folder, create the application key and the database schema:
 
    ```bash
@@ -112,15 +112,11 @@ building it again.
 
 ## Configuring it
 
-Open `.env`. The upper part holds Laravel's own settings; for a server, set:
-
-```dotenv
-APP_ENV=production
-APP_DEBUG=false
-```
+Open `.env`. The upper part holds Laravel's own settings, already set up for a server
+(`APP_ENV=production`, `APP_DEBUG=false`); only for development switch them to `local` and `true`.
 
 Vaultwarden's settings go into the same file (or into real environment variables) under Vaultwarden's
-names. At least set the public address:
+names; `.env.example` lists the most important ones. At least set the public address:
 
 ```dotenv
 DOMAIN=https://vault.example.com

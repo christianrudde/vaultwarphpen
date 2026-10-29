@@ -25,10 +25,11 @@ Invalid values and combinations are refused with Vaultwarden's error messages.
 
 ## Laravel's settings
 
-The upper part of `.env` belongs to Laravel. Leave it as `.env.example` has it, except:
+The upper part of `.env` belongs to Laravel. Leave it as `.env.example` has it, set up for a server
+(`APP_ENV=production`, `APP_DEBUG=false`), except:
 
 - `APP_KEY`: created by `php artisan key:generate`
-- `APP_ENV=production` and `APP_DEBUG=false` on a server
+- `APP_ENV=local` and `APP_DEBUG=true` for development only
 - `LOG_CHANNEL` and `LOG_STACK` if you want the log somewhere other than `storage/logs/laravel.log`
 
 Keep the cache, session and queue drivers on `file` and `sync`. Laravel's `DB_*` variables are not
@@ -36,13 +37,23 @@ used; the database is configured with Vaultwarden's `DATABASE_URL`.
 
 ## Which settings take effect
 
-Every setting is read and validated, but many belong to features that are not ported yet; those have
-no effect so far. The `config:` items in [PARITY.md](../PARITY.md) show the state of each one.
+Every setting is read and validated, and nearly all of them work as in Vaultwarden. These have no
+effect:
+
+- the database pool settings (see below)
+- `TMP_FOLDER`: uploads wait in PHP's own temporary folder (`upload_tmp_dir`) until they are stored
+- `DNS_PREFER_IPV6`: outgoing requests take the addresses in the order the system's resolver gives them
+- `SMTP_DEBUG` and `SSO_DEBUG_TOKENS`, which make Vaultwarden log the SMTP conversation and the
+  provider's tokens
+
+The `config:` items in [PARITY.md](../PARITY.md) show the state of each setting and how it is tested.
 
 ## Differences from Vaultwarden
 
 - **Relative paths** (`DATA_FOLDER`, `DATABASE_URL` with SQLite, ...) are relative to the installation
   folder. Vaultwarden takes them relative to its working directory.
+- **Storage** is a local folder. `ATTACHMENTS_FOLDER`, `SENDS_FOLDER` and `ICON_CACHE_FOLDER` take
+  paths only; the `s3://` URLs that Vaultwarden builds with the `s3` feature accept are not supported.
 - **Rocket's settings** (`ROCKET_ADDRESS`, `ROCKET_PORT`, `ROCKET_TLS` and the other `ROCKET_*`
   variables) do not exist: the web server and PHP take over their jobs. Upload limits are PHP's
   ([Installation](installation.md#php-settings)).
