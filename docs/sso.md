@@ -228,9 +228,10 @@ database's tools), since linking changes existing accounts.
    at Entra ID and Google, five minutes at Keycloak) and keep using it: without a new login, refreshing
    works. Then end the user's sessions at the provider (see above) and wait for the next refresh, or
    reload the web vault: the user is logged out, unless `SSO_AUTH_ONLY_NOT_SESSION=true`.
-5. **The other clients.** Log in with the browser extension, the desktop app and the mobile apps. They
-   need no further setup at the provider; the desktop app comes back through `http://localhost:8065`
-   to `8070` or `bitwarden://sso-callback`.
+5. **The other clients.** Log in with the browser extension, the desktop app, the mobile apps and the
+   CLI (`bw login --sso`, then `bw unlock`). They need no further setup at the provider; the desktop
+   app comes back through `http://localhost:8065` to `8070` or `bitwarden://sso-callback`, the CLI
+   through `http://localhost:8065`.
 6. **`SSO_ONLY`.** Only once every user can log in with SSO: logins with the master password are then
    refused, and the sessions started with one end.
 
@@ -267,3 +268,7 @@ algorithms, a client without `email_verified` like Entra ID's, and the settings 
 `SSO_SIGNUPS_ALLOWED`, `SSO_SIGNUPS_MATCH_EMAIL`, `SSO_ALLOW_UNKNOWN_EMAIL_VERIFICATION`,
 `SSO_AUTH_ONLY_NOT_SESSION`, `SSO_AUDIENCE_TRUSTED`, `SSO_CLIENT_CACHE_EXPIRATION`,
 `SSO_AUTHORIZE_EXTRA_PARAMS` and `SSO_MASTER_PASSWORD_POLICY`.
+
+The client tests ([Testing with the official clients](clients.md), `tests/Clients/sso.spec.ts`) log in
+with SSO in the web vault and with the CLI against the fake provider, on both servers: a new account
+that sets its master password, later logins that unlock with it, and an existing account that is linked.

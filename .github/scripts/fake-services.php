@@ -2,9 +2,9 @@
 
 /**
  * Stand-ins for the Yubico validation servers and Duo's API, for the
- * differential tests: an HTTPS server that answers one request per
- * connection. The servers under test trust its certificate authority
- * through SSL_CERT_FILE.
+ * differential tests, and an OpenID provider, also for the client tests: an
+ * HTTPS server that answers one request per connection. The servers under
+ * test trust its certificate authority through SSL_CERT_FILE.
  *
  * Usage: php fake-services.php <port> <certificate> <key> <state dir>
  *
