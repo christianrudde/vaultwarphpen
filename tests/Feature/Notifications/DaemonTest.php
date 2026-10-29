@@ -7,8 +7,11 @@ use App\Auth\Jwt;
 use App\Auth\LoginClaims;
 use App\Models\Device;
 use App\Models\User;
+use App\Notifications\Channel;
 use App\Notifications\Notify;
+use App\Notifications\Server;
 use App\Notifications\Subscriptions;
+use App\Notifications\WebSocketConnection;
 use App\Support\Random;
 use RuntimeException;
 use Tests\Attributes\Parity;
@@ -226,6 +229,97 @@ class DaemonTest extends TestCase
         $this->assertSame(101, WebSocketClient::connect($this->url, '/notifications/anonymous-hub?token=more', ['X-Real-IP' => '203.0.113.201'])->status);
     }
 
+    public function test_frames_and_messages_past_the_limit_end_the_connection(): void
+    {
+        $hub = WebSocketClient::connect($this->url, "/notifications/hub?access_token={$this->token}");
+        $hub->receive();
+
+        // The longest message that is allowed is still echoed.
+        $longest = str_repeat('x', WebSocketConnection::MAX_MESSAGE_SIZE);
+        $hub->send(WebSocketClient::BINARY, $longest);
+        $this->assertSame([WebSocketClient::BINARY, $longest], $hub->receive());
+
+        $frame = WebSocketClient::connect($this->url, '/notifications/anonymous-hub?token=frame');
+        $frame->receive();
+        $frame->send(WebSocketClient::BINARY, "{$longest}x");
+        $this->assertTrue($frame->closedWithin(2.0));
+
+        $message = WebSocketClient::connect($this->url, '/notifications/anonymous-hub?token=message');
+        $message->receive();
+        $message->send(WebSocketClient::BINARY, str_repeat('x', intdiv(WebSocketConnection::MAX_MESSAGE_SIZE, 2)), fin: false);
+        $message->send(0x0, str_repeat('x', intdiv(WebSocketConnection::MAX_MESSAGE_SIZE, 2)), fin: false);
+        $message->send(0x0, 'x');
+        $this->assertTrue($message->closedWithin(2.0));
+
+        $hub->send(WebSocketClient::PING, 'still there');
+        $this->assertSame([WebSocketClient::PONG, 'still there'], $hub->receive());
+    }
+
+    public function test_requests_past_the_limits_are_refused(): void
+    {
+        $hub = WebSocketClient::connect($this->url, "/notifications/hub?access_token={$this->token}");
+        $hub->receive();
+
+        $body = WebSocketClient::connect($this->url, '/notifications/anonymous-hub?token=body', ['Content-Length' => (string) (Server::MAX_REQUEST_BODY + 1)]);
+        $this->assertSame([413, 'Payload Too Large'], [$body->status, $body->body]);
+        $head = WebSocketClient::connect($this->url, '/notifications/anonymous-hub?token=head', ['X-Padding' => str_repeat('x', Server::MAX_REQUEST_HEAD)]);
+        $this->assertSame([431, 'Request Header Fields Too Large'], [$head->status, $head->body]);
+
+        $hub->send(WebSocketClient::PING, 'still there');
+        $this->assertSame([WebSocketClient::PONG, 'still there'], $hub->receive());
+        $this->assertSame(101, WebSocketClient::connect($this->url, '/notifications/anonymous-hub?token=next')->status);
+    }
+
+    public function test_requests_that_never_finish_make_way_for_new_ones(): void
+    {
+        $hub = WebSocketClient::connect($this->url, "/notifications/hub?access_token={$this->token}");
+        $hub->receive();
+
+        $address = 'tcp://'.substr($this->url, strlen('http://'));
+        $unfinished = [];
+        for ($i = 0; $i <= Server::MAX_PENDING_REQUESTS; $i++) {
+            $socket = stream_socket_client($address, $errno, $error, 5);
+            $this->assertNotFalse($socket, "Cannot connect to the daemon: {$error}");
+            fwrite($socket, "GET /notifications/hub HTTP/1.1\r\nHost: localhost\r\n");
+            $unfinished[] = $socket;
+        }
+
+        // The oldest was dropped for the last; a request that finishes still gets through, in place of the next.
+        $this->assertTrue($this->closedWithin($unfinished[0], 2.0));
+        $this->assertSame(101, WebSocketClient::connect($this->url, '/notifications/anonymous-hub?token=next')->status);
+        $this->assertTrue($this->closedWithin($unfinished[1], 2.0));
+        $this->assertFalse($this->closedWithin($unfinished[2], 0.2));
+
+        $hub->send(WebSocketClient::PING, 'still there');
+        $this->assertSame([WebSocketClient::PONG, 'still there'], $hub->receive());
+    }
+
+    public function test_clients_that_do_not_read_are_dropped(): void
+    {
+        // This one reads nothing after the upgrade.
+        $slow = WebSocketClient::connect($this->url, "/notifications/hub?access_token={$this->token}");
+        $requestId = Random::uuid();
+        $waiting = WebSocketClient::connect($this->url, "/notifications/anonymous-hub?token={$requestId}");
+        $waiting->receive();
+
+        // More than the system buffers for a connection, and more than the daemon keeps for it.
+        $channel = $this->app->make(Channel::class);
+        $update = str_repeat('x', 500_000);
+        for ($i = 0; $i < 64; $i++) {
+            $channel->toUsers([$this->user->uuid], $update);
+        }
+
+        $this->app->make(Notify::class)->sendAnonymousAuthResponse($this->user->uuid, $requestId);
+        $this->assertCount(1, $waiting->collect(timeout: 5.0, until: 1));
+
+        $received = 0;
+        while (($frame = $slow->receive(2.0)) !== null) {
+            $received += strlen($frame[1]);
+        }
+        $this->assertTrue($slow->closedWithin(0.1));
+        $this->assertLessThan(64 * strlen($update), $received);
+    }
+
     public function test_the_daemon_does_not_start_with_websockets_disabled(): void
     {
         $this->changeVaultwardenEnvironment(['ENABLE_WEBSOCKET' => 'false']);
@@ -233,6 +327,26 @@ class DaemonTest extends TestCase
         $this->command('vaultwarden:notifications', ['--listen' => '127.0.0.1:0'])
             ->expectsOutputToContain('WebSocket are disabled, realtime sync functionality will not work!')
             ->assertExitCode(1);
+    }
+
+    /**
+     * Whether the daemon ended a plain connection within the time.
+     *
+     * @param  resource  $socket
+     */
+    private function closedWithin(mixed $socket, float $timeout): bool
+    {
+        $deadline = microtime(true) + $timeout;
+        while (($left = $deadline - microtime(true)) > 0) {
+            $read = [$socket];
+            $write = $except = null;
+            if (@stream_select($read, $write, $except, (int) $left, (int) (fmod($left, 1.0) * 1_000_000)) > 0
+                && (string) @fread($socket, 65_536) === '' && feof($socket)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

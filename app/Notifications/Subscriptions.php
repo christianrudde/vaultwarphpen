@@ -17,6 +17,13 @@ final class Subscriptions
     public const int MAX_ANONYMOUS_CONNECTIONS_PER_IP = 25;
 
     /**
+     * Vaultwarden has no limit for all addresses together, but tokio holds as many connections as
+     * the system allows. The daemon holds Server::MAX_CONNECTIONS; anonymous ones, whose
+     * addresses cost little to come by in IPv6, may take a quarter of them.
+     */
+    public const int MAX_ANONYMOUS_CONNECTIONS = Server::MAX_CONNECTIONS / 4;
+
+    /**
      * @var array<string, array<int, WebSocketConnection>>
      */
     private array $users = [];
@@ -32,12 +39,12 @@ final class Subscriptions
     private array $anonymousConnections = [];
 
     /**
-     * Takes a connection slot for this address, false when it already reached the limit.
+     * Takes a connection slot for this address, false when it or all addresses together already reached the limit.
      */
     public function tryReserve(string $ip): bool
     {
         $count = $this->anonymousConnections[$ip] ?? 0;
-        if ($count >= self::MAX_ANONYMOUS_CONNECTIONS_PER_IP) {
+        if ($count >= self::MAX_ANONYMOUS_CONNECTIONS_PER_IP || array_sum($this->anonymousConnections) >= self::MAX_ANONYMOUS_CONNECTIONS) {
             return false;
         }
         $this->anonymousConnections[$ip] = $count + 1;

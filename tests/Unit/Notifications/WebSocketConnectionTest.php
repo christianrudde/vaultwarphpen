@@ -35,9 +35,22 @@ class WebSocketConnectionTest extends TestCase
     public function test_long_payloads_carry_their_length_in_16_or_64_bits(): void
     {
         $connection = self::connection();
-        $connection->input = self::frame(Connection::BINARY, str_repeat('a', 300)).self::frame(Connection::BINARY, str_repeat('b', 70_000));
+        // Any length may come in 64 bits, as tungstenite reads it.
+        $connection->input = self::frame(Connection::BINARY, str_repeat('a', 300))
+            ."\x82\xFF".pack('J', 1000)."\x00\x00\x00\x00".str_repeat('b', 1000)
+            .self::frame(Connection::BINARY, str_repeat('c', Connection::MAX_FRAME_SIZE));
 
-        $this->assertSame([[Connection::BINARY, str_repeat('a', 300)], [Connection::BINARY, str_repeat('b', 70_000)]], $connection->readMessages());
+        $this->assertSame([[Connection::BINARY, str_repeat('a', 300)], [Connection::BINARY, str_repeat('b', 1000)],
+            [Connection::BINARY, str_repeat('c', Connection::MAX_FRAME_SIZE)]], $connection->readMessages());
+    }
+
+    public function test_a_frame_too_long_ends_the_connection_before_its_payload_arrives(): void
+    {
+        $connection = self::connection();
+        $connection->input = "\x82\xFE".pack('n', Connection::MAX_FRAME_SIZE + 1);
+
+        $this->expectExceptionMessage('Frame too long');
+        $connection->readMessages();
     }
 
     /**
@@ -56,7 +69,10 @@ class WebSocketConnectionTest extends TestCase
         yield 'reserved control opcode' => [self::frame(0xB, ''), 'Unknown control frame type 11'];
         yield 'invalid UTF-8' => [self::frame(Connection::TEXT, "\xFF"), 'UTF-8 encoding error'];
         yield 'close with one byte' => [self::frame(Connection::CLOSE, "\x03"), 'Invalid close sequence'];
-        yield 'frame over 16 MiB' => ["\x82\xFF".pack('J', (16 << 20) + 1), 'Frame too long'];
+        yield 'frame over 32 KiB' => [self::frame(Connection::BINARY, str_repeat('x', (32 << 10) + 1)), 'Frame too long'];
+        yield 'length over 63 bits' => ["\x82\xFF".pack('J', PHP_INT_MIN), 'Frame too long'];
+        yield 'message over 32 KiB' => [self::frame(Connection::BINARY, str_repeat('x', 16 << 10), fin: false)
+            .self::frame(0x0, str_repeat('x', 16 << 10), fin: false).self::frame(0x0, 'x'), 'Message too long'];
     }
 
     #[DataProvider('protocolErrors')]
@@ -78,6 +94,17 @@ class WebSocketConnectionTest extends TestCase
         $connection->send(Connection::BINARY, str_repeat('x', 126));
 
         $this->assertSame("\x82\x03abc\x89\x03\x02\x91\x06\x82\x7e\x00\x7e".str_repeat('x', 126), $connection->output);
+        $this->assertSame(strlen($connection->output), $connection->buffered());
+    }
+
+    public function test_what_it_buffers_counts_input_fragments_and_output(): void
+    {
+        $connection = self::connection();
+        $connection->input = self::frame(Connection::BINARY, 'abc', fin: false).'rest';
+        $connection->readMessages();
+        $connection->send(Connection::BINARY, 'out');
+
+        $this->assertSame(strlen('rest') + strlen('abc') + strlen("\x82\x03out"), $connection->buffered());
     }
 
     private static function connection(): Connection

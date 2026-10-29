@@ -25,17 +25,37 @@ final class Server
     // like the default ClientTimeoutInterval of ASP.NET Core SignalR.
     private const float CLIENT_TIMEOUT = 30.0;
 
-    // Limits for the HTTP request before the upgrade.
+    // Vaultwarden gives each connection a task of its own. Here one process holds them all, so these
+    // limits keep a few clients from taking all of PHP's memory or every connection.
+
+    // The HTTP request before the upgrade.
     private const float REQUEST_TIMEOUT = 10.0;
 
-    private const int MAX_REQUEST_HEAD = 16_384;
+    public const int MAX_REQUEST_HEAD = 16_384;
 
-    private const int MAX_REQUEST_BODY = 1 << 20;
+    // The hubs read no body; a small one is let through and ignored.
+    public const int MAX_REQUEST_BODY = 8_192;
 
-    // A client that reads nothing while this much waits for it is dropped.
-    private const int MAX_OUTPUT = 16 << 20;
+    // Requests that are neither answered nor upgraded yet. Past this, the oldest makes way for a new
+    // connection, so that requests which never finish cannot keep others out.
+    public const int MAX_PENDING_REQUESTS = 64;
+
+    // The connections of clients and of requests on the channel. stream_select() fails for all of
+    // them once a descriptor reaches FD_SETSIZE, usually 1024, so both together, with room for the
+    // daemon's own files, stay below it.
+    public const int MAX_CONNECTIONS = 800;
+
+    public const int MAX_CHANNEL_CLIENTS = 128;
 
     private const int MAX_CHANNEL_LINE = 1 << 20;
+
+    // Vaultwarden queues up to 100 messages per connection, and a request with one more waits until
+    // the client read some. Requests do not wait here: a client that leaves this much unread is dropped.
+    public const int MAX_OUTPUT = 256 << 10;
+
+    // Unread input and unsent output of all connections together. Past it, those holding the most
+    // are dropped.
+    private const int MAX_BUFFERED = 32 << 20;
 
     /**
      * @var resource|null
@@ -59,18 +79,32 @@ final class Server
      */
     private array $channelClients = [];
 
+    /**
+     * @var array<string, int> The bytes each client and channel client holds, by its key in runOnce
+     */
+    private array $buffered = [];
+
+    private int $bufferedTotal = 0;
+
+    /**
+     * @var array<string, float> When each warning may be logged again
+     */
+    private array $warnings = [];
+
     private int $nextId = 1;
 
     private bool $stopping = false;
 
     /**
      * @param  Closure(Request): Response  $dispatch  Handles a request like the web server would
+     * @param  int  $maxBuffered  What all connections together may hold
      */
     public function __construct(
         private readonly Subscriptions $subscriptions,
         private readonly Closure $dispatch,
         private readonly string $channelKey,
         private readonly string $scriptFilename,
+        private readonly int $maxBuffered = self::MAX_BUFFERED,
     ) {}
 
     /**
@@ -148,8 +182,10 @@ final class Server
         $read = ['listener' => $this->listener, 'channel' => $this->channel];
         $write = [];
         foreach ($this->clients as $id => $client) {
-            $read["client {$id}"] = $client->socket;
-            if ($client->output !== '') {
+            // Like Vaultwarden's task, which waits while it sends, a client is not read while output waits for it.
+            if ($client->output === '') {
+                $read["client {$id}"] = $client->socket;
+            } else {
                 $write["client {$id}"] = $client->socket;
             }
         }
@@ -259,6 +295,21 @@ final class Server
         if ($socket === false) {
             return;
         }
+
+        // The oldest request makes way when there are too many of them, or of all connections;
+        // without one to drop, the new connection is refused.
+        $pending = array_filter($this->clients, static fn (WebSocketConnection $client): bool => ! $client->upgraded);
+        if (count($pending) >= self::MAX_PENDING_REQUESTS || count($this->clients) >= self::MAX_CONNECTIONS) {
+            $oldest = reset($pending);
+            if ($oldest === false) {
+                fclose($socket);
+                $this->warning('The notifications daemon refuses connections: it holds as many as it can.');
+
+                return;
+            }
+            $this->warning('The notifications daemon drops requests that take too long: too many are open.');
+            $this->close($oldest);
+        }
         stream_set_blocking($socket, false);
 
         [$address, $port] = self::splitAddress(is_string($peer) ? $peer : '');
@@ -278,12 +329,19 @@ final class Server
 
             return;
         }
+        // Nothing after an answered request is read.
+        if ($client->closeAfterOutput) {
+            return;
+        }
         $client->input .= $data;
 
         if ($client->upgraded) {
             $this->readMessages($client);
-        } elseif (! $client->closeAfterOutput) {
+        } else {
             $this->readRequest($client);
+        }
+        if (isset($this->clients[$id])) {
+            $this->track("client {$id}", $client->buffered());
         }
     }
 
@@ -294,11 +352,12 @@ final class Server
     private function readRequest(WebSocketConnection $client): void
     {
         $end = strpos($client->input, "\r\n\r\n");
-        if ($end === false) {
-            if (strlen($client->input) > self::MAX_REQUEST_HEAD) {
-                $this->plainResponse($client, 431, 'Request Header Fields Too Large');
-            }
+        if (($end === false ? strlen($client->input) : $end) > self::MAX_REQUEST_HEAD) {
+            $this->plainResponse($client, 431, 'Request Header Fields Too Large');
 
+            return;
+        }
+        if ($end === false) {
             return;
         }
 
@@ -457,6 +516,54 @@ final class Server
         } elseif (strlen($client->output) > self::MAX_OUTPUT) {
             logger()->error("Error sending WS update to {$client->ip}: the client does not read");
             $this->close($client);
+        } else {
+            $this->track("client {$client->id}", $client->buffered());
+        }
+    }
+
+    /**
+     * Note what a client or channel client holds now. When all of them
+     * together hold more than the budget, those holding the most are dropped.
+     */
+    private function track(string $key, int $bytes): void
+    {
+        $this->bufferedTotal += $bytes - ($this->buffered[$key] ?? 0);
+        if ($bytes > 0) {
+            $this->buffered[$key] = $bytes;
+        } else {
+            unset($this->buffered[$key]);
+        }
+        if ($this->bufferedTotal <= $this->maxBuffered) {
+            return;
+        }
+
+        $largest = $this->buffered;
+        arsort($largest);
+        foreach (array_keys($largest) as $other) {
+            if ($this->bufferedTotal <= $this->maxBuffered) {
+                break;
+            }
+            [$kind, $id] = explode(' ', $other, 2);
+            if ($kind === 'channel') {
+                logger()->warning('The notifications daemon dropped a request on its channel: it is out of buffer space');
+                $this->closeChannelClient((int) $id);
+            } elseif (($client = $this->clients[(int) $id] ?? null) !== null) {
+                logger()->warning('Closing WS connection from '.($client->ip !== '' ? $client->ip : $client->peerAddress)
+                    .': the notifications daemon is out of buffer space');
+                $this->close($client);
+            }
+        }
+    }
+
+    /**
+     * Log a warning that clients can cause, at most once a minute.
+     */
+    private function warning(string $message): void
+    {
+        $now = self::now();
+        if ($now >= ($this->warnings[$message] ?? 0.0)) {
+            $this->warnings[$message] = $now + 60.0;
+            logger()->warning($message);
         }
     }
 
@@ -466,6 +573,7 @@ final class Server
             return;
         }
         unset($this->clients[$client->id]);
+        $this->track("client {$client->id}", 0);
         if ($client->upgraded) {
             logger()->info("Closing WS connection from {$client->ip}");
             $this->subscriptions->unsubscribe($client);
@@ -596,8 +704,23 @@ final class Server
         if ($socket === false) {
             return;
         }
+        if (count($this->channelClients) >= self::MAX_CHANNEL_CLIENTS) {
+            fclose($socket);
+            $this->warning('The notifications daemon refuses requests on its channel: too many are connected.');
+
+            return;
+        }
         stream_set_blocking($socket, false);
         $this->channelClients[$this->nextId++] = [$socket, ''];
+    }
+
+    private function closeChannelClient(int $id): void
+    {
+        if (isset($this->channelClients[$id])) {
+            @fclose($this->channelClients[$id][0]);
+            unset($this->channelClients[$id]);
+            $this->track("channel {$id}", 0);
+        }
     }
 
     private function readChannelClient(int $id): void
@@ -614,18 +737,20 @@ final class Server
             $message = SocketChannel::decode(substr($buffer, 0, $newline), $this->channelKey);
             $buffer = substr($buffer, $newline + 1);
             if ($message === null) {
-                logger()->warning('The notifications daemon received a message that is not signed with its key.');
+                // Requests sign every line, so nothing more is read from whoever sent this one.
+                $this->warning('The notifications daemon received a message that is not signed with its key.');
+                $closed = true;
 
-                continue;
+                break;
             }
             $this->deliver($message);
         }
 
         if ($closed || strlen($buffer) > self::MAX_CHANNEL_LINE) {
-            @fclose($socket);
-            unset($this->channelClients[$id]);
-        } else {
+            $this->closeChannelClient($id);
+        } elseif (isset($this->channelClients[$id])) {
             $this->channelClients[$id] = [$socket, $buffer];
+            $this->track("channel {$id}", strlen($buffer));
         }
     }
 }
