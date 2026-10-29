@@ -7,10 +7,10 @@ export interface Account {
     password: string;
 }
 
-/** A browser context of its own, like another person's browser. */
-export async function newContext(browser: Browser): Promise<BrowserContext> {
+/** A browser context of its own, like another person's browser, for the server at the URL. */
+export async function newContext(browser: Browser, baseURL = process.env.VW_CLIENTS_URL): Promise<BrowserContext> {
     const created = await browser.newContext({
-        baseURL: process.env.VW_CLIENTS_URL,
+        baseURL,
         ignoreHTTPSErrors: true,
         locale: 'en-US',
         timezoneId: 'UTC',

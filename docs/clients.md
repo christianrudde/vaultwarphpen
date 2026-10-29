@@ -62,9 +62,21 @@ they read from the SMTP sink and follow its links, as people would:
    password. The member imports the encrypted file in the web vault, and the CLI lists the imported items
    and folder, which match the plain export.
 
-Not covered yet: SSO, other two-step methods than the authenticator, groups and the other member roles,
+In `sso.spec.ts`, accounts log in with SSO, at a server of their own that has it turned on, and its
+OpenID provider:
+
+1. **Web vault:** a new account logs in with SSO (*Use single sign-on*), sets its master password, which
+   creates its keys, and adds a login.
+2. Logs out, logs in with SSO again and unlocks the vault with the master password.
+3. **CLI:** `bw login --sso` opens the web vault's SSO page, which a browser of the test opens in its
+   place; the CLI takes the code at `http://localhost:8065` when the login is done, unlocks with the
+   master password and decrypts the login.
+4. An account created with a master password logs in with it (*Other*), then with SSO: the server links
+   it to its identity at the provider, and the vault unlocks with the same master password.
+
+Not covered yet: other two-step methods than the authenticator, groups and the other member roles,
 invitations of existing accounts to an organization, emergency access takeover and its waiting time,
-account-restricted, CSV and zip exports, and imports from other password managers.
+account-restricted, CSV and zip exports, imports from other password managers, and `SSO_ONLY`.
 
 ## How it runs
 
@@ -77,13 +89,17 @@ database and the web vault, and runs the tests:
   `DOMAIN` is the proxy's address. WebSocket requests go to the daemon, as a reverse proxy in
   production would send them.
 - The browser accepts the certificate; the CLI trusts the authority through `NODE_EXTRA_CA_CERTS`.
-- An SMTP sink ([`smtp-sink.php`](../.github/scripts/smtp-sink.php), port 8102), to which the server sends its
-  mail. It keeps every message in a folder of the run, `VW_CLIENTS_MAIL`, which
+- An SMTP sink ([`smtp-sink.php`](../.github/scripts/smtp-sink.php), port 8102), to which the servers send
+  their mail. It keeps every message in a folder of the run, `VW_CLIENTS_MAIL`, which
   [`support/mail.ts`](../tests/Clients/support/mail.ts) reads.
-- Each run uses a new data folder, and the server's default settings, with two exceptions: the SMTP
-  settings, and a login burst (`LOGIN_RATELIMIT_MAX_BURST`) of 30 instead of 10. Every client connects from
-  127.0.0.1, where people would each have an address of their own, so the burst allows the default for
-  each of the tests' three accounts.
+- A second server of the same kind for `sso.spec.ts` (ports 8104 and 8105, proxy 8444,
+  `VW_CLIENTS_SSO_URL`) with SSO turned on, since SSO changes the web vault's login page. Its OpenID
+  provider is the fake one of [`fake-services.php`](../.github/scripts/fake-services.php) (port 8103), which
+  logs in whoever its authorization URL names; the browsers of the test add their account to that URL.
+- Each run uses new data folders, and the servers' default settings, with these exceptions: the SMTP
+  settings, the SSO settings of the second server, and a login burst (`LOGIN_RATELIMIT_MAX_BURST`) of 30
+  instead of 10. Every client connects from 127.0.0.1, where people would each have an address of their
+  own, so the burst allows the default for each of the tests' accounts.
 
 `clients.sh --vaultwarden <binary>` runs the same tests against Vaultwarden, which serves the same web
 vault and its hubs itself. The [Clients](../.github/workflows/clients.yml) workflow runs the tests on
@@ -114,11 +130,15 @@ and run the tests from the repository's root. `PHP` names another PHP binary tha
 .github/scripts/clients.sh
 ```
 
-Ports 8100, 8101, 8102 and 8443 must be free. For Vaultwarden, pass its binary:
+Ports 8100 to 8105, 8443 and 8444 must be free, and 8065 for the CLI's SSO login. For Vaultwarden, pass
+its binary:
 
 ```bash
 .github/scripts/clients.sh --vaultwarden /path/to/vaultwarden
 ```
+
+On macOS, Vaultwarden checks certificates against the system's trust store and ignores `SSL_CERT_FILE`, so
+it cannot reach the OpenID provider and `sso.spec.ts` fails there; on Linux, as in CI, it passes.
 
 To work on the tests, `--serve` starts the servers and keeps them running; it prints the environment
 for `npx playwright test` in `tests/Clients` (add `--ui` or `--headed` to watch). Many runs against one

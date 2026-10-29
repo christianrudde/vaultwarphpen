@@ -40,9 +40,10 @@ environment variables, so the official Bitwarden clients and existing Vaultwarde
   lists, after placeholders replace random values (`DifferentialTestCase::PLACEHOLDERS`).
 - Client tests (`tests/Clients`, [docs/clients.md](docs/clients.md)) drive the pinned web vault (Playwright,
   Chromium) and `@bitwarden/cli` with real cryptography: one account in `vault.spec.ts`, an owner and a member in
-  `sharing.spec.ts`. `.github/scripts/clients.sh [--vaultwarden <binary>] [--serve]` starts the server with
-  SQLite, the notifications daemon, an SMTP sink whose mail the tests read (`support/mail.ts`) and an HTTPS
-  proxy (`tests/Clients/proxy.mjs`); `clients.yml` runs it on every push, `reference.yml` against Vaultwarden.
+  `sharing.spec.ts`, SSO logins in `sso.spec.ts`. `.github/scripts/clients.sh [--vaultwarden <binary>] [--serve]`
+  starts the server with SQLite, the notifications daemon, an SMTP sink whose mail the tests read
+  (`support/mail.ts`) and an HTTPS proxy (`tests/Clients/proxy.mjs`), and a second one with SSO at the fake
+  OpenID provider (`VW_CLIENTS_SSO_URL`); `clients.yml` runs it on every push, `reference.yml` against Vaultwarden.
   Run `npm ci --ignore-scripts` and `npx playwright install chromium` there first; `PHP=php86` picks Herd's PHP.
 - Live notifications: `php86 artisan vaultwarden:notifications` (`App\Notifications\Server`) serves the hubs of
   `src/api/notifications.rs` over WebSocket; upgrade requests go through the HTTP kernel to
