@@ -12,7 +12,8 @@ hosting package that gives you PHP 8.5 and a shell, with Composer or from a
 
 ## Requirements
 
-- PHP 8.5 or newer, as PHP-FPM or an Apache module, with the extensions `openssl`, `sodium` and
+- PHP 8.5.12 or newer (earlier 8.5 releases have security issues in the URL parser that Vaultwarphpen
+  uses), as PHP-FPM or an Apache module, with the extensions `openssl`, `sodium` and
   `mbstring`, the ones Laravel needs (`ctype`, `filter`, `hash`, `session`, `tokenizer`) and one of
   `pdo_sqlite`, `pdo_mysql` or `pdo_pgsql`; `phar`, `zlib` and `allow_url_fopen` to download the web
   vault (a release archive brings it along)

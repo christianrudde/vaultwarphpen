@@ -49,7 +49,7 @@ both, with the clients' own cryptography ([docs/clients.md](docs/clients.md)).
 
 ## Requirements
 
-- PHP 8.5 or newer with the `openssl`, `sodium` and `mbstring` extensions and `pdo_sqlite`, `pdo_mysql`
+- PHP 8.5.12 or newer with the `openssl`, `sodium` and `mbstring` extensions and `pdo_sqlite`, `pdo_mysql`
   or `pdo_pgsql` for the database; website icons also need `xmlreader` and `zlib`, which PHP usually has
 - SQLite, MySQL/MariaDB or PostgreSQL
 - A web server that passes requests to PHP (Apache, nginx, Caddy, ...) and serves HTTPS

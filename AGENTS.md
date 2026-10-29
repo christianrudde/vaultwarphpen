@@ -6,7 +6,7 @@ environment variables, so the official Bitwarden clients and existing Vaultwarde
 
 ## Environment
 
-- PHP 8.5 or newer is required. In Herd, `php` on the PATH is still 8.4, so run everything with
+- PHP 8.5.12 or newer is required. In Herd, `php` on the PATH is still 8.4, so run everything with
   Herd's PHP 8.6: `"$HOME/Library/Application Support/Herd/bin/php86"` (shown as `php86` below).
 - Tests: `php86 artisan test`. To include MySQL, point `VW_TEST_MYSQL_DATABASE` (or
   `VW_TEST_PGSQL_DATABASE`) at an empty database that the tests may wipe, e.g.

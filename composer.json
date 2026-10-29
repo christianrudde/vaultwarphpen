@@ -28,7 +28,7 @@
         "security": "https://github.com/christianrudde/vaultwarphpen/security/policy"
     },
     "require": {
-        "php": "^8.5",
+        "php": "^8.5.12",
         "devtheorem/php-handlebars": "^2.2",
         "laravel/framework": "^13.17",
         "laravel/tinker": "^3.0",
