@@ -130,6 +130,8 @@ class CipherTest extends DifferentialTestCase
             $steps['partial into folder'] = $server->json('POST', "/api/ciphers/{$id}/partial", ['folderId' => $folder, 'favorite' => true], $auth);
             $steps['partial without favorite'] = $server->json('POST', "/api/ciphers/{$id}/partial", ['folderId' => $folder], $auth);
             $steps['partial unknown folder'] = $server->json('POST', "/api/ciphers/{$id}/partial", ['folderId' => 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', 'favorite' => true], $auth);
+            $steps['update into an organization'] = $server->json('PUT', "/api/ciphers/{$id}", [...self::cipher($userId, 1, '2.moved'), 'login' => (object) [],
+                'organizationId' => 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'], $auth);
             $steps['update unknown'] = $server->json('PUT', '/api/ciphers/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', [...self::cipher($userId, 1, '2.x'), 'login' => (object) []], $auth);
             $steps['after all'] = $server->send('GET', "/api/ciphers/{$id}", $auth);
 
@@ -313,6 +315,7 @@ class CipherTest extends DifferentialTestCase
                     $note('2.b'),
                     [...self::cipher($userId, 1, '2.c'), 'login' => ['username' => '2.u'], 'lastKnownRevisionDate' => '2000-01-01T00:00:00Z'],
                     [...$note('2.d'), 'encryptedFor' => 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'],
+                    [...$note('2.e'), 'organizationId' => 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'],
                 ],
             ], $auth);
             $folders = $server->send('GET', '/api/folders', $auth);

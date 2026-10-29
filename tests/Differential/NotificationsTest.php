@@ -181,9 +181,10 @@ class NotificationsTest extends DifferentialTestCase
             $step('soft delete several', $server->json('PUT', '/api/ciphers/delete', ['ids' => [$id]], $auth));
             $step('restore several', $server->json('PUT', '/api/ciphers/restore', ['ids' => [$id]], $auth));
 
-            $attachment = $server->json('POST', "/api/ciphers/{$id}/attachment/v2", ['key' => '2.key', 'fileName' => '2.name', 'fileSize' => 11], $auth)
+            $attachment = $step('reserve attachment', $server->json('POST', "/api/ciphers/{$id}/attachment/v2", ['key' => '2.key', 'fileName' => '2.name', 'fileSize' => 11], $auth))
                 ->jsonString('attachmentId');
             $step('upload attachment', $server->multipart("/api/ciphers/{$id}/attachment/{$attachment}", [['data', 'hello world', 'ignored']], $auth));
+            $step('upload attachment v1', $server->multipart("/api/ciphers/{$id}/attachment", [['key', '2.key'], ['data', 'hello', '2.v1']], $auth));
             $step('delete attachment', $server->send('DELETE', "/api/ciphers/{$id}/attachment/{$attachment}", $auth));
 
             $step('delete cipher', $server->send('DELETE', "/api/ciphers/{$id}", $auth));

@@ -161,6 +161,26 @@ class AttachmentTest extends TestCase
             ->assertStatus(400)->assertJsonPath('message', 'Attachment storage limit reached! Delete some attachments to free up space');
     }
 
+    #[Parity('config:USER_ATTACHMENT_LIMIT')]
+    public function test_v2_reservation_counts_against_the_limit(): void
+    {
+        // Vaultwarden a96912bf: the announced size is checked before the record is saved.
+        $this->changeVaultwardenEnvironment(['USER_ATTACHMENT_LIMIT' => '1']);
+        $this->postJson("/api/ciphers/{$this->cipherId}/attachment/v2", ['key' => '2.k', 'fileName' => '2.n', 'fileSize' => 1025], $this->auth)
+            ->assertStatus(400)->assertJsonPath('message', 'Attachment storage limit exceeded with this file');
+        $this->assertSame(0, Attachment::query()->count());
+
+        $attachmentId = $this->postJson("/api/ciphers/{$this->cipherId}/attachment/v2", ['key' => '2.k', 'fileName' => '2.n', 'fileSize' => 1024], $this->auth)
+            ->assertStatus(200)->json('attachmentId');
+        $this->assertIsString($attachmentId);
+        $this->postJson("/api/ciphers/{$this->cipherId}/attachment/v2", ['key' => '2.k', 'fileName' => '2.n', 'fileSize' => 1], $this->auth)
+            ->assertStatus(400)->assertJsonPath('message', 'Attachment storage limit reached! Delete some attachments to free up space');
+
+        // The upload of the reserved record is credited with its own size.
+        $this->upload("/api/ciphers/{$this->cipherId}/attachment/{$attachmentId}", UploadedFile::fake()->createWithContent('x', str_repeat('x', 1024)))
+            ->assertStatus(200);
+    }
+
     #[Parity('config:ORG_ATTACHMENT_LIMIT')]
     public function test_organization_storage_limit(): void
     {

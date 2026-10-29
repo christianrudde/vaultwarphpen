@@ -62,6 +62,30 @@ class AttachmentTest extends DifferentialTestCase
         });
     }
 
+    #[Parity('config:USER_ATTACHMENT_LIMIT')]
+    public function test_v2_reservation_within_the_storage_limit(): void
+    {
+        $this->assertSameFlows(function (Server $server): array {
+            [$auth, $userId] = CipherTest::session($server, 'attachments-limit@example.com');
+            $cipherId = CipherTest::note($server, $auth, $userId, '2.note');
+            $session = AdminTest::login($server);
+            $steps = [];
+            try {
+                $steps['limit of 1 KiB'] = $server->json('POST', '/admin/config', ['user_attachment_limit' => 1, 'admin_token' => AdminTest::TOKEN], $session);
+                $steps['reserve too much'] = $server->json('POST', "/api/ciphers/{$cipherId}/attachment/v2", ['key' => '2.k', 'fileName' => '2.n', 'fileSize' => 1025], $auth);
+                $steps['reserve all'] = $reserved = $server->json('POST', "/api/ciphers/{$cipherId}/attachment/v2", ['key' => '2.k', 'fileName' => '2.n', 'fileSize' => 1024], $auth);
+                $steps['reserve more'] = $server->json('POST', "/api/ciphers/{$cipherId}/attachment/v2", ['key' => '2.k', 'fileName' => '2.n', 'fileSize' => 1], $auth);
+                $steps['upload the reserved file'] = $server->multipart("/api/ciphers/{$cipherId}/attachment/{$reserved->jsonString('attachmentId')}",
+                    [['data', str_repeat('x', 1024), '2.n']], $auth);
+                $steps['cipher'] = $server->send('GET', "/api/ciphers/{$cipherId}", $auth);
+            } finally {
+                $steps['reset'] = $server->send('POST', '/admin/config/delete', ['Content-Type' => 'application/json', ...$session]);
+            }
+
+            return $steps;
+        });
+    }
+
     #[Parity('route:POST /api/ciphers/{cipher_id}/attachment')]
     #[Parity('route:POST /api/ciphers/{cipher_id}/attachment-admin')]
     #[Parity('route:POST /api/ciphers/{cipher_id}/attachment/{attachment_id}/share')]

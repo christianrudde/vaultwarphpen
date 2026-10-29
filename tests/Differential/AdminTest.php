@@ -374,7 +374,7 @@ class AdminTest extends DifferentialTestCase
     /**
      * @return array<string, string> The Cookie header of the session
      */
-    private static function login(Server $server, string $token = self::TOKEN): array
+    public static function login(Server $server, string $token = self::TOKEN): array
     {
         return self::session($server->form('/admin', ['token' => $token]));
     }

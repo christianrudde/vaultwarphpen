@@ -26,8 +26,8 @@ works listed below remain the work of their authors and keep their licenses.
 
 As section 5 a of the AGPL asks: Vaultwarphpen modifies Vaultwarden by translating it into PHP. The port
 started on 27 October 2026 and follows Vaultwarden commit
-[`0f44744ef86a2a7bea615af1c024044ce5736187`](https://github.com/dani-garcia/vaultwarden/commit/0f44744ef86a2a7bea615af1c024044ce5736187)
-(release 1.37.4, committed on 25 October 2026), pinned in [`parity/reference.json`](parity/reference.json).
+[`64ae55ceb2e33aa08e7291d50ca010c679064842`](https://github.com/dani-garcia/vaultwarden/commit/64ae55ceb2e33aa08e7291d50ca010c679064842)
+(release 1.37.4 and the fixes after it, committed on 28 October 2026), pinned in [`parity/reference.json`](parity/reference.json).
 The git history records every change; [`PARITY.md`](PARITY.md) shows what has been ported so far.
 
 ## Vaultwarden

@@ -3,8 +3,8 @@
 A PHP port of [Vaultwarden](https://github.com/dani-garcia/vaultwarden), the Bitwarden-compatible server
 written in Rust. Vaultwarphpen is a modified version of Vaultwarden: its Rust source, translated into PHP
 on Laravel since October 2026, following Vaultwarden commit
-[`0f44744`](https://github.com/dani-garcia/vaultwarden/commit/0f44744ef86a2a7bea615af1c024044ce5736187)
-(release 1.37.4). [NOTICE.md](NOTICE.md) names everything it is based on.
+[`64ae55c`](https://github.com/dani-garcia/vaultwarden/commit/64ae55ceb2e33aa08e7291d50ca010c679064842)
+(release 1.37.4 and the fixes after it). [NOTICE.md](NOTICE.md) names everything it is based on.
 
 It is meant to run on an ordinary PHP host, without Docker, and to be a drop-in replacement for
 Vaultwarden: the same HTTP API for the official Bitwarden clients, the same database and the same

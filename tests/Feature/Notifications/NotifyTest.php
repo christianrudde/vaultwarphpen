@@ -12,6 +12,7 @@ use App\Notifications\Channel;
 use App\Support\Dates;
 use App\Support\Random;
 use App\Support\UpdateType;
+use Illuminate\Http\UploadedFile;
 use Tests\Attributes\Parity;
 use Tests\Concerns\UsesVaultwardenDatabase;
 use Tests\Fakes\NotificationsChannelFake;
@@ -110,6 +111,27 @@ class NotifyTest extends TestCase
         $user = $this->arrayOf($this->arrayOf($this->channel->updates()[6]['update'])['Payload']);
         $this->assertSame(['UserId', 'Date'], array_keys($user));
         $this->assertNull($this->arrayOf($this->channel->updates()[6]['update'])['ContextId']);
+    }
+
+    public function test_attachment_changes(): void
+    {
+        // Vaultwarden 64ae55ce: the v2 API notifies when it creates the record, not again after the upload.
+        $cipher = ['type' => 1, 'name' => '2.login', 'login' => (object) [], 'encryptedFor' => $this->user->uuid];
+        $id = $this->stringOf($this->postJson('/api/ciphers', $cipher, $this->auth)->assertStatus(200)->json('id'));
+        $attachmentId = $this->stringOf($this->postJson("/api/ciphers/{$id}/attachment/v2", ['key' => '2.k', 'fileName' => '2.n', 'fileSize' => 5], $this->auth)
+            ->assertStatus(200)->json('attachmentId'));
+        $upload = fn (string $uri, array $fields = []) => $this->call('POST', $uri, $fields, [], ['data' => UploadedFile::fake()->createWithContent('2.n', 'hello')],
+            $this->transformHeadersToServerVars([...$this->auth, 'Content-Type' => 'multipart/form-data; boundary=x']));
+        $this->assertCount(2, $this->channel->updates());
+        $upload("/api/ciphers/{$id}/attachment/{$attachmentId}")->assertStatus(200);
+        $this->assertCount(2, $this->channel->updates());
+        $upload("/api/ciphers/{$id}/attachment", ['key' => '2.k'])->assertStatus(200);
+
+        $this->assertSame([
+            [UpdateType::SyncCipherCreate->value, $id],
+            [UpdateType::SyncCipherUpdate->value, $id],
+            [UpdateType::SyncCipherUpdate->value, $id],
+        ], $this->typesAndIds());
     }
 
     public function test_send_changes_and_anonymous_access(): void

@@ -236,6 +236,8 @@ final readonly class CiphersController
 
         foreach ($ciphers as $index => $data) {
             $data->folderId = isset($folderOfCipher[$index]) ? ($folderIds[$folderOfCipher[$index]] ?? null) : null;
+            // A personal import always creates personal ciphers, the organization ID is ignored instead of rejected
+            $data->organizationId = null;
             $cipher = Cipher::new($data->type, $data->name);
             $this->updateCipherFromData($cipher, $data, $headers, UpdateType::None);
         }
@@ -258,6 +260,13 @@ final readonly class CiphersController
         $data = CipherData::fromFields($body->object('cipher', 'Cipher'));
         $collectionIds = $body->stringList('collectionIds', 'CollectionIds');
 
+        if ($data->organizationId === null) {
+            throw ApiError::message('Cipher OrganizationId is required.');
+        }
+        if ($collectionIds === []) {
+            throw ApiError::message('You must select at least one collection.');
+        }
+
         return Json::response($this->shareCipherByUuid($cipherId, $data, $collectionIds, $headers));
     }
 
@@ -279,6 +288,7 @@ final readonly class CiphersController
         }
         foreach ($ciphers as $cipher) {
             $cipher->id ?? throw ApiError::message('Request missing ids field');
+            $cipher->organizationId ?? throw ApiError::message('Cipher OrganizationId is required.');
         }
 
         $responses = [];
@@ -331,16 +341,46 @@ final readonly class CiphersController
     }
 
     /**
-     * PUT /api/ciphers/{cipher_id}, also POST and the /admin variants.
+     * PUT /api/ciphers/{cipher_id}, also POST.
      */
     public function putCipher(Headers $headers, Request $request, string $cipherId): Response
     {
         $cipherId = Uuid::parameter($request, $cipherId);
+
+        return $this->updateCipher($headers, $cipherId, CipherData::fromFields(Body::json($request)));
+    }
+
+    /**
+     * PUT /api/ciphers/{cipher_id}/admin, also POST: only organization ciphers.
+     */
+    public function putCipherAdmin(Headers $headers, Request $request, string $cipherId): Response
+    {
+        $cipherId = Uuid::parameter($request, $cipherId);
         $data = CipherData::fromFields(Body::json($request));
 
+        // Only organization ciphers can be edited here, updateCipher() rejects an organization ID that isn't the cipher's
+        if ($data->organizationId === null) {
+            throw ApiError::message('Resource not found.', 404, 'Cipher is not an organization cipher');
+        }
+
+        return $this->updateCipher($headers, $cipherId, $data);
+    }
+
+    /**
+     * ciphers::put_cipher
+     *
+     * @throws ApiError
+     */
+    private function updateCipher(Headers $headers, string $cipherId, CipherData $data): Response
+    {
         $cipher = Cipher::findByUuid($cipherId) ?? throw ApiError::message("Cipher doesn't exist");
         if (! $cipher->isWriteAccessibleToUser($headers->user->uuid)) {
             throw ApiError::message('Cipher is not write accessible');
+        }
+
+        // Moving a cipher into an organization is only possible through the share endpoints
+        if ($cipher->organization_uuid !== $data->organizationId) {
+            throw ApiError::message('Organization mismatch. Please resync the client before updating the cipher');
         }
 
         $this->updateCipherFromData($cipher, $data, $headers, UpdateType::SyncCipherUpdate);
@@ -422,8 +462,14 @@ final readonly class CiphersController
             throw ApiError::message('Max file size is 525 MB.');
         }
 
+        $sizeLimit = $this->attachmentSizeLimit($cipher, 0);
+        if ($sizeLimit !== null && $size > $sizeLimit) {
+            throw ApiError::message('Attachment storage limit exceeded with this file');
+        }
+
         $attachmentId = Attachment::generateId();
         Attachment::new($attachmentId, $cipher->uuid, $fileName, $size, $key)->save();
+        $this->notifyAttachmentCreated($cipher, $headers);
 
         return Json::response(Json::sorted([
             'object' => 'attachment-fileUpload',
@@ -1027,12 +1073,7 @@ final readonly class CiphersController
         }
 
         // The v2 record already counts towards the limit.
-        $sizeAdjust = $attachment === null ? 0 : $attachment->file_size;
-        $sizeLimit = match (true) {
-            $cipher->user_uuid !== null => $this->attachmentSpaceLeft('user_attachment_limit', Attachment::sizeByUser($cipher->user_uuid), $sizeAdjust),
-            $cipher->organization_uuid !== null => $this->attachmentSpaceLeft('org_attachment_limit', Attachment::sizeByOrg($cipher->organization_uuid), $sizeAdjust),
-            default => throw ApiError::message('Cipher is neither owned by a user nor an organization'),
-        };
+        $sizeLimit = $this->attachmentSizeLimit($cipher, $attachment === null ? 0 : $attachment->file_size);
         if ($sizeLimit !== null && $size > $sizeLimit) {
             throw ApiError::message('Attachment storage limit exceeded with this file');
         }
@@ -1066,13 +1107,39 @@ final readonly class CiphersController
 
         $data->store(Attachment::path($cipherId, $fileId));
 
+        // With the v2 API, postAttachmentV2() already did this when it created the attachment record
+        if ($attachment === null) {
+            $this->notifyAttachmentCreated($cipher, $headers);
+        }
+
+        return $cipher;
+    }
+
+    /**
+     * ciphers::notify_attachment_created: sends the cipher update to the clients and logs the attachment event.
+     */
+    private function notifyAttachmentCreated(Cipher $cipher, Headers $headers): void
+    {
         $this->nt->sendCipherUpdate(UpdateType::SyncCipherUpdate, $cipher, $cipher->updateUsersRevision(), $headers->device);
 
         if ($cipher->organization_uuid !== null) {
             self::logEvent(Event::CIPHER_ATTACHMENT_CREATED, $cipher->uuid, $cipher->organization_uuid, $headers);
         }
+    }
 
-        return $cipher;
+    /**
+     * ciphers::attachment_size_limit: the bytes left for the cipher's owner, null when unlimited.
+     * $sizeAdjust credits a v2 attachment whose record already counts as used.
+     *
+     * @throws ApiError
+     */
+    private function attachmentSizeLimit(Cipher $cipher, int $sizeAdjust): ?int
+    {
+        return match (true) {
+            $cipher->user_uuid !== null => $this->attachmentSpaceLeft('user_attachment_limit', Attachment::sizeByUser($cipher->user_uuid), $sizeAdjust),
+            $cipher->organization_uuid !== null => $this->attachmentSpaceLeft('org_attachment_limit', Attachment::sizeByOrg($cipher->organization_uuid), $sizeAdjust),
+            default => throw ApiError::message('Cipher is neither owned by a user nor an organization'),
+        };
     }
 
     /**

@@ -255,6 +255,12 @@ class OrganizationTest extends DifferentialTestCase
             $steps['member updates now'] = self::sortedIds($server->json('PUT', "/api/ciphers/{$cipher}", self::note($memberUserId, '2.by-member', ['organizationId' => $org]), $member), 'collectionIds');
 
             $personal = CipherTest::note($server, $member, $memberUserId, '2.mine');
+            $steps['share without organization'] = $server->json('PUT', "/api/ciphers/{$personal}/share", ['cipher' => self::note($memberUserId, '2.mine'),
+                'collectionIds' => [$second]], $member);
+            $steps['share without collections'] = $server->json('POST', "/api/ciphers/{$personal}/share", ['cipher' => self::note($memberUserId, '2.mine', ['organizationId' => $org]),
+                'collectionIds' => []], $member);
+            $steps['bulk share without organization'] = $server->json('PUT', '/api/ciphers/share', ['ciphers' => [self::note($memberUserId, '2.mine', ['id' => $personal])],
+                'collectionIds' => [$second]], $member);
             $steps['share into a read-only collection'] = $server->json('PUT', "/api/ciphers/{$personal}/share", ['cipher' => self::note($memberUserId, '2.mine', ['organizationId' => $org]),
                 'collectionIds' => [$first]], $member);
             $steps['share'] = $server->json('POST', "/api/ciphers/{$personal}/share", ['cipher' => self::note($memberUserId, '2.mine', ['organizationId' => $org]),

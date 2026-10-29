@@ -136,8 +136,8 @@ Route::prefix('/api')->group(function (): void {
     Route::post('/ciphers', [CiphersController::class, 'postCiphers'])->name('core::ciphers::post_ciphers');
     Route::put('/ciphers/{cipherId}', [CiphersController::class, 'putCipher'])->name('core::ciphers::put_cipher');
     Route::post('/ciphers/{cipherId}', [CiphersController::class, 'putCipher'])->name('core::ciphers::post_cipher');
-    Route::put('/ciphers/{cipherId}/admin', [CiphersController::class, 'putCipher'])->name('core::ciphers::put_cipher_admin');
-    Route::post('/ciphers/{cipherId}/admin', [CiphersController::class, 'putCipher'])->name('core::ciphers::post_cipher_admin');
+    Route::put('/ciphers/{cipherId}/admin', [CiphersController::class, 'putCipherAdmin'])->name('core::ciphers::put_cipher_admin');
+    Route::post('/ciphers/{cipherId}/admin', [CiphersController::class, 'putCipherAdmin'])->name('core::ciphers::post_cipher_admin');
     Route::put('/ciphers/{cipherId}/partial', [CiphersController::class, 'putCipherPartial'])->name('core::ciphers::put_cipher_partial');
     Route::post('/ciphers/{cipherId}/partial', [CiphersController::class, 'putCipherPartial'])->name('core::ciphers::post_cipher_partial');
     Route::put('/ciphers/{cipherId}/share', [CiphersController::class, 'putCipherShare'])->name('core::ciphers::put_cipher_share');

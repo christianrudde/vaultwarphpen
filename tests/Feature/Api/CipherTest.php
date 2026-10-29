@@ -295,6 +295,58 @@ class CipherTest extends TestCase
         $this->postJson('/api/ciphers/create', ['cipher' => $this->cipher(2, '2.x')], $this->auth)->assertStatus(422);
     }
 
+    public function test_the_organization_of_a_cipher_does_not_change_through_an_update(): void
+    {
+        // Vaultwarden 64ae55ce: moving into an organization only through the share routes.
+        $id = $this->create('2.personal');
+        $update = [...$this->cipher(2, '2.moved'), 'secureNote' => ['type' => 0], 'organizationId' => Random::uuid()];
+        foreach (['put', 'post'] as $method) {
+            $this->json($method, "/api/ciphers/{$id}", $update, $this->auth)
+                ->assertStatus(400)->assertJsonPath('message', 'Organization mismatch. Please resync the client before updating the cipher');
+            $this->json($method, "/api/ciphers/{$id}/admin", $update, $this->auth)
+                ->assertStatus(400)->assertJsonPath('message', 'Organization mismatch. Please resync the client before updating the cipher');
+        }
+        $this->assertSame('2.personal', Cipher::findByUuid($id)?->name);
+
+        $this->putJson("/api/ciphers/{$id}", [...$this->cipher(2, '2.renamed'), 'secureNote' => ['type' => 0]], $this->auth)
+            ->assertStatus(200)->assertJsonPath('name', '2.renamed');
+    }
+
+    public function test_the_admin_routes_only_take_organization_ciphers(): void
+    {
+        $id = $this->create('2.personal');
+        foreach (['put', 'post'] as $method) {
+            $this->json($method, "/api/ciphers/{$id}/admin", [...$this->cipher(2, '2.x'), 'secureNote' => ['type' => 0]], $this->auth)
+                ->assertStatus(404)->assertJsonPath('message', 'Resource not found.');
+        }
+        $this->assertSame('2.personal', Cipher::findByUuid($id)?->name);
+    }
+
+    public function test_sharing_needs_an_organization_and_collections(): void
+    {
+        $id = $this->create('2.personal');
+        $cipher = [...$this->cipher(2, '2.x'), 'secureNote' => ['type' => 0]];
+        foreach (['put', 'post'] as $method) {
+            $this->json($method, "/api/ciphers/{$id}/share", ['cipher' => $cipher, 'collectionIds' => [Random::uuid()]], $this->auth)
+                ->assertStatus(400)->assertJsonPath('message', 'Cipher OrganizationId is required.');
+            $this->json($method, "/api/ciphers/{$id}/share", ['cipher' => [...$cipher, 'organizationId' => Random::uuid()], 'collectionIds' => []], $this->auth)
+                ->assertStatus(400)->assertJsonPath('message', 'You must select at least one collection.');
+        }
+        $this->putJson('/api/ciphers/share', ['ciphers' => [[...$cipher, 'id' => $id]], 'collectionIds' => [Random::uuid()]], $this->auth)
+            ->assertStatus(400)->assertJsonPath('message', 'Cipher OrganizationId is required.');
+        $this->assertSame('2.personal', Cipher::findByUuid($id)?->name);
+    }
+
+    public function test_import_ignores_the_organization(): void
+    {
+        $this->postJson('/api/ciphers/import', ['folders' => [], 'folderRelationships' => [], 'ciphers' => [
+            [...$this->cipher(2, '2.a'), 'secureNote' => ['type' => 0], 'organizationId' => Random::uuid()],
+        ]], $this->auth)->assertStatus(200);
+        $cipher = Cipher::query()->where('name', '2.a')->first();
+        $this->assertNull($cipher?->organization_uuid);
+        $this->assertSame($this->user->uuid, $cipher?->user_uuid);
+    }
+
     public function test_import(): void
     {
         $existing = Folder::new($this->user->uuid, '2.existing');

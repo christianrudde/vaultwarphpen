@@ -111,7 +111,8 @@ security fix are marked, as a hint for the order of work, not as a filter.
 2. Update `parity/reference.json`: commit, release and, when Vaultwarden ships a new web vault,
    `web_vault`, `web_vault_digest` and the source tags in `web_vault_source` (NoticeTest fails until
    NOTICE.md names the new tags). Then `parity:fetch`, `parity:sync` and `parity:generate` (see
-   AGENTS.md).
+   AGENTS.md). The commit is also named in `README.md`, `NOTICE.md` (modification notice) and
+   `docs/configuration.md` (link to `.env.template`).
 3. Work through the added and removed items and through the list from step 1, security fixes first.
    Every fix gets a test.
 4. Push. The Reference workflow builds the new Vaultwarden and compares: differences show behaviour
