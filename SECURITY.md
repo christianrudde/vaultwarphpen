@@ -5,8 +5,8 @@ believe you have found one, please tell us privately first. Thank you!
 
 ## Status
 
-Vaultwarphpen is in early development and has not been independently audited; the findings of an
-internal review are in [docs/security-review.md](docs/security-review.md). Only the latest
+Vaultwarphpen is in early development and has not been independently audited; the findings of two
+internal reviews are in [docs/security-review.md](docs/security-review.md). Only the latest
 [release](https://github.com/christianrudde/vaultwarphpen/releases) and the latest commit on `main` are
 supported; fixes are not backported to older releases.
 

@@ -202,3 +202,81 @@ Notes without a security impact:
 - Behaviour that only shows on MySQL or PostgreSQL (collations, locking), on Windows, or under real
   concurrency; DNS rebinding was not tried against a rebinding DNS server.
 - Denial of service in general, the release pipeline and the GitHub workflows.
+
+## Second review, 29 October 2026
+
+A second internal review looked at Vaultwarphpen 0.1.2 (`a585061`) without knowing the first: eight
+reviewers, one per area, each an instance of the same AI coding assistant, none of which could read this
+document or the git history. Each started a Vaultwarden next to the port, sent the same requests to both
+and reported only what it reproduced on the running servers. The maintainers' session reproduced the
+port's findings again before fixing them. Like the first, it is not an independent audit.
+
+- **Areas:** authentication and tokens, organizations and access control, emergency access and account
+  recovery, files (attachments, Sends, the web vault), the admin panel and `config.json`, outgoing
+  requests and SSO, the notifications daemon, and what PHP and Laravel bring in.
+- **Reference:** the Vaultwarden source at the pin `64ae55c`, and a build of `0f44744` to run against; the
+  three commits between them were judged by their source. SSO and HTTPS icons were partly judged by
+  source, since that build does not trust local test certificates.
+
+### Findings that were fixed
+
+| # | Severity | Area | Problem | Vaultwarden |
+| --- | --- | --- | --- | --- |
+| 9 | High behind a proxy rule, else Low | Routing | Every route also answered below `/index.php/` | not affected |
+| 10 | Medium | Notifications daemon | One request with many query fields ended the daemon | not affected |
+| 11 | Low | Admin panel | Saving the settings left other requests briefly without `config.json` | not affected |
+| 12 | Low | Request bodies | JSON and form bodies had no size limit | not affected |
+| 13 | Low | Routing | The method could be overridden from the query string and a header | not affected |
+| 14 | Low | Admin panel | A wrong token cost two Argon2 verifications | not affected |
+| 15 | Low | Tokens | Signatures were accepted in more than one base64 spelling | not affected |
+
+**9. `/index.php/` in front of every route.** Symfony takes a script name in the URL as the base URL and
+routes the rest, so `/index.php/admin` reached the admin panel through both documented web server
+setups. A rule that keeps `/admin` to some addresses did not apply to it, which matters most where
+`DISABLE_ADMIN_TOKEN` relies on such a rule. Rocket has no such route. Fixed: `App\Http\Request` keeps the
+whole path, in the web server and in the notifications daemon. Tests: `RequestTest` and the differential
+`BasicsTest`.
+
+**10. Query fields in the notifications daemon.** `parse_str()` warns past `max_input_vars` (1,000 by
+default), and the warning was raised outside the block that handles a failed request, so one request
+without a login ended the daemon and every live connection with it. Fixed: the daemon parses the query
+itself, inside that block. Test: `ServerTest::test_a_query_with_more_fields_than_max_input_vars_is_served`.
+
+**11. Writing `config.json`.** The port reads the file on every request, where Vaultwarden reads it at
+the start. Saving truncated the file and wrote it again, and a request in between dropped it as invalid
+and ran on the environment alone: an admin token that had just been replaced in the panel worked again
+for that request (7 of 2,629 logins during 1,000 saves, with eight workers). Fixed: a new file is written
+next to it and renamed into place, keeping the old one's mode.
+
+**12. Body size.** Vaultwarden takes JSON up to 20 MB and forms up to 32 KiB and answers 413 above that.
+The port read any size; a large body ran a worker out of memory, and with `display_errors` on PHP's error
+showed the installation's path. Fixed: `Body` reads bodies like Rocket's data guards, and the request no
+longer decodes JSON before a handler asks for it. Uploads are PHP's: it stores the files of a multipart
+request before the application runs, for any address and without a login, so the
+[installation guide](installation.md#php-settings) limits them in PHP and the web server.
+
+**13. Method override.** Laravel let `_method` in the query string and the `X-HTTP-Method-Override`
+header turn a POST into another method, past rules that filter by method. Fixed: only Rocket's override
+is left, a urlencoded form that starts with a `_method` field.
+
+**14 and 15.** A wrong token against an Argon2 `ADMIN_TOKEN` was verified with PHP's and with libsodium's
+Argon2, twice the work for each guess; it is verified once now. Token signatures with the unused bits of
+their last base64 character set were accepted, so one token had sixteen spellings; they are refused now,
+like jsonwebtoken does.
+
+### Open findings and notes
+
+- **Shared with Vaultwarden:** eight more weaknesses of Vaultwarden's own behaviour, all of low severity,
+  and two suspicions that were not reproduced. As with the first review, they belong reported to
+  Vaultwarden first and are not described here.
+- **Not changed:** where Vaultwarden waits a second so that unknown addresses cannot be told apart by
+  timing (password hint, registration), a PHP worker waits with it
+  ([Configuration](configuration.md#differences-from-vaultwarden)).
+- **Checked and found equivalent**, among others: about 200 requests across organizations, members,
+  collections, groups and ciphers; 248 combinations of actor and state in emergency access; account
+  recovery and key rotation; every grant of the token endpoint and every two-step provider; session
+  invalidation after password, stamp and key changes; about 60 web vault paths; attachment and Send
+  storage paths and download tokens; SSRF through 18 notations of internal addresses, redirects and the
+  icon cache; the SVG filter against script, event handlers, external entities and `javascript:` links;
+  the SSO binding cookie, state, nonce, PKCE and account linking; WebSocket frames, hub logins and the
+  channel's signatures; escaping and CSRF in the admin panel.
