@@ -48,6 +48,7 @@ says as much about what may still be there as about what is gone.
 | 5 | Medium (Windows) | Web vault | `\` in a path leads out of the web vault folder | not affected |
 | 6 | Low | Notifications daemon | `X_Real_IP` counted as `X-Real-IP` | not affected |
 | 7 | Low | Web vault | A NUL byte in a path gives a 500 and an error in the log | not affected |
+| 8 | Low | Notifications daemon | A few connections run the daemon out of memory or descriptors | not affected |
 
 ### 1. Manager guard checks another collection than the route changes
 
@@ -128,16 +129,33 @@ connections per address. Web servers drop these headers before PHP; the daemon n
 `is_file()` throws on a NUL byte; the request ended as a 500 with an error in the log instead of
 Rocket's 404. Fixed in `WebController::webVaultFile`.
 
+### 8. Memory and descriptors of the notifications daemon
+
+Vaultwarden gives each WebSocket a task of its own; the daemon holds all of them in one PHP process,
+within PHP's `memory_limit` (128 MB by default). It took tungstenite's limits of 16 MiB per frame and
+64 MiB per message, request bodies of 1 MiB before the upgrade from any number of connections, and kept
+up to 16 MiB of unsent output per client. A handful of connections to the anonymous hub, each sending
+part of a large frame, or about 130 unfinished requests ended the daemon with a fatal error; live sync
+stopped until it was restarted. About a thousand connections stopped it as well, without ending it:
+`stream_select()` fails for every socket once one descriptor reaches `FD_SETSIZE`. Requests on the local
+channel had no limit either.
+
+Fixed: incoming messages are limited to 32 KiB, like the default of ASP.NET Core SignalR, which the
+official server uses (the clients send a few bytes); request bodies to 8 KiB; unfinished requests to 64,
+the oldest making way for a new connection; connections to 800, anonymous ones to 200 in all; unsent
+output to 256 KiB per client; and what all connections hold together to 32 MiB, past which those holding
+the most are dropped. As in Vaultwarden, a client is not read while output waits for it. The channel
+takes 128 requests at a time and drops one that sends an unsigned line. Tests: `DaemonTest`,
+`ServerTest`. In a trial with 790 connections each sending 64 KiB of a message, the daemon dropped the
+279 holding the most and stayed below 70 MB.
+
 ## Open findings
 
 Findings that are not fixed are not described here while they are open; the maintainers have the
 details. Please report anything new privately, as [SECURITY.md](../SECURITY.md) describes.
 
-- **In Vaultwarphpen only:** two, both of the notifications daemon: a denial of service (out of scope of
-  the security policy, but worth smaller limits) and hardening of the local channel between PHP and the
-  daemon. Until they are fixed, run the daemon as a service that restarts it (see the
-  [installation documentation](installation.md#live-notifications)) and keep a TCP
-  `NOTIFICATIONS_SOCKET` on the loopback interface.
+- **In Vaultwarphpen only:** one, of the notifications daemon: hardening of the local channel between
+  PHP and the daemon. Until it is fixed, keep a TCP `NOTIFICATIONS_SOCKET` on the loopback interface.
 - **Shared with Vaultwarden:** eleven weaknesses of Vaultwarden's own behaviour, most of them of low
   severity. The port keeps Vaultwarden's behaviour until the maintainers decide otherwise; they belong
   reported to Vaultwarden first.

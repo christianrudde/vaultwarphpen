@@ -379,8 +379,10 @@ RequestHeader set X-Real-IP "%{REMOTE_ADDR}s"
 ```
 
 The daemon reads the client's address from `IP_HEADER` like Vaultwarden (`X-Real-IP` from a local proxy
-by default); the anonymous hub allows 25 connections per address. It is a single PHP process: it can
-hold about a thousand connections at a time, as many as PHP's `stream_select()` allows.
+by default); the anonymous hub allows 25 connections per address and 200 in all. It is a single PHP
+process, so it holds at most 800 connections at a time (PHP's `stream_select()` handles about a
+thousand), drops a client that leaves more than 256 KB unread and keeps what all connections hold below
+32 MB. PHP's default `memory_limit` of 128M is enough for that.
 
 ### Push notifications for the mobile apps
 

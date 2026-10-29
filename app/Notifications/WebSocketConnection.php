@@ -6,8 +6,7 @@ use RuntimeException;
 
 /**
  * A client of the notifications daemon: an HTTP request until a hub accepts
- * it, then a WebSocket in the server role, framed like tungstenite with its
- * default limits.
+ * it, then a WebSocket in the server role, framed like tungstenite.
  */
 final class WebSocketConnection
 {
@@ -21,9 +20,13 @@ final class WebSocketConnection
 
     public const int PONG = 0xA;
 
-    private const int MAX_FRAME_SIZE = 16 << 20;
+    // tungstenite allows frames of 16 MiB and messages of 64 MiB, in a task per connection. One PHP
+    // process holds every connection, so incoming messages are limited like the default
+    // MaximumReceiveMessageSize of ASP.NET Core SignalR, which the official server uses. The clients
+    // only send the handshake, pings and pongs of a few bytes.
+    public const int MAX_FRAME_SIZE = 32 << 10;
 
-    private const int MAX_MESSAGE_SIZE = 64 << 20;
+    public const int MAX_MESSAGE_SIZE = 32 << 10;
 
     public string $input = '';
 
@@ -125,6 +128,14 @@ final class WebSocketConnection
         }
 
         return $messages;
+    }
+
+    /**
+     * The bytes the connection holds: unread input, the fragments of a message and unsent output.
+     */
+    public function buffered(): int
+    {
+        return strlen($this->input) + strlen($this->fragments) + strlen($this->output);
     }
 
     /**
