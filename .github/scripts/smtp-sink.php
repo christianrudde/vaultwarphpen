@@ -1,7 +1,7 @@
 <?php
 
 /**
- * A minimal SMTP server for the differential tests: it accepts every mail
+ * A minimal SMTP server for the differential and client tests: it accepts every mail
  * and writes it, as received, to <dir>/<sequence>.eml. No TLS, no auth.
  *
  * Usage: php smtp-sink.php <port> <dir>

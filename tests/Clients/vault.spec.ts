@@ -1,10 +1,11 @@
-import { test, expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
+import { test, expect, type BrowserContext, type Page } from '@playwright/test';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Authenticator } from './support/authenticator';
-import { Cli } from './support/cli';
+import { Cli, named, type Item, type Named } from './support/cli';
 import {
-    choose, clearTheWay, createAccount, expectToast, expectVault, logIn, logOut, newItem, openItem, unlock, type Account,
+    choose, clearTheWay, createAccount, expectToast, expectVault, logIn, logOut, newContext, newItem, openItem, unlock,
+    type Account,
 } from './support/web-vault';
 
 // One account goes through the web vault and then through the CLI: each test builds on the ones
@@ -23,48 +24,6 @@ let context: BrowserContext;
 let page: Page;
 let authenticator: Authenticator;
 let sendUrl: string;
-
-interface Item {
-    id: string;
-    type: number;
-    name: string;
-    notes: string | null;
-    folderId: string | null;
-    organizationId: string | null;
-    collectionIds: string[];
-    login?: { username: string | null; password: string | null; uris: { uri: string }[] };
-    secureNote?: { type: number };
-    card?: { cardholderName: string; brand: string; number: string; expMonth: string; expYear: string; code: string };
-    passwordHistory: { password: string }[] | null;
-    attachments?: { fileName: string }[];
-}
-
-interface Named {
-    id: string;
-    name: string;
-}
-
-function named<T extends Named>(list: T[], name: string): T {
-    const found = list.find((entry) => entry.name === name);
-    expect(found, `${name} in ${JSON.stringify(list.map((entry) => entry.name))}`).toBeDefined();
-
-    return found!;
-}
-
-/** A browser context of its own, like another person's browser. */
-async function newContext(browser: Browser): Promise<BrowserContext> {
-    const created = await browser.newContext({
-        baseURL: process.env.VW_CLIENTS_URL,
-        ignoreHTTPSErrors: true,
-        locale: 'en-US',
-        timezoneId: 'UTC',
-        acceptDownloads: true,
-    });
-    created.setDefaultTimeout(20_000);
-    created.setDefaultNavigationTimeout(30_000);
-
-    return created;
-}
 
 test.beforeAll(async ({ browser }) => {
     context = await newContext(browser);

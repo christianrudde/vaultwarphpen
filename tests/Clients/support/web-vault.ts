@@ -1,10 +1,25 @@
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type Browser, type BrowserContext, type Locator, type Page } from '@playwright/test';
 import type { Authenticator } from './authenticator';
 
 export interface Account {
     email: string;
     name: string;
     password: string;
+}
+
+/** A browser context of its own, like another person's browser. */
+export async function newContext(browser: Browser): Promise<BrowserContext> {
+    const created = await browser.newContext({
+        baseURL: process.env.VW_CLIENTS_URL,
+        ignoreHTTPSErrors: true,
+        locale: 'en-US',
+        timezoneId: 'UTC',
+        acceptDownloads: true,
+    });
+    created.setDefaultTimeout(20_000);
+    created.setDefaultNavigationTimeout(30_000);
+
+    return created;
 }
 
 /**

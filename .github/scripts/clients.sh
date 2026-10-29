@@ -11,7 +11,8 @@
 #
 # Needs the web vault in WEB_VAULT_FOLDER (php artisan vaultwarden:web-vault) and
 # `npm ci` and `npx playwright install chromium` in tests/Clients. PHP is `php`
-# unless PHP names another. Ports 8100, 8101 and 8443 must be free.
+# unless PHP names another; it also runs the SMTP sink, which keeps the mail the
+# server sends for the tests. Ports 8100, 8101, 8102 and 8443 must be free.
 
 set -euo pipefail
 
@@ -29,7 +30,7 @@ root="$(pwd)"
 work="$(mktemp -d)"
 mkdir -p "${work}/data"
 
-for port in 8100 8101 8443; do
+for port in 8100 8101 8102 8443; do
     if (echo > "/dev/tcp/127.0.0.1/${port}") 2> /dev/null; then
         echo "::error::Port ${port} is in use."
         exit 1
@@ -62,6 +63,15 @@ if [[ ! -f "${WEB_VAULT_FOLDER}index.html" ]]; then
     exit 1
 fi
 
+# Invitations reach their accounts by mail, as they would in production: the server sends it to a sink
+# that keeps every message in a folder the tests read.
+"${php}" .github/scripts/smtp-sink.php 8102 "${work}/mail" > "${work}/sink.log" 2>&1 &
+pids+=($!)
+export SMTP_HOST=127.0.0.1 SMTP_PORT=8102 SMTP_SECURITY=off SMTP_FROM=vaultwarden@example.com SMTP_TIMEOUT=5
+# Every client connects from 127.0.0.1, where people would each have an address of their own: the login
+# limit allows the default burst of 10 for each of the tests' accounts. The other limits are the defaults.
+export LOGIN_RATELIMIT_MAX_BURST="${LOGIN_RATELIMIT_MAX_BURST:-30}"
+
 if [[ -n "${binary}" ]]; then
     ROCKET_ADDRESS=127.0.0.1 ROCKET_PORT=8100 "${binary}" > "${work}/server.log" 2>&1 &
     pids+=($!)
@@ -90,10 +100,10 @@ for attempt in $(seq 60); do
     sleep 1
 done
 
-export VW_CLIENTS_URL="${url}" NODE_EXTRA_CA_CERTS="${work}/ca.pem"
+export VW_CLIENTS_URL="${url}" VW_CLIENTS_MAIL="${work}/mail" NODE_EXTRA_CA_CERTS="${work}/ca.pem"
 if [[ "${serve}" == true ]]; then
     echo "Serving ${url} (logs in ${work}). In tests/Clients, run:"
-    echo "VW_CLIENTS_URL=${url} NODE_EXTRA_CA_CERTS=${work}/ca.pem npx playwright test"
+    echo "VW_CLIENTS_URL=${url} VW_CLIENTS_MAIL=${work}/mail NODE_EXTRA_CA_CERTS=${work}/ca.pem npx playwright test"
     wait
 fi
 

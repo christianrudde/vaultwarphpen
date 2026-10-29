@@ -20,7 +20,7 @@ Drop an override once the CLI brings that release itself.
 
 ## What they do
 
-One account goes through all of it, in this order:
+In `vault.spec.ts`, one account goes through all of it, in this order:
 
 1. **Web vault:** creates the account; a folder; a login with a website, notes and an attachment (which
    it downloads and compares), a secure note and a card; edits the login's password and moves a note
@@ -44,8 +44,27 @@ One account goes through all of it, in this order:
 9. Lists the Send of the web vault and opens it with `bw receive`; sends a file and a text behind a
    password with `bw send`, which another browser opens and downloads.
 
-Not covered yet: SSO, other two-step methods than the authenticator, organization members and groups,
-emergency access, and import and export.
+In `sharing.spec.ts`, two accounts work together, each in a browser of its own. What the server mails,
+they read from the SMTP sink and follow its links, as people would:
+
+1. **Web vault:** the owner creates an account with a login and a note in a folder, and an organization
+   with a login that is encrypted with the organization's key from the start.
+2. Invites a new member to the default collection. The member follows the mailed link, creates its
+   account there (which accepts the invitation), and gives itself a name.
+3. The owner confirms the member after comparing the fingerprint phrase with the one the member's account
+   shows: it encrypts the organization's key with the public key the server hands out. The member opens
+   the organization's login in the web vault, and the CLI logs in and decrypts it.
+4. **Emergency access:** the owner makes the member an emergency contact with view access. The member
+   accepts from the mailed link, the owner confirms (the account key, encrypted with the member's public
+   key), the member requests access and the owner approves at once, without waiting. The member sees the
+   owner's own items, not the organization's, and opens one. Every step mails the other account.
+5. **Export and import:** the owner exports its vault as plain JSON and as JSON encrypted with a file
+   password. The member imports the encrypted file in the web vault, and the CLI lists the imported items
+   and folder, which match the plain export.
+
+Not covered yet: SSO, other two-step methods than the authenticator, groups and the other member roles,
+invitations of existing accounts to an organization, emergency access takeover and its waiting time,
+account-restricted, CSV and zip exports, and imports from other password managers.
 
 ## How it runs
 
@@ -58,7 +77,13 @@ database and the web vault, and runs the tests:
   `DOMAIN` is the proxy's address. WebSocket requests go to the daemon, as a reverse proxy in
   production would send them.
 - The browser accepts the certificate; the CLI trusts the authority through `NODE_EXTRA_CA_CERTS`.
-- Each run uses a new data folder, and the server's default settings, rate limits included.
+- An SMTP sink ([`smtp-sink.php`](../.github/scripts/smtp-sink.php), port 8102), to which the server sends its
+  mail. It keeps every message in a folder of the run, `VW_CLIENTS_MAIL`, which
+  [`support/mail.ts`](../tests/Clients/support/mail.ts) reads.
+- Each run uses a new data folder, and the server's default settings, with two exceptions: the SMTP
+  settings, and a login burst (`LOGIN_RATELIMIT_MAX_BURST`) of 30 instead of 10. Every client connects from
+  127.0.0.1, where people would each have an address of their own, so the burst allows the default for
+  each of the tests' three accounts.
 
 `clients.sh --vaultwarden <binary>` runs the same tests against Vaultwarden, which serves the same web
 vault and its hubs itself. The [Clients](../.github/workflows/clients.yml) workflow runs the tests on
@@ -89,14 +114,14 @@ and run the tests from the repository's root. `PHP` names another PHP binary tha
 .github/scripts/clients.sh
 ```
 
-Ports 8100, 8101 and 8443 must be free. For Vaultwarden, pass its binary:
+Ports 8100, 8101, 8102 and 8443 must be free. For Vaultwarden, pass its binary:
 
 ```bash
 .github/scripts/clients.sh --vaultwarden /path/to/vaultwarden
 ```
 
 To work on the tests, `--serve` starts the servers and keeps them running; it prints the environment
-for `npx playwright test` in `tests/Clients` (add `--ui` or `--headed` to watch). The rate limits are
-Vaultwarden's, so many runs against one server need higher ones, for example
-`LOGIN_RATELIMIT_MAX_BURST=1000 UNAUTHENTICATED_RATELIMIT_MAX_BURST=1000`. The tests create a new
-account each time.
+for `npx playwright test` in `tests/Clients` (add `--ui` or `--headed` to watch). Many runs against one
+server need higher rate limits, for example
+`LOGIN_RATELIMIT_MAX_BURST=1000 UNAUTHENTICATED_RATELIMIT_MAX_BURST=1000` in front of `clients.sh`. The
+tests create new accounts each time.
