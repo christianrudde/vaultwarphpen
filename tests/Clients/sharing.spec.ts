@@ -143,6 +143,11 @@ test('invites a member, who joins with a new account from the mail', async () =>
 
 test('confirms the member, who decrypts the shared item', async () => {
     await revisit(ownerPage, membersUrl);
+    // The list sorts its rows once it has them all, which can move the owner's row under the pointer; the
+    // filter leaves the member's alone. Its radio buttons hide behind labels that show nothing but a count.
+    const filter = ownerPage.getByRole('radiogroup', { name: 'Member status filter' });
+    await filter.locator('label[aria-label="Needs confirmation"]').click();
+    await expect(filter.getByRole('radio', { name: 'Needs confirmation' })).toBeChecked();
     const row = ownerPage.getByRole('row', { name: new RegExp(member.email) });
     await expect(row.getByText('Needs confirmation')).toBeVisible();
     await row.getByRole('button', { name: 'Options' }).click();
