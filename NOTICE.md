@@ -287,7 +287,7 @@ All runtime licenses are compatible with the AGPL-3.0: MIT, BSD-3-Clause and Apa
 | `vlucas/phpdotenv` | BSD-3-Clause | <https://github.com/phpdotenv/phpdotenv> |
 | `voku/portable-ascii` | MIT | <https://github.com/voku/portable-ascii> |
 
-### Development (36)
+### Development (38)
 
 | Package | License | Source |
 |---|---|---|
@@ -318,6 +318,8 @@ All runtime licenses are compatible with the AGPL-3.0: MIT, BSD-3-Clause and Apa
 | `sebastian/diff` | BSD-3-Clause | <https://github.com/sebastianbergmann/diff> |
 | `sebastian/environment` | BSD-3-Clause | <https://github.com/sebastianbergmann/environment> |
 | `sebastian/exporter` | BSD-3-Clause | <https://github.com/sebastianbergmann/exporter> |
+| `sebastian/file-filter` | BSD-3-Clause | <https://github.com/sebastianbergmann/file-filter> |
+| `sebastian/git-state` | BSD-3-Clause | <https://github.com/sebastianbergmann/git-state> |
 | `sebastian/global-state` | BSD-3-Clause | <https://github.com/sebastianbergmann/global-state> |
 | `sebastian/lines-of-code` | BSD-3-Clause | <https://github.com/sebastianbergmann/lines-of-code> |
 | `sebastian/object-enumerator` | BSD-3-Clause | <https://github.com/sebastianbergmann/object-enumerator> |
